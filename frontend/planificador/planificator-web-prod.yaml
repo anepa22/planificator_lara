@@ -1,0 +1,137 @@
+# AnepaVps (k3s) — Frontend Planificator Lara / TBD (namespace prod)
+# Image: ghcr.io/anepa22/planificator-web-lara:sha-<commit>-prod (rebuild por path)
+# URL de prueba: https://anepacloud.ddns.net/prod/planificator-lara
+# (el prod oficial viejo sigue en lenceria-lara.ddns.net — cutover más adelante)
+# Aplicar: kubectl apply -f frontend/planificador/planificator-web-prod.yaml
+#
+# Prerrequisitos:
+#   - Secret ghcr-cred en ns prod
+#   - Service planificator-api-lara en ns prod
+#   - Imagen built con VITE_BASE=/prod/planificator-lara/
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planificator-web-lara
+  namespace: prod
+  labels:
+    app: planificator-lara
+    tier: web
+    environment: lara
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planificator-lara
+      tier: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: planificator-lara
+        tier: web
+        environment: lara
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: anepavps
+      imagePullSecrets:
+        - name: ghcr-cred
+      containers:
+        - name: web
+          image: ghcr.io/anepa22/planificator-web-lara:sha-placeholder-prod
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: PLANIFICATOR_ENV
+              value: production
+            - name: API_UPSTREAM
+              value: planificator-api-lara:8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planificator-web-lara
+  namespace: prod
+  labels:
+    app: planificator-lara
+    tier: web
+    environment: lara
+spec:
+  type: ClusterIP
+  selector:
+    app: planificator-lara
+    tier: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-planificator-web-lara
+  namespace: prod
+spec:
+  stripPrefix:
+    prefixes:
+      - /prod/planificator-lara
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: planificator-web-lara
+  namespace: prod
+  labels:
+    app: planificator-lara
+    tier: web
+    environment: lara
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: prod-strip-planificator-web-lara@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - anepacloud.ddns.net
+  rules:
+    - host: anepacloud.ddns.net
+      http:
+        paths:
+          - path: /prod/planificator-lara
+            pathType: Prefix
+            backend:
+              service:
+                name: planificator-web-lara
+                port:
+                  number: 80

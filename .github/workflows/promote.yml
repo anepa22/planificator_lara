@@ -1,18 +1,22 @@
 # =============================================================================
-# Planificator Lara (TBD) — Promote artefacto → test
+# Planificator Lara (TBD) — Promote artefacto → test | prod
 # =============================================================================
 #
-# No hay merge a rama test. Promovés el SHA que ya corriste en dev:
+# No hay merge a ramas de ambiente. Promovés el SHA validado:
 #   Actions → "Lara Promote" → Run workflow
-#     sha: <commit ya deployado en dev>
-#     environment: test
+#     sha: <commit>
+#     environment: test | prod
 #
 # API: misma imagen :sha-<commit> (sin rebuild)
-# Web: rebuild con VITE_BASE del destino → tag :sha-<commit>-test
-#       (no pisa la caja web de dev)
+# Web: rebuild con VITE_BASE del destino → tag :sha-<commit>-test|prod
+#
+# URL prueba prod: https://anepacloud.ddns.net/prod/planificator-lara
+# Cutover del dominio oficial (lenceria-lara.ddns.net): más adelante
 #
 # Secrets: ANEPAVPS_HOST, ANEPAVPS_USER, ANEPAVPS_SSH_KEY, GHCR_PAT
-# Cluster ns test: secrets planificator-api + ghcr-cred
+# Cluster: secrets planificator-api + ghcr-cred en el ns destino
+#
+# Tip: en GitHub → Settings → Environments → "prod" → Required reviewers
 # =============================================================================
 
 name: Lara Promote
@@ -30,6 +34,7 @@ on:
         type: choice
         options:
           - test
+          - prod
 
 env:
   API_IMAGE: ghcr.io/anepa22/planificator-api-lara
@@ -42,6 +47,7 @@ jobs:
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
       namespace: ${{ steps.env.outputs.namespace }}
+      env_name: ${{ steps.env.outputs.env_name }}
       vite_base: ${{ steps.env.outputs.vite_base }}
       vite_api_url: ${{ steps.env.outputs.vite_api_url }}
     steps:
@@ -63,8 +69,15 @@ jobs:
           case "${{ inputs.environment }}" in
             test)
               echo "namespace=test" >> "$GITHUB_OUTPUT"
+              echo "env_name=test" >> "$GITHUB_OUTPUT"
               echo "vite_base=/test/planificator-lara/" >> "$GITHUB_OUTPUT"
               echo "vite_api_url=/test/planificator-lara" >> "$GITHUB_OUTPUT"
+              ;;
+            prod)
+              echo "namespace=prod" >> "$GITHUB_OUTPUT"
+              echo "env_name=prod" >> "$GITHUB_OUTPUT"
+              echo "vite_base=/prod/planificator-lara/" >> "$GITHUB_OUTPUT"
+              echo "vite_api_url=/prod/planificator-lara" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "::error::unsupported environment"
@@ -93,6 +106,7 @@ jobs:
   promote-api:
     needs: setup
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
     steps:
@@ -107,7 +121,7 @@ jobs:
           host: ${{ secrets.ANEPAVPS_HOST }}
           username: ${{ secrets.ANEPAVPS_USER }}
           key: ${{ secrets.ANEPAVPS_SSH_KEY }}
-          source: backend/planificator/planificator-api-test.yaml
+          source: backend/planificator/planificator-api-${{ needs.setup.outputs.env_name }}.yaml
           target: /tmp/
           overwrite: true
           strip_components: 2
@@ -124,10 +138,11 @@ jobs:
             set -euo pipefail
             export KUBECONFIG="${HOME}/.kube/config"
             NS="${{ needs.setup.outputs.namespace }}"
+            ENV_NAME="${{ needs.setup.outputs.env_name }}"
             SHA="${{ needs.setup.outputs.sha }}"
             IMG="${{ env.API_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}"
 
-            kubectl apply -f /tmp/planificator-api-test.yaml
+            kubectl apply -f "/tmp/planificator-api-${ENV_NAME}.yaml"
 
             kubectl -n "${NS}" set image \
               deployment/planificator-api-lara \
@@ -138,11 +153,12 @@ jobs:
               --timeout=300s
 
             kubectl -n "${NS}" get pods -l app=planificator-lara,tier=api -o wide
-            echo "OK API promote ${IMG}"
+            echo "OK API promote ${IMG} → ${NS}"
 
   promote-web:
     needs: setup
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
       packages: write
@@ -182,7 +198,7 @@ jobs:
           host: ${{ secrets.ANEPAVPS_HOST }}
           username: ${{ secrets.ANEPAVPS_USER }}
           key: ${{ secrets.ANEPAVPS_SSH_KEY }}
-          source: frontend/planificador/planificator-web-test.yaml
+          source: frontend/planificador/planificator-web-${{ needs.setup.outputs.env_name }}.yaml
           target: /tmp/
           overwrite: true
           strip_components: 2
@@ -199,11 +215,12 @@ jobs:
             set -euo pipefail
             export KUBECONFIG="${HOME}/.kube/config"
             NS="${{ needs.setup.outputs.namespace }}"
+            ENV_NAME="${{ needs.setup.outputs.env_name }}"
             SHA="${{ needs.setup.outputs.sha }}"
             ENV="${{ inputs.environment }}"
             IMG="${{ env.WEB_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}-${ENV}"
 
-            kubectl apply -f /tmp/planificator-web-test.yaml
+            kubectl apply -f "/tmp/planificator-web-${ENV_NAME}.yaml"
 
             kubectl -n "${NS}" set image \
               deployment/planificator-web-lara \
@@ -214,4 +231,4 @@ jobs:
               --timeout=300s
 
             kubectl -n "${NS}" get pods -l app=planificator-lara,tier=web -o wide
-            echo "OK Web promote ${IMG}"
+            echo "OK Web promote ${IMG} → ${NS}"

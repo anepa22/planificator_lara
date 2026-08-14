@@ -1,0 +1,124 @@
+# AnepaVps (k3s) — API Planificator Lara / TBD (namespace prod)
+# Image: ghcr.io/anepa22/planificator-api-lara:sha-<commit> (misma caja que en dev/test)
+# Postgres: Service postgres en ns prod · Base: planificator_db_prod
+# Aplicar: kubectl apply -f backend/planificator/planificator-api-prod.yaml
+#
+# No pisa planificator-api (viejo). Misma DB prod — no tengas ambas APIs activas a la vez.
+# Cutover del dominio oficial: más adelante.
+#
+# Prerrequisitos en ns prod:
+#   - Secret planificator-api, Secret ghcr-cred
+#   - Service/DB postgres (planificator_db_prod)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planificator-api-lara
+  namespace: prod
+  labels:
+    app: planificator-lara
+    tier: api
+    environment: lara
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planificator-lara
+      tier: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: planificator-lara
+        tier: api
+        environment: lara
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: anepavps
+      imagePullSecrets:
+        - name: ghcr-cred
+      containers:
+        - name: api
+          image: ghcr.io/anepa22/planificator-api-lara:sha-placeholder
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PLANIFICATOR_ENV
+              value: production
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/planificator_db_prod
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: JWT_SECRET
+            - name: JWT_EXPIRATION_HOURS
+              value: "12"
+            - name: CORS_ORIGINS
+              value: "*"
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m -Duser.timezone=UTC"
+            - name: SPRINGDOC_API_DOCS_ENABLED
+              value: "true"
+            - name: SPRINGDOC_SWAGGER_UI_ENABLED
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /api/locations
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/locations
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planificator-api-lara
+  namespace: prod
+  labels:
+    app: planificator-lara
+    tier: api
+    environment: lara
+spec:
+  type: ClusterIP
+  selector:
+    app: planificator-lara
+    tier: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
