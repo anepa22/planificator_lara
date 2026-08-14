@@ -1,0 +1,28 @@
+# Base — AnepaVps / runtime
+# En k3s las vars del Deployment/Secret pisan estos defaults
+# (SPRING_DATASOURCE_*, JWT_*, CORS_*, SPRINGDOC_*).
+spring:
+  application:
+    name: planificator
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/planificator_db_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:planificator_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+server:
+  port: 8080
+
+planificator:
+  jwt:
+    secret: ${JWT_SECRET:planificator-dev-secret-change-me-32chars}
+    expiration-hours: ${JWT_EXPIRATION_HOURS:12}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:*}
+
+# Off por defecto; en AnepaVps el Deployment habilita via SPRINGDOC_*
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

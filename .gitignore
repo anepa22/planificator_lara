@@ -1,0 +1,35 @@
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Env / secrets (locales)
+.env
+.env.local
+.env.*.local
+
+# Java / Maven
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# Node / Vite
+**/node_modules/
+**/dist/
+.npm
+*.log
+npm-debug.log*
+
+# Misc
+*.tmp
+*.bak

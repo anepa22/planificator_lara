@@ -1,0 +1,116 @@
+# AnepaVps (k3s) — Postgres compartido dev/test (namespace dev)
+# Deployment + Service DNS: postgres-dev-test
+# Bases: planificator_db_dev (+ planificator_db_test para ns test)
+# Usuario: planificator_app (Secret postgres)
+# Nodo: anepastg1 (PVC local-path en SSD: /mnt/storage_a/k3s/storage)
+# Aplicar: kubectl apply -f backend/planificator/postgres-dev.yaml
+#
+# Prerrequisito: Secret postgres en namespace dev
+#   (ver postgres-dev.secret.example.yaml)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-stg1
+  namespace: dev
+  labels:
+    app: postgres
+    environment: anepastg1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dev-test
+  namespace: dev
+  labels:
+    app: postgres
+    environment: anepastg1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres
+        environment: anepastg1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: anepastg1
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - planificator_app
+                - -d
+                - planificator_db_dev
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - planificator_app
+                - -d
+                - planificator_db_dev
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data-stg1
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-dev-test
+  namespace: dev
+  labels:
+    app: postgres
+    environment: anepastg1
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+      protocol: TCP

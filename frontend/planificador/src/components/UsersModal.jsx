@@ -1,0 +1,383 @@
+import { useEffect, useState } from 'react'
+import {
+  createUser,
+  deleteUser,
+  getRoles,
+  getUsers,
+  updateRolePermissions,
+  updateUser,
+  getPermissions,
+} from '../api/client'
+import { useAuth } from '../auth/AuthContext'
+import ConfirmModal from './ConfirmModal'
+
+const ROLE_LABELS = {
+  admin: 'Administrador',
+  editor: 'Editor',
+}
+
+export default function UsersModal({ open, onClose }) {
+  const { can } = useAuth()
+  const canManageUsers = can('users:manage')
+  const canManageRoles = can('roles:manage')
+
+  const [tab, setTab] = useState('users')
+  const [users, setUsers] = useState([])
+  const [roles, setRoles] = useState([])
+  const [permissions, setPermissions] = useState([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+    displayName: '',
+    roleIds: [],
+  })
+  const [editingId, setEditingId] = useState(null)
+
+  useEffect(() => {
+    if (!open) return
+    setError('')
+    setTab('users')
+    setEditingId(null)
+    setForm({
+      username: '',
+      password: '',
+      displayName: '',
+      roleIds: [],
+    })
+    reload()
+  }, [open])
+
+  async function reload() {
+    setBusy(true)
+    try {
+      const tasks = []
+      if (canManageUsers || canManageRoles) tasks.push(getRoles().then(setRoles))
+      if (canManageUsers) tasks.push(getUsers().then(setUsers))
+      if (canManageRoles) tasks.push(getPermissions().then(setPermissions))
+      await Promise.all(tasks)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!open) return null
+
+  async function handleSaveUser(e) {
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      if (editingId) {
+        await updateUser(editingId, {
+          displayName: form.displayName.trim(),
+          active: true,
+          password: form.password.trim() || null,
+          roleIds: form.roleIds,
+        })
+      } else {
+        await createUser({
+          username: form.username.trim(),
+          password: form.password,
+          displayName: form.displayName.trim(),
+          roleIds: form.roleIds,
+        })
+      }
+      setEditingId(null)
+      setForm({
+        username: '',
+        password: '',
+        displayName: '',
+        roleIds: [],
+      })
+      await reload()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDelete(user) {
+    if (user.username === 'admin') return
+    setPendingDelete(user)
+  }
+
+  async function confirmDelete() {
+    const user = pendingDelete
+    if (!user) return
+    setPendingDelete(null)
+    setBusy(true)
+    setError('')
+    try {
+      await deleteUser(user.id)
+      await reload()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function startEdit(user) {
+    setEditingId(user.id)
+    setForm({
+      username: user.username,
+      password: '',
+      displayName: user.displayName,
+      roleIds: user.roles?.length ? [...user.roles] : ['editor'],
+    })
+  }
+
+  function toggleRole(roleId) {
+    setForm((prev) => {
+      const has = prev.roleIds.includes(roleId)
+      const roleIds = has
+        ? prev.roleIds.filter((r) => r !== roleId)
+        : [...prev.roleIds, roleId]
+      return { ...prev, roleIds }
+    })
+  }
+
+  async function toggleRolePermission(role, code) {
+    if (!canManageRoles || busy) return
+    const next = role.permissionCodes.includes(code)
+      ? role.permissionCodes.filter((c) => c !== code)
+      : [...role.permissionCodes, code]
+    setBusy(true)
+    setError('')
+    try {
+      await updateRolePermissions(role.id, next)
+      await reload()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+    <div
+      className="overlay open"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !pendingDelete) onClose()
+      }}
+    >
+      <div className="modal users-modal">
+        <h3>Usuarios y roles</h3>
+        <div className="m-sub">Administrá quién entra y qué puede hacer.</div>
+        {error && <div className="m-warn">{error}</div>}
+
+        <div className="users-tabs">
+          {canManageUsers && (
+            <button
+              type="button"
+              className={`users-tab${tab === 'users' ? ' active' : ''}`}
+              onClick={() => setTab('users')}
+            >
+              Usuarios
+            </button>
+          )}
+          {canManageRoles && (
+            <button
+              type="button"
+              className={`users-tab${tab === 'roles' ? ' active' : ''}`}
+              onClick={() => setTab('roles')}
+            >
+              Roles
+            </button>
+          )}
+        </div>
+
+        {tab === 'users' && canManageUsers && (
+          <>
+            <form className="users-form" onSubmit={handleSaveUser}>
+              {!editingId && (
+                <div className="field">
+                  <label>Usuario</label>
+                  <input
+                    value={form.username}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, username: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+              )}
+              <div className="field">
+                <label>Nombre</label>
+                <input
+                  value={form.displayName}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, displayName: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="field">
+                <label>
+                  {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+                </label>
+                <input
+                  type="password"
+                  value={form.password}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                  required={!editingId}
+                  minLength={editingId ? undefined : 6}
+                />
+              </div>
+              <div className="field">
+                <label>Roles</label>
+                <div className="people-pick">
+                  {roles.map((r) => (
+                    <label className="pp-item" key={r.id}>
+                      <input
+                        type="checkbox"
+                        checked={form.roleIds.includes(r.id)}
+                        disabled={busy}
+                        onChange={() => toggleRole(r.id)}
+                      />
+                      <span className="pp-name">
+                        {ROLE_LABELS[r.code] || r.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-actions">
+                {editingId && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy}
+                    onClick={() => {
+                      setEditingId(null)
+                      setForm({
+                        username: '',
+                        password: '',
+                        displayName: '',
+                        roleIds: [],
+                      })
+                    }}
+                  >
+                    Cancelar edición
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={busy}
+                >
+                  {editingId ? 'Guardar usuario' : 'Crear usuario'}
+                </button>
+              </div>
+            </form>
+
+            <ul className="vac-list">
+              {users.map((u) => (
+                <li key={u.id}>
+                  <div className="vac-list-row">
+                    <span className="vac-list-text">
+                      <span className="pn">{u.displayName}</span>
+                      <span className="vac-list-range">
+                        {u.username}
+                        {!u.active ? ' · inactivo' : ''}
+                        {' · '}
+                        {(u.roles || [])
+                          .map((r) => ROLE_LABELS[r] || r)
+                          .join(', ')}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="vac-list-remove"
+                      disabled={busy}
+                      onClick={() => startEdit(u)}
+                    >
+                      Editar
+                    </button>
+                    {u.username !== 'admin' && (
+                      <button
+                        type="button"
+                        className="vac-list-remove"
+                        disabled={busy}
+                        onClick={() => handleDelete(u)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {tab === 'roles' && canManageRoles && (
+          <div className="roles-panel">
+            {roles.map((role) => (
+              <div className="role-block" key={role.id}>
+                <div className="role-title">
+                  {ROLE_LABELS[role.code] || role.name}
+                </div>
+                <div className="people-pick">
+                  {permissions.map((p) => (
+                    <label className="pp-item" key={p.id}>
+                      <input
+                        type="checkbox"
+                        checked={role.permissionCodes.includes(p.code)}
+                        disabled={busy}
+                        onChange={() => toggleRolePermission(role, p.code)}
+                      />
+                      <span className="pp-name">
+                        {p.name}
+                        <span className="vac-list-range"> · {p.code}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <ConfirmModal
+      open={!!pendingDelete}
+      title="Eliminar usuario"
+      message={
+        pendingDelete
+          ? `¿Eliminar el usuario ${pendingDelete.username}?`
+          : ''
+      }
+      confirmLabel="Eliminar"
+      busy={busy}
+      onClose={() => setPendingDelete(null)}
+      onConfirm={confirmDelete}
+    />
+    </>
+  )
+}

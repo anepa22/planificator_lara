@@ -1,0 +1,23 @@
+# Perfil local — IntelliJ: Active profiles = local
+# Requiere túnel PuTTY: L25432 → ClusterIP postgres:5432 (ver README.md)
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:25432/planificator_db_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:planificator_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    url: /v3/api-docs
+
+logging:
+  level:
+    ar.com.anepanet.planificator: DEBUG

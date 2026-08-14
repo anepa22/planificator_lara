@@ -1,0 +1,30 @@
+{
+  "name": "planificador",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode dev",
+    "test": "vite --mode test",
+    "local": "vite --mode localenv",
+    "prod": "vite --mode prod",
+    "build": "vite build --mode prod",
+    "build:dev": "vite build --mode dev",
+    "build:test": "vite build --mode test",
+    "build:local": "vite build --mode localenv",
+    "build:prod": "vite build --mode prod",
+    "lint": "oxlint",
+    "preview": "vite preview --mode prod"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "vite": "^8.1.1"
+  }
+}
