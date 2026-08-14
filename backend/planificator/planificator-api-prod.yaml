@@ -3,8 +3,8 @@
 # Postgres: Service postgres en ns prod · Base: planificator_db_prod
 # Aplicar: kubectl apply -f backend/planificator/planificator-api-prod.yaml
 #
-# No pisa planificator-api (viejo). Misma DB prod — no tengas ambas APIs activas a la vez.
-# Cutover del dominio oficial: más adelante.
+# No pisa planificator-api (viejo) por nombre. Misma DB prod — en cutover bajá el API viejo:
+#   kubectl -n prod scale deploy/planificator-api --replicas=0
 #
 # Prerrequisitos en ns prod:
 #   - Secret planificator-api, Secret ghcr-cred

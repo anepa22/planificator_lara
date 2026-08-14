@@ -1,13 +1,22 @@
-# AnepaVps (k3s) — Frontend Planificator Lara / TBD (namespace prod)
-# Image: ghcr.io/anepa22/planificator-web-lara:sha-<commit>-prod (rebuild por path)
-# URL de prueba: https://anepacloud.ddns.net/prod/planificator-lara
-# (el prod oficial viejo sigue en lenceria-lara.ddns.net — cutover más adelante)
+# AnepaVps (k3s) — Frontend Planificator Lara / TBD (namespace prod) — CUTOVER A
+# Image: ghcr.io/anepa22/planificator-web-lara:sha-<commit>-prod
+# URL oficial: https://lenceria-lara.ddns.net/  (mismo host que el stack viejo)
 # Aplicar: kubectl apply -f frontend/planificador/planificator-web-prod.yaml
 #
-# Prerrequisitos:
-#   - Secret ghcr-cred en ns prod
-#   - Service planificator-api-lara en ns prod
-#   - Imagen built con VITE_BASE=/prod/planificator-lara/
+# Imagen built con VITE_BASE=/ y VITE_API_URL vacío (browser usa /api vía nginx).
+#
+# Cutover (una vez, a mano antes/durante el Promote a prod):
+#   kubectl -n prod scale deploy/planificator-web --replicas=0
+#   kubectl -n prod scale deploy/planificator-api --replicas=0
+#   kubectl -n prod delete ingress planificator-web   # libera el host (rollback: re-apply YAML viejo)
+# Rollback si falla:
+#   kubectl -n prod scale deploy/planificator-web --replicas=1
+#   kubectl -n prod scale deploy/planificator-api --replicas=1
+#   # re-aplicar Ingress viejo del repo Planificator; scale Lara a 0 si hace falta
+#   kubectl -n prod scale deploy/planificator-web-lara --replicas=0
+#   kubectl -n prod scale deploy/planificator-api-lara --replicas=0
+#
+# Prerrequisitos: Secret ghcr-cred + Service planificator-api-lara en ns prod
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -97,16 +106,7 @@ spec:
       targetPort: http
       protocol: TCP
 ---
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: strip-planificator-web-lara
-  namespace: prod
-spec:
-  stripPrefix:
-    prefixes:
-      - /prod/planificator-lara
----
+# Sin Middleware stripPrefix: el host dedicado sirve en /
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -117,18 +117,17 @@ metadata:
     tier: web
     environment: lara
   annotations:
-    traefik.ingress.kubernetes.io/router.middlewares: prod-strip-planificator-web-lara@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - anepacloud.ddns.net
+        - lenceria-lara.ddns.net
   rules:
-    - host: anepacloud.ddns.net
+    - host: lenceria-lara.ddns.net
       http:
         paths:
-          - path: /prod/planificator-lara
+          - path: /
             pathType: Prefix
             backend:
               service:

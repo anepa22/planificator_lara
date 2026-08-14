@@ -10,13 +10,16 @@
 # API: misma imagen :sha-<commit> (sin rebuild)
 # Web: rebuild con VITE_BASE del destino → tag :sha-<commit>-test|prod
 #
-# URL prueba prod: https://anepacloud.ddns.net/prod/planificator-lara
-# Cutover del dominio oficial (lenceria-lara.ddns.net): más adelante
+# URLs:
+#   test → https://anepacloud.ddns.net/test/planificator-lara
+#   prod → https://lenceria-lara.ddns.net/  (cutover A: host oficial)
+#
+# Cutover prod (antes del Promote a prod, si el stack viejo sigue up):
+#   kubectl -n prod scale deploy/planificator-web --replicas=0
+#   kubectl -n prod scale deploy/planificator-api --replicas=0
 #
 # Secrets: ANEPAVPS_HOST, ANEPAVPS_USER, ANEPAVPS_SSH_KEY, GHCR_PAT
-# Cluster: secrets planificator-api + ghcr-cred en el ns destino
-#
-# Tip: en GitHub → Settings → Environments → "prod" → Required reviewers
+# Tip: Environments → "prod" → Required reviewers
 # =============================================================================
 
 name: Lara Promote
@@ -74,10 +77,11 @@ jobs:
               echo "vite_api_url=/test/planificator-lara" >> "$GITHUB_OUTPUT"
               ;;
             prod)
+              # Cutover A: mismo host oficial que el stack viejo (sin subpath)
               echo "namespace=prod" >> "$GITHUB_OUTPUT"
               echo "env_name=prod" >> "$GITHUB_OUTPUT"
-              echo "vite_base=/prod/planificator-lara/" >> "$GITHUB_OUTPUT"
-              echo "vite_api_url=/prod/planificator-lara" >> "$GITHUB_OUTPUT"
+              echo "vite_base=/" >> "$GITHUB_OUTPUT"
+              echo "vite_api_url=" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "::error::unsupported environment"
