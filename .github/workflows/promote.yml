@@ -73,7 +73,7 @@ jobs:
           esac
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -97,7 +97,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout at SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup.outputs.sha }}
 
@@ -148,7 +148,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout at SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.setup.outputs.sha }}
 
