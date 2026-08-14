@@ -1,0 +1,115 @@
+# =============================================================================
+# Planificator Lara (TBD) — CI/CD Web → namespace dev
+# =============================================================================
+#
+# Flujo TBD (Paso 2):
+#   push/merge a main → build Vite+nginx → tag :sha-<commit> → deploy a dev
+#   (recursos -lara; path /dev/planificator-lara; no toca el web viejo)
+#
+# Secrets: ANEPAVPS_HOST, ANEPAVPS_USER, ANEPAVPS_SSH_KEY, GHCR_PAT
+#
+# Cluster: Secret ghcr-cred + Service planificator-api-lara en ns dev
+# =============================================================================
+
+name: Lara Web Dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/planificador/**"
+      - ".github/workflows/build-deploy-web-dev.yml"
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/anepa22/planificator-web-lara
+  TAG_PREFIX: sha
+  NAMESPACE: dev
+  DEPLOYMENT: planificator-web-lara
+  MANIFEST_SRC: frontend/planificador/planificator-web-dev.yaml
+  MANIFEST_DST: /tmp/planificator-web-dev.yaml
+  VITE_BASE: /dev/planificator-lara/
+  VITE_API_URL: /dev/planificator-lara
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check secrets
+        env:
+          ANEPAVPS_HOST: ${{ secrets.ANEPAVPS_HOST }}
+          ANEPAVPS_USER: ${{ secrets.ANEPAVPS_USER }}
+          ANEPAVPS_SSH_KEY: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          for name in ANEPAVPS_HOST ANEPAVPS_USER ANEPAVPS_SSH_KEY GHCR_PAT; do
+            eval "v=\$$name"
+            [ -n "$v" ] || { echo "::error::$name empty"; exit 1; }
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Web (amd64+arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend/planificador
+          file: frontend/planificador/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          sbom: false
+          build-args: |
+            VITE_BASE=${{ env.VITE_BASE }}
+            VITE_API_URL=${{ env.VITE_API_URL }}
+          outputs: |
+            type=image,name=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }},push=true,oci-mediatypes=false
+
+      - name: Copy manifest to AnepaVps
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ANEPAVPS_HOST }}
+          username: ${{ secrets.ANEPAVPS_USER }}
+          key: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          source: ${{ env.MANIFEST_SRC }}
+          target: /tmp/
+          overwrite: true
+          strip_components: 2
+
+      - name: Deploy k3s (AnepaVps)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ANEPAVPS_HOST }}
+          username: ${{ secrets.ANEPAVPS_USER }}
+          key: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          command_timeout: 15m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            export KUBECONFIG="${HOME}/.kube/config"
+
+            kubectl apply -f "${{ env.MANIFEST_DST }}"
+
+            kubectl -n "${{ env.NAMESPACE }}" set image \
+              "deployment/${{ env.DEPLOYMENT }}" \
+              "web=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"
+
+            kubectl -n "${{ env.NAMESPACE }}" rollout status \
+              "deployment/${{ env.DEPLOYMENT }}" \
+              --timeout=300s
+
+            kubectl -n "${{ env.NAMESPACE }}" get pods -l app=planificator-lara,tier=web -o wide
+            echo "OK ${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"

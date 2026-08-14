@@ -1,0 +1,115 @@
+# =============================================================================
+# Planificator Lara (TBD) — CI/CD API → namespace dev
+# =============================================================================
+#
+# Flujo TBD (Paso 2):
+#   push/merge a main → build una vez → tag :sha-<commit> → deploy a dev
+#   (recursos -lara; no toca planificator-api del stack viejo)
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   ANEPAVPS_HOST, ANEPAVPS_USER, ANEPAVPS_SSH_KEY, GHCR_PAT
+#
+# Cluster (ya en ns dev):
+#   - Secret planificator-api, Secret ghcr-cred, Service postgres-dev-test
+#   - Si Lara usa la misma DB: scale a 0 del API viejo mientras probás
+# =============================================================================
+
+name: Lara API Dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/planificator/**"
+      - ".github/workflows/build-deploy-api-dev.yml"
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/anepa22/planificator-api-lara
+  # Tag inmutable por commit (promovible en Paso 4)
+  TAG_PREFIX: sha
+  NAMESPACE: dev
+  DEPLOYMENT: planificator-api-lara
+  MANIFEST_SRC: backend/planificator/planificator-api-dev.yaml
+  MANIFEST_DST: /tmp/planificator-api-dev.yaml
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check secrets
+        env:
+          ANEPAVPS_HOST: ${{ secrets.ANEPAVPS_HOST }}
+          ANEPAVPS_USER: ${{ secrets.ANEPAVPS_USER }}
+          ANEPAVPS_SSH_KEY: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          for name in ANEPAVPS_HOST ANEPAVPS_USER ANEPAVPS_SSH_KEY GHCR_PAT; do
+            eval "v=\$$name"
+            [ -n "$v" ] || { echo "::error::$name empty"; exit 1; }
+          done
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API (amd64+arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/planificator
+          file: backend/planificator/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          sbom: false
+          outputs: |
+            type=image,name=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }},push=true,oci-mediatypes=false
+
+      - name: Copy manifest to AnepaVps
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ANEPAVPS_HOST }}
+          username: ${{ secrets.ANEPAVPS_USER }}
+          key: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          source: ${{ env.MANIFEST_SRC }}
+          target: /tmp/
+          overwrite: true
+          strip_components: 2
+
+      - name: Deploy k3s (AnepaVps)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.ANEPAVPS_HOST }}
+          username: ${{ secrets.ANEPAVPS_USER }}
+          key: ${{ secrets.ANEPAVPS_SSH_KEY }}
+          command_timeout: 20m
+          script_stop: true
+          script: |
+            set -euo pipefail
+            export KUBECONFIG="${HOME}/.kube/config"
+
+            kubectl apply -f "${{ env.MANIFEST_DST }}"
+
+            # Tag único por commit → set image alcanza (no hace falta restart por tag móvil)
+            kubectl -n "${{ env.NAMESPACE }}" set image \
+              "deployment/${{ env.DEPLOYMENT }}" \
+              "api=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"
+
+            kubectl -n "${{ env.NAMESPACE }}" rollout status \
+              "deployment/${{ env.DEPLOYMENT }}" \
+              --timeout=300s
+
+            kubectl -n "${{ env.NAMESPACE }}" get pods -l app=planificator-lara,tier=api -o wide
+            echo "OK ${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"
