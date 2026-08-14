@@ -1,0 +1,131 @@
+# AnepaVps (k3s) — API Planificator Lara / TBD (namespace test)
+# Image: ghcr.io/anepa22/planificator-api-lara:sha-<commit> (misma caja que en dev)
+# Postgres: postgres-dev-test en ns dev · Base: planificator_db_test
+# Aplicar: kubectl apply -f backend/planificator/planificator-api-test.yaml
+#
+# No pisa planificator-api (viejo). Misma DB test — no tengas ambas APIs activas a la vez.
+#
+# Prerrequisitos en ns test:
+#   - Secret planificator-api, Secret ghcr-cred
+#   - DB planificator_db_test en el Postgres de ns dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planificator-api-lara
+  namespace: test
+  labels:
+    app: planificator-lara
+    tier: api
+    environment: lara
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: planificator-lara
+      tier: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: planificator-lara
+        tier: api
+        environment: lara
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - anepapie2
+      imagePullSecrets:
+        - name: ghcr-cred
+      containers:
+        - name: api
+          image: ghcr.io/anepa22/planificator-api-lara:sha-placeholder
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PLANIFICATOR_ENV
+              value: production
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-dev-test.dev.svc.cluster.local:5432/planificator_db_test
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: JWT_SECRET
+            - name: JWT_EXPIRATION_HOURS
+              value: "12"
+            - name: CORS_ORIGINS
+              value: "*"
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m -Duser.timezone=UTC"
+            - name: SPRINGDOC_API_DOCS_ENABLED
+              value: "true"
+            - name: SPRINGDOC_SWAGGER_UI_ENABLED
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /api/locations
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/locations
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: planificator-api-lara
+  namespace: test
+  labels:
+    app: planificator-lara
+    tier: api
+    environment: lara
+spec:
+  type: ClusterIP
+  selector:
+    app: planificator-lara
+    tier: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
