@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: "Commit SHA ya deployado en dev (completo o corto; sin prefijo sha-)"
+        description: "Commit SHA ya deployado en dev (solo el hash; tolera 'SHA-1:' o 'sha-')"
         required: true
         type: string
       environment:
@@ -81,6 +81,10 @@ jobs:
         id: resolve
         run: |
           raw="${{ inputs.sha }}"
+          # Acepta pegados tipo "SHA-1: <hash>" o "sha-<hash>": deja solo el hash
+          raw=$(printf '%s' "$raw" | tr -d '[:space:]')
+          raw="${raw#SHA-1:}"
+          raw="${raw#sha-1:}"
           raw="${raw#sha-}"
           full=$(git rev-parse --verify "${raw}^{commit}")
           echo "sha=${full}" >> "$GITHUB_OUTPUT"
