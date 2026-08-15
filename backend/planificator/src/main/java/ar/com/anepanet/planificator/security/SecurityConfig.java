@@ -56,6 +56,7 @@ public class SecurityConfig {
                         // Lectura pública del planificador (sin login)
                         .requestMatchers(HttpMethod.GET, "/api/locations", "/api/people").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shifts", "/api/shifts/summary").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/holidays").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()

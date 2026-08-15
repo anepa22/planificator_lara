@@ -4,6 +4,7 @@ import {
   createShift,
   deletePerson,
   deleteShift,
+  getHolidays,
   getLocations,
   getPeople,
   getShifts,
@@ -74,6 +75,7 @@ function App() {
   const [people, setPeople] = useState([])
   const [shifts, setShifts] = useState([])
   const [monthShifts, setMonthShifts] = useState([])
+  const [holidaysByDate, setHolidaysByDate] = useState({})
   const [view, setView] = useState('week')
   const [lunchHours, setLunchHours] = useState(() => loadLunchHours())
   const [weekOffset, setWeekOffset] = useState(0)
@@ -139,6 +141,17 @@ function App() {
   const weekStart = weekStartForOffset(weekOffset)
   const weekKey = toDateKey(weekStart)
   const monthDate = monthStartForOffset(monthOffset)
+
+  const holidayYears = useMemo(() => {
+    if (view === 'month') {
+      return [monthStartForOffset(monthOffset).getFullYear()]
+    }
+    const start = weekStartForOffset(weekOffset)
+    const end = addDays(start, 6)
+    const y0 = start.getFullYear()
+    const y1 = end.getFullYear()
+    return y0 === y1 ? [y0] : [y0, y1]
+  }, [view, weekOffset, monthOffset])
 
   const visibleMonthShifts = useMemo(() => {
     if (!monthLocFilter.length) return monthShifts
@@ -260,6 +273,33 @@ function App() {
       cancelled = true
     }
   }, [booting, view, monthOffset, reloadMonth])
+
+  useEffect(() => {
+    if (booting) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const lists = await Promise.all(holidayYears.map((y) => getHolidays(y)))
+        if (cancelled) return
+        setHolidaysByDate((prev) => {
+          const next = { ...prev }
+          for (const list of lists) {
+            for (const h of list || []) {
+              const key = String(h.date).slice(0, 10)
+              if (!key) continue
+              next[key] = { name: h.name, type: h.type }
+            }
+          }
+          return next
+        })
+      } catch {
+        // Feriados son solo visuales; no bloquear el planificador
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [booting, holidayYears])
 
   async function withBusy(fn) {
     setBusy(true)
@@ -631,6 +671,7 @@ function App() {
           weekStart={weekStart}
           selectedDay={selectedDay}
           onSelect={setSelectedDay}
+          holidaysByDate={holidaysByDate}
         />
       )}
 
@@ -679,6 +720,7 @@ function App() {
           people={visibleMonthPeople}
           shifts={visibleMonthShifts}
           lunchHours={lunchHours}
+          holidaysByDate={holidaysByDate}
           focusNonce={monthFocusNonce}
           focusDateKey={monthFocusDateKey}
           canAdd={canWriteShifts}

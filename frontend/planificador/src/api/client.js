@@ -56,6 +56,7 @@ export const changePassword = (currentPassword, newPassword) =>
 
 export const getLocations = () => api('/api/locations')
 export const getPeople = () => api('/api/people')
+export const getHolidays = (year) => api(`/api/holidays?year=${year}`)
 export const createPerson = (name) =>
   api('/api/people', { method: 'POST', body: JSON.stringify({ name }) })
 export const deletePerson = (id) => api(`/api/people/${id}`, { method: 'DELETE' })

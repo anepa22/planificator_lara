@@ -19,6 +19,7 @@ export default function MonthGantt({
   people,
   shifts,
   lunchHours = 0,
+  holidaysByDate = {},
   focusNonce = 0,
   focusDateKey = null,
   canAdd = true,
@@ -65,16 +66,19 @@ export default function MonthGantt({
     for (let day = 1; day <= nDays; day++) {
       const d = new Date(year, month, day)
       const key = toDateKey(d)
+      const holiday = holidaysByDate[key]
       list.push({
         day,
         key,
         dow: DAYS[(d.getDay() + 6) % 7],
         weekend: d.getDay() === 0 || d.getDay() === 6,
+        holiday: !!holiday,
+        holidayName: holiday?.name || null,
         currentWeek: currentWeekKeys.has(key),
       })
     }
     return list
-  }, [year, month, nDays, currentWeekKeys])
+  }, [year, month, nDays, currentWeekKeys, holidaysByDate])
 
   const byPersonDay = useMemo(() => {
     const map = new Map()
@@ -131,11 +135,15 @@ export default function MonthGantt({
             <div
               key={h.key}
               className={`gantt-day-head${h.weekend ? ' is-weekend' : ''}${
-                h.key === todayKey ? ' is-today' : ''
-              }${h.currentWeek ? ' is-current-week' : ''}`}
+                h.holiday ? ' is-holiday' : ''
+              }${h.key === todayKey ? ' is-today' : ''}${
+                h.currentWeek ? ' is-current-week' : ''
+              }`}
+              title={h.holidayName || undefined}
             >
               <span className="gantt-dow">{h.dow}</span>
               <span className="gantt-dom">{h.day}</span>
+              {h.holiday ? <span className="gantt-holiday-mark">F</span> : null}
             </div>
           ))}
         </div>
@@ -148,7 +156,9 @@ export default function MonthGantt({
                 {dayHeaders.map((h) => (
                   <div
                     key={h.key}
-                    className={`gantt-cell${h.currentWeek ? ' is-current-week' : ''}`}
+                    className={`gantt-cell${h.weekend ? ' is-weekend' : ''}${
+                      h.holiday ? ' is-holiday' : ''
+                    }${h.currentWeek ? ' is-current-week' : ''}`}
                   />
                 ))}
               </div>
@@ -191,9 +201,10 @@ export default function MonthGantt({
                     key={h.key}
                     className={`gantt-cell${
                       h.weekend ? ' is-weekend' : ''
-                    }${h.key === todayKey ? ' is-today' : ''}${
-                      h.currentWeek ? ' is-current-week' : ''
-                    }`}
+                    }${h.holiday ? ' is-holiday' : ''}${
+                      h.key === todayKey ? ' is-today' : ''
+                    }${h.currentWeek ? ' is-current-week' : ''}`}
+                    title={h.holidayName || undefined}
                   >
                     {cellShifts.map((s) => {
                       const isAbsence = isAbsenceLocation(s.locationId)

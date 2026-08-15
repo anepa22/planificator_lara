@@ -19,6 +19,9 @@ planificator:
     expiration-hours: ${JWT_EXPIRATION_HOURS:12}
   cors:
     allowed-origins: ${CORS_ORIGINS:*}
+  holidays:
+    base-url: ${HOLIDAYS_API_BASE_URL:https://api.argentinadatos.com/v1/feriados}
+    cache-ttl-hours: ${HOLIDAYS_CACHE_TTL_HOURS:24}
 
 # Off por defecto; en AnepaVps el Deployment habilita via SPRINGDOC_*
 springdoc:
