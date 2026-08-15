@@ -143,7 +143,9 @@ export default function MonthGantt({
             >
               <span className="gantt-dow">{h.dow}</span>
               <span className="gantt-dom">{h.day}</span>
-              {h.holiday ? <span className="gantt-holiday-mark">F</span> : null}
+              {h.holiday ? (
+                <span className="gantt-holiday-mark">Feriado</span>
+              ) : null}
             </div>
           ))}
         </div>
