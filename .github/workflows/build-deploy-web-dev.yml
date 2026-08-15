@@ -30,6 +30,7 @@ env:
   MANIFEST_DST: /tmp/planificator-web-dev.yaml
   VITE_BASE: /dev/planificator-lara/
   VITE_API_URL: /dev/planificator-lara
+  VITE_APP_ENV: dev
 
 jobs:
   build-and-deploy:
@@ -75,6 +76,7 @@ jobs:
           build-args: |
             VITE_BASE=${{ env.VITE_BASE }}
             VITE_API_URL=${{ env.VITE_API_URL }}
+            VITE_APP_ENV=${{ env.VITE_APP_ENV }}
           outputs: |
             type=image,name=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }},push=true,oci-mediatypes=false
 

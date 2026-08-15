@@ -53,6 +53,7 @@ jobs:
       env_name: ${{ steps.env.outputs.env_name }}
       vite_base: ${{ steps.env.outputs.vite_base }}
       vite_api_url: ${{ steps.env.outputs.vite_api_url }}
+      vite_app_env: ${{ steps.env.outputs.vite_app_env }}
     steps:
       - name: Check secrets
         env:
@@ -75,6 +76,7 @@ jobs:
               echo "env_name=test" >> "$GITHUB_OUTPUT"
               echo "vite_base=/test/planificator-lara/" >> "$GITHUB_OUTPUT"
               echo "vite_api_url=/test/planificator-lara" >> "$GITHUB_OUTPUT"
+              echo "vite_app_env=test" >> "$GITHUB_OUTPUT"
               ;;
             prod)
               # Cutover A: mismo host oficial que el stack viejo (sin subpath)
@@ -82,6 +84,7 @@ jobs:
               echo "env_name=prod" >> "$GITHUB_OUTPUT"
               echo "vite_base=/" >> "$GITHUB_OUTPUT"
               echo "vite_api_url=" >> "$GITHUB_OUTPUT"
+              echo "vite_app_env=prod" >> "$GITHUB_OUTPUT"
               ;;
             *)
               echo "::error::unsupported environment"
@@ -193,6 +196,7 @@ jobs:
           build-args: |
             VITE_BASE=${{ needs.setup.outputs.vite_base }}
             VITE_API_URL=${{ needs.setup.outputs.vite_api_url }}
+            VITE_APP_ENV=${{ needs.setup.outputs.vite_app_env }}
           outputs: |
             type=image,name=${{ env.WEB_IMAGE }}:${{ env.TAG_PREFIX }}-${{ needs.setup.outputs.sha }}-${{ inputs.environment }},push=true,oci-mediatypes=false
 
