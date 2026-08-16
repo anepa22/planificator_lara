@@ -33,7 +33,9 @@ export default function DayTabs({
             <div className="dn">{name}</div>
             <div className="dd">{d.getDate()}</div>
             {holiday ? (
-              <div className="dh">{holiday.name || 'Feriado'}</div>
+              <div className="dh">
+                <span className="dh-name">{holiday.name}</span>
+              </div>
             ) : null}
           </div>
         )
