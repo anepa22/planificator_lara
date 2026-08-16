@@ -167,7 +167,9 @@
   .day-tab .dd{font-size:16px;font-weight:800;margin-top:1px;}
   .day-tab .dh{
     font-size:9px;font-weight:800;margin-top:2px;color:var(--holiday);
-    letter-spacing:.04em;text-transform:uppercase;
+    letter-spacing:.02em;line-height:1.25;
+    max-width:100%;padding:0 2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .day-tab.is-today .dn, .day-tab.is-today .dd{color:var(--accent);}
   .day-tab.is-holiday{background:var(--holiday-soft);border-color:var(--holiday);}

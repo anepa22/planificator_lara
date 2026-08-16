@@ -4,6 +4,8 @@
 #
 # Flujo TBD (Paso 2):
 #   push/merge a main → build una vez → tag :sha-<commit> → deploy a dev
+#   (también ante cambios solo de frontend o solo de backend: cada SHA
+#    necesita ambas imágenes para poder promover)
 #   (recursos -lara; no toca planificator-api del stack viejo)
 #
 # Secrets (Settings → Secrets and variables → Actions):
@@ -21,6 +23,7 @@ on:
     branches: [main]
     paths:
       - "backend/planificator/**"
+      - "frontend/planificador/**"
       - ".github/workflows/build-deploy-api-dev.yml"
   workflow_dispatch:
 
