@@ -10,6 +10,7 @@
 # API: rebuild/push :sha-<commit> desde el fuente del SHA (así no falta imagen
 #      si el commit solo tocó frontend)
 # Web: rebuild con VITE_BASE del destino → tag :sha-<commit>-test|prod
+# Versión UI: vX.Y.Z (sha7). En prod se hace bump patch + tag git vX.Y.Z
 #
 # URLs:
 #   test → https://anepacloud.ddns.net/test/planificator-lara
@@ -48,8 +49,12 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       sha: ${{ steps.resolve.outputs.sha }}
+      sha_short: ${{ steps.version.outputs.sha_short }}
+      app_version: ${{ steps.version.outputs.app_version }}
       namespace: ${{ steps.env.outputs.namespace }}
       env_name: ${{ steps.env.outputs.env_name }}
       vite_base: ${{ steps.env.outputs.vite_base }}
@@ -97,6 +102,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve full commit SHA
         id: resolve
@@ -110,6 +116,65 @@ jobs:
           full=$(git rev-parse --verify "${raw}^{commit}")
           echo "sha=${full}" >> "$GITHUB_OUTPUT"
           echo "Promoting SHA=${full} → ${{ inputs.environment }}"
+
+      - name: Resolve app version
+        id: version
+        run: |
+          set -euo pipefail
+          SHA="${{ steps.resolve.outputs.sha }}"
+          SHORT="${SHA:0:7}"
+          echo "sha_short=${SHORT}" >> "$GITHUB_OUTPUT"
+
+          PKG_VER=$(git show "${SHA}:frontend/planificador/package.json" | node -p "JSON.parse(require('fs').readFileSync(0,'utf8')).version")
+          LATEST_TAG=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -n1 || true)
+          BASE="$PKG_VER"
+          if [ -n "${LATEST_TAG}" ]; then
+            TAG_VER="${LATEST_TAG#v}"
+            # Usar el mayor entre package.json y último tag
+            HIGHER=$(printf '%s\n%s\n' "$PKG_VER" "$TAG_VER" | sort -V | tail -n1)
+            BASE="$HIGHER"
+          fi
+
+          if [ "${{ inputs.environment }}" != "prod" ]; then
+            echo "app_version=${BASE}" >> "$GITHUB_OUTPUT"
+            echo "Version (no bump): ${BASE} (${SHORT})"
+            exit 0
+          fi
+
+          EXISTING=$(git tag --points-at "$SHA" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+          if [ -n "${EXISTING}" ]; then
+            NEW="${EXISTING#v}"
+            echo "app_version=${NEW}" >> "$GITHUB_OUTPUT"
+            echo "SHA already tagged ${EXISTING}; reuse ${NEW} (${SHORT})"
+            exit 0
+          fi
+
+          IFS=. read -r MA MI PA <<< "$BASE"
+          NEW="${MA}.${MI}.$((PA + 1))"
+          TAG="v${NEW}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$SHA" -m "Release ${TAG}"
+          git push origin "$TAG"
+
+          git fetch origin main
+          git checkout -B main origin/main
+          node <<EOF
+          const fs = require('fs');
+          const path = 'frontend/planificador/package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.version = '${NEW}';
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          EOF
+          if ! git diff --quiet -- frontend/planificador/package.json; then
+            git add frontend/planificador/package.json
+            git commit -m "chore: release ${TAG}"
+            git push origin main
+          fi
+
+          echo "app_version=${NEW}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to ${NEW} (${SHORT}), tagged ${TAG}"
 
   promote-api:
     needs: setup
@@ -220,6 +285,8 @@ jobs:
             VITE_BASE=${{ needs.setup.outputs.vite_base }}
             VITE_API_URL=${{ needs.setup.outputs.vite_api_url }}
             VITE_APP_ENV=${{ needs.setup.outputs.vite_app_env }}
+            VITE_APP_VERSION=${{ needs.setup.outputs.app_version }}
+            VITE_APP_GIT_SHA=${{ needs.setup.outputs.sha_short }}
           outputs: |
             type=image,name=${{ env.WEB_IMAGE }}:${{ env.TAG_PREFIX }}-${{ needs.setup.outputs.sha }}-${{ inputs.environment }},push=true,oci-mediatypes=false
 

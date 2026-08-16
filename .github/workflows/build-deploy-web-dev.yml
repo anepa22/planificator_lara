@@ -57,6 +57,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Resolve app version
+        id: meta
+        run: |
+          VER=$(node -p "require('./frontend/planificador/package.json').version")
+          SHORT="${GITHUB_SHA:0:7}"
+          echo "app_version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=${SHORT}" >> "$GITHUB_OUTPUT"
+          echo "Web version ${VER} (${SHORT})"
+
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -79,6 +88,8 @@ jobs:
             VITE_BASE=${{ env.VITE_BASE }}
             VITE_API_URL=${{ env.VITE_API_URL }}
             VITE_APP_ENV=${{ env.VITE_APP_ENV }}
+            VITE_APP_VERSION=${{ steps.meta.outputs.app_version }}
+            VITE_APP_GIT_SHA=${{ steps.meta.outputs.sha_short }}
           outputs: |
             type=image,name=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }},push=true,oci-mediatypes=false
 

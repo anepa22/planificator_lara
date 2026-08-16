@@ -55,7 +55,7 @@ import {
 } from './lib/locations'
 import { loadLunchHours, saveLunchHours } from './lib/prefs'
 import { findContiguousAbsenceRange } from './lib/vacations'
-import { version as appVersion } from '../package.json'
+import { appVersionLabel } from './lib/version'
 import './styles/planificador.css'
 
 function activeOnly(list) {
@@ -865,7 +865,7 @@ function App() {
         onLogin={() => setLoginOpen(true)}
         onLogout={logout}
         onChangePassword={() => setChangePasswordOpen(true)}
-        version={appVersion}
+        version={appVersionLabel()}
       />
 
       <LoginScreen open={loginOpen} onClose={() => setLoginOpen(false)} />
