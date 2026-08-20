@@ -2,7 +2,7 @@
 # Deployment + Service DNS: postgres-dev-test
 # Bases: planificator_db_dev (+ planificator_db_test para ns test)
 # Usuario: planificator_app (Secret postgres)
-# Nodo: anepastg1 (PVC local-path en SSD: /mnt/storage_a/k3s/storage)
+# Nodo: anepastg2 (PVC local-path en SSD: /mnt/storage_a/k3s/storage)
 # Aplicar: kubectl apply -f backend/planificator/postgres-dev.yaml
 #
 # Prerrequisito: Secret postgres en namespace dev
@@ -11,11 +11,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-data-stg1
+  name: postgres-data-stg2
   namespace: dev
   labels:
     app: postgres
-    environment: anepastg1
+    environment: anepastg2
 spec:
   accessModes:
     - ReadWriteOnce
@@ -31,7 +31,7 @@ metadata:
   namespace: dev
   labels:
     app: postgres
-    environment: anepastg1
+    environment: anepastg2
 spec:
   replicas: 1
   selector:
@@ -43,10 +43,10 @@ spec:
     metadata:
       labels:
         app: postgres
-        environment: anepastg1
+        environment: anepastg2
     spec:
       nodeSelector:
-        kubernetes.io/hostname: anepastg1
+        kubernetes.io/hostname: anepastg2
       containers:
         - name: postgres
           image: postgres:16-alpine
@@ -57,6 +57,10 @@ spec:
           envFrom:
             - secretRef:
                 name: postgres
+          env:
+            # Override secret POSTGRES_DB so init + probes use the real app DB
+            - name: POSTGRES_DB
+              value: planificator_db_dev
           readinessProbe:
             exec:
               command:
@@ -94,7 +98,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: postgres-data-stg1
+            claimName: postgres-data-stg2
       restartPolicy: Always
 ---
 apiVersion: v1
@@ -104,7 +108,7 @@ metadata:
   namespace: dev
   labels:
     app: postgres
-    environment: anepastg1
+    environment: anepastg2
 spec:
   type: ClusterIP
   selector:
