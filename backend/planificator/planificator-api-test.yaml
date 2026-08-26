@@ -45,7 +45,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values:
-                      - anepapie2
+                      - anepapie1
       imagePullSecrets:
         - name: ghcr-cred
       containers:

@@ -38,7 +38,7 @@ spec:
         environment: lara
     spec:
       nodeSelector:
-        kubernetes.io/hostname: anepapie2
+        kubernetes.io/hostname: anepapie1
       imagePullSecrets:
         - name: ghcr-cred
       containers:
