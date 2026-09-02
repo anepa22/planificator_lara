@@ -22,7 +22,7 @@ export default function ScheduleGrid({
   canEdit = true,
   vidrieraLocationIds,
   canWriteVidriera = false,
-  onToggleVidriera,
+  onVidrieraClick,
   onAdd,
   onEdit,
 }) {
@@ -69,32 +69,38 @@ export default function ScheduleGrid({
           <div className="cell-head corner-head" />
           {locations.map((l) => {
             const vidrieraOn = vidrieraLocationIds?.has(l.id)
+            const canOpenVidriera = vidrieraOn && canWriteVidriera && onVidrieraClick
             return (
               <div
-                className={`cell-head loc-head${vidrieraOn ? ' is-vidriera' : ''}`}
+                className={`cell-head loc-head${vidrieraOn ? ' is-vidriera' : ''}${
+                  canOpenVidriera ? ' is-clickable' : ''
+                }`}
                 key={l.id}
+                role={canOpenVidriera ? 'button' : undefined}
+                tabIndex={canOpenVidriera ? 0 : undefined}
+                title={
+                  canOpenVidriera ? 'Modificar vidriera de este local' : undefined
+                }
+                onClick={
+                  canOpenVidriera ? () => onVidrieraClick(l.id) : undefined
+                }
+                onKeyDown={
+                  canOpenVidriera
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onVidrieraClick(l.id)
+                        }
+                      }
+                    : undefined
+                }
               >
                 <div className="loc-head-main">
                   <span className="ldot" style={{ background: l.color }} />
                   <span className="lname">{l.name}</span>
                 </div>
-                {l.supportsVidriera ? (
-                  <label
-                    className="vidriera-check"
-                    title={
-                      vidrieraOn
-                        ? 'Quitar vidriera de este local en este día'
-                        : 'Marcar vidriera en este local este día'
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!vidrieraOn}
-                      disabled={!canWriteVidriera}
-                      onChange={() => onToggleVidriera?.(l.id)}
-                    />
-                    Vidriera
-                  </label>
+                {vidrieraOn ? (
+                  <span className="vidriera-mark">Vidriera</span>
                 ) : null}
               </div>
             )

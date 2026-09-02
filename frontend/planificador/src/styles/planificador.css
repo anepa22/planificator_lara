@@ -253,19 +253,15 @@
     display:flex;flex-direction:column;align-items:center;gap:6px;
   }
   .loc-head.is-vidriera{background:#FFF3B0;}
+  .loc-head.is-vidriera.is-clickable{cursor:pointer;}
+  .loc-head.is-vidriera.is-clickable:hover{filter:brightness(0.97);}
   .loc-head-main{display:flex;align-items:center;justify-content:center;}
   .loc-head .lname{font-size:12.5px;font-weight:800;}
   .loc-head .ldot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;}
-  .vidriera-check{
-    display:inline-flex;align-items:center;gap:5px;
+  .vidriera-mark{
     font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
-    color:var(--ink-soft);cursor:pointer;user-select:none;
+    color:var(--ink);line-height:1;
   }
-  .vidriera-check input{
-    width:13px;height:13px;margin:0;accent-color:var(--vidriera);flex:none;
-  }
-  .vidriera-check:has(input:disabled){cursor:default;opacity:.85;}
-  .loc-head.is-vidriera .vidriera-check{color:var(--ink);}
 
   .hour-col{
     border-right:1px solid var(--grid-line);
@@ -435,6 +431,7 @@
   }
   .pp-edit-person .pp-badge-move{color:#8B3A1A;background:#F8E6DC;}
   .people-pick .pp-empty{padding:10px 12px;font-size:12.5px;color:var(--ink-soft);}
+  .people-pick .ldot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
   .btn-confirm-move{background:#C47A1A !important;border-color:#C47A1A !important;}
   .time-row{display:flex;gap:10px;}
   .time-row .field{flex:1;margin-bottom:0;}
@@ -729,6 +726,9 @@
     font-size:9px;font-weight:800;line-height:1.2;color:var(--vidriera);
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
+  .gantt-bar-vidriera.is-clickable{
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  }
   .gantt-day-head.is-holiday .gantt-dow,
   .gantt-day-head.is-holiday .gantt-dom{color:var(--holiday);}
   .gantt-day-head.is-current-week .gantt-dom{color:var(--accent);}
@@ -796,6 +796,20 @@
   .gantt-bar-vacation .gantt-bar-loc{color:#5B6675;font-weight:700;}
   .gantt-bar-franco .gantt-bar-loc{color:#C62828;font-weight:700;}
   .vacation-modal{max-width:min(420px, 92vw);}
+  .vidriera-existing{
+    max-height:140px;overflow-y:auto;border:1px solid var(--border);
+    border-radius:8px;
+  }
+  .vidriera-existing-row{
+    display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+    width:100%;margin:0;padding:8px 12px;border:none;border-bottom:1px solid var(--border-soft);
+    background:transparent;text-align:left;cursor:pointer;font-family:inherit;
+  }
+  .vidriera-existing-row:last-child{border-bottom:none;}
+  .vidriera-existing-row:hover{background:var(--accent-soft);}
+  .vidriera-existing-row.is-current{background:#FFF3B0;}
+  .vidriera-existing-date{font-size:12.5px;font-weight:700;color:var(--ink);}
+  .vidriera-existing-locs{font-size:11.5px;color:var(--ink-soft);}
   .vac-list{list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto;}
   .vac-list li{border-bottom:1px solid var(--border-soft);}
   .vac-list-row{

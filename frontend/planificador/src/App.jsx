@@ -28,6 +28,7 @@ import SummaryBar from './components/SummaryBar'
 import UsersModal from './components/UsersModal'
 import VacationModal from './components/VacationModal'
 import VacationRemoveModal from './components/VacationRemoveModal'
+import VidrieraModal from './components/VidrieraModal'
 import WeekNav from './components/WeekNav'
 import {
   addDays,
@@ -101,6 +102,8 @@ function App() {
   const [auditOpen, setAuditOpen] = useState(false)
   const [lunchOpen, setLunchOpen] = useState(false)
   const [vacationOpen, setVacationOpen] = useState(false)
+  const [vidrieraOpen, setVidrieraOpen] = useState(false)
+  const [vidrieraModalDate, setVidrieraModalDate] = useState(null)
   const [absenceRemove, setAbsenceRemove] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
@@ -598,20 +601,46 @@ function App() {
     })
   }
 
-  async function toggleVidriera(locationId) {
-    if (!canWriteShifts) return
-    const dateKey = workDateFor(weekStart, selectedDay)
-    const on = vidrieras.some(
-      (v) =>
-        v.locationId === locationId &&
-        String(v.workDate).slice(0, 10) === dateKey,
+  function openVidrieraModal(dateKey) {
+    setVidrieraModalDate(
+      dateKey ||
+        (view === 'week'
+          ? workDateFor(weekStart, selectedDay)
+          : toDateKey(new Date())),
     )
+    setVidrieraOpen(true)
+  }
+
+  function closeVidrieraModal() {
+    setVidrieraOpen(false)
+    setVidrieraModalDate(null)
+  }
+
+  async function handleSaveVidriera({ workDate, locationIds }) {
+    if (!canWriteShifts || !workDate) return
+    const want = new Set(locationIds || [])
     await withBusy(async () => {
-      if (on) await deleteVidriera(locationId, dateKey)
-      else await putVidriera({ locationId, workDate: dateKey })
-      const from = weekKey
-      const to = toDateKey(addDays(weekStart, 6))
-      setVidrieras(await getVidrieras(from, to))
+      const current = await getVidrieras(workDate, workDate)
+      for (const row of current) {
+        if (!want.has(row.locationId)) {
+          await deleteVidriera(row.locationId, workDate)
+        }
+      }
+      const have = new Set(current.map((v) => v.locationId))
+      for (const id of want) {
+        if (!have.has(id)) {
+          await putVidriera({ locationId: id, workDate })
+        }
+      }
+      const weekTo = toDateKey(addDays(weekStart, 6))
+      const { min, max } = monthBounds(monthDate)
+      const [weekV, monthV] = await Promise.all([
+        getVidrieras(weekKey, weekTo),
+        getVidrieras(min, max),
+      ])
+      setVidrieras(weekV)
+      setMonthVidrieras(monthV)
+      closeVidrieraModal()
     })
   }
 
@@ -782,6 +811,8 @@ function App() {
           onAdd={openAddMonth}
           onRangeAssign={openRangeAssignMonth}
           onAbsence={openAbsenceRemove}
+          canWriteVidriera={canWriteShifts}
+          onEditVidriera={openVidrieraModal}
         />
       ) : (
         <ScheduleGrid
@@ -796,7 +827,9 @@ function App() {
           canEdit={canWriteShifts}
           vidrieraLocationIds={vidrieraLocationIds}
           canWriteVidriera={canWriteShifts}
-          onToggleVidriera={toggleVidriera}
+          onVidrieraClick={() =>
+            openVidrieraModal(workDateFor(weekStart, selectedDay))
+          }
           onAdd={openAdd}
           onEdit={openEdit}
         />
@@ -867,6 +900,23 @@ function App() {
         onSave={handleSaveVacation}
       />
 
+      <VidrieraModal
+        open={vidrieraOpen}
+        locations={locations}
+        busy={busy}
+        initialDate={
+          vidrieraModalDate ||
+          (view === 'week'
+            ? workDateFor(weekStart, selectedDay)
+            : toDateKey(new Date()))
+        }
+        existing={view === 'month' ? monthVidrieras : vidrieras}
+        existingLabel={view === 'month' ? 'este mes' : 'esta semana'}
+        loadVidrieras={getVidrieras}
+        onClose={closeVidrieraModal}
+        onSave={handleSaveVidriera}
+      />
+
       <VacationRemoveModal
         open={!!absenceRemove}
         kind={absenceRemove?.kind || 'vacation'}
@@ -909,6 +959,7 @@ function App() {
         showVacations={canWriteVacations}
         showUsers={canManageUsers}
         showLunch={canManageLunch}
+        showVidriera={canWriteShifts}
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
@@ -916,6 +967,7 @@ function App() {
         onVacations={() => setVacationOpen(true)}
         onUsers={() => setUsersOpen(true)}
         onLunch={() => setLunchOpen(true)}
+        onVidriera={() => openVidrieraModal()}
         onAudit={() => setAuditOpen(true)}
         onLogin={() => setLoginOpen(true)}
         onLogout={logout}

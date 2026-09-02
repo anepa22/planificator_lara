@@ -28,6 +28,7 @@ export default function AppMenu({
   showVacations = true,
   showUsers = false,
   showLunch = false,
+  showVidriera = false,
   showAudit = false,
   userLabel,
   loggedIn = false,
@@ -35,13 +36,14 @@ export default function AppMenu({
   onVacations,
   onUsers,
   onLunch,
+  onVidriera,
   onAudit,
   onLogin,
   onLogout,
   onChangePassword,
   version,
 }) {
-  const showPersonalGroup = showPeople || showVacations || showLunch
+  const showPersonalGroup = showPeople || showVacations || showLunch || showVidriera
   const showOtherActions = showUsers || showAudit
   const hasActions = showPersonalGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
@@ -186,6 +188,17 @@ export default function AppMenu({
                         }}
                       >
                         Almuerzo
+                      </MenuItem>
+                    )}
+                    {showVidriera && (
+                      <MenuItem
+                        nested
+                        onClick={() => {
+                          onVidriera()
+                          onClose()
+                        }}
+                      >
+                        Cargar o modificar vidriera
                       </MenuItem>
                     )}
                   </div>

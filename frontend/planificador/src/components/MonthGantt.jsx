@@ -30,6 +30,8 @@ export default function MonthGantt({
   onAdd,
   onRangeAssign,
   onAbsence,
+  canWriteVidriera = false,
+  onEditVidriera,
 }) {
   const year = monthDate.getFullYear()
   const month = monthDate.getMonth()
@@ -270,7 +272,9 @@ export default function MonthGantt({
                           }}
                           title={
                             isVidriera
-                              ? `${locName}: ${start}–${end} · Vidriera`
+                              ? canWriteVidriera && onEditVidriera
+                                ? `${locName}: ${start}–${end} · Vidriera · tocá Vidriera para modificar`
+                                : `${locName}: ${start}–${end} · Vidriera`
                               : `${locName}: ${start}–${end}`
                           }
                           onClick={() => {
@@ -279,7 +283,21 @@ export default function MonthGantt({
                         >
                           <span className="gantt-bar-loc">{locName}</span>
                           {isVidriera ? (
-                            <span className="gantt-bar-vidriera">Vidriera</span>
+                            <span
+                              className={`gantt-bar-vidriera${
+                                canWriteVidriera && onEditVidriera
+                                  ? ' is-clickable'
+                                  : ''
+                              }`}
+                              onClick={(e) => {
+                                if (!canWriteVidriera || !onEditVidriera) return
+                                e.preventDefault()
+                                e.stopPropagation()
+                                onEditVidriera(h.key)
+                              }}
+                            >
+                              Vidriera
+                            </span>
                           ) : null}
                           <span className="gantt-bar-time">
                             {start}–{end}

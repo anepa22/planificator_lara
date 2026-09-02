@@ -32,8 +32,14 @@ Escritura rechaza local inexistente, inactivo, sin flag, o de ausencia.
 Bitácora `entityType = vidriera` en CREATE/DELETE.
 
 ## UI
-- Semana (`ScheduleGrid`): check en el encabezado de columna; encabezado amarillo si está activo.
-- Mes (`MonthGantt`): comentario “Vidriera” en amarillo en la barra/tarjeta del turno, no en el header. El nombre del local no cambia de color.
+- Carga y modificación: modal `VidrieraModal` desde menú Personal. El mismo
+  modal sirve para alta y para cambiar/quitar locales de un día ya cargado.
+  Lista las vidrieras del período visible para saltar a ese día.
+- Semana (`ScheduleGrid`): palabra “Vidriera” + encabezado amarillo solo si
+  está cargada. Sin check. Con `shifts:write`, clic en el encabezado abre el modal.
+- Mes (`MonthGantt`): comentario “Vidriera” en amarillo en la barra/tarjeta
+  del turno. El nombre del local no cambia de color. Con `shifts:write`, clic
+  en el comentario abre el modal de ese día (sin editar el turno).
 - `App.jsx` carga el rango visible (semana o mes), igual que turnos.
 
 ## Archivos
