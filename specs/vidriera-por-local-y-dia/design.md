@@ -32,7 +32,7 @@ Escritura rechaza local inexistente, inactivo, sin flag, o de ausencia.
 Bitácora `entityType = vidriera` en CREATE/DELETE.
 
 ## UI
-- Semana (`ScheduleGrid`): badge en el encabezado de columna.
+- Semana (`ScheduleGrid`): check en el encabezado de columna; encabezado amarillo si está activo.
 - Mes (`MonthGantt`): comentario “Vidriera” en amarillo en la barra/tarjeta del turno, no en el header. El nombre del local no cambia de color.
 - `App.jsx` carga el rango visible (semana o mes), igual que turnos.
 

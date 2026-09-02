@@ -70,34 +70,31 @@ export default function ScheduleGrid({
           {locations.map((l) => {
             const vidrieraOn = vidrieraLocationIds?.has(l.id)
             return (
-              <div className="cell-head loc-head" key={l.id}>
+              <div
+                className={`cell-head loc-head${vidrieraOn ? ' is-vidriera' : ''}`}
+                key={l.id}
+              >
                 <div className="loc-head-main">
                   <span className="ldot" style={{ background: l.color }} />
                   <span className="lname">{l.name}</span>
                 </div>
                 {l.supportsVidriera ? (
-                  canWriteVidriera ? (
-                    <button
-                      type="button"
-                      className={`vidriera-badge${vidrieraOn ? ' is-on' : ''}`}
-                      aria-pressed={vidrieraOn}
-                      title={
-                        vidrieraOn
-                          ? 'Quitar vidriera de este local en este día'
-                          : 'Marcar vidriera en este local este día'
-                      }
-                      onClick={() => onToggleVidriera?.(l.id)}
-                    >
-                      Vidriera
-                    </button>
-                  ) : (
-                    <span
-                      className={`vidriera-badge${vidrieraOn ? ' is-on' : ''}`}
-                      aria-pressed={vidrieraOn}
-                    >
-                      Vidriera
-                    </span>
-                  )
+                  <label
+                    className="vidriera-check"
+                    title={
+                      vidrieraOn
+                        ? 'Quitar vidriera de este local en este día'
+                        : 'Marcar vidriera en este local este día'
+                    }
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!vidrieraOn}
+                      disabled={!canWriteVidriera}
+                      onChange={() => onToggleVidriera?.(l.id)}
+                    />
+                    Vidriera
+                  </label>
                 ) : null}
               </div>
             )

@@ -13,8 +13,9 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
   en el local (`supports_vidriera`). No aplica a vacaciones ni franco.
 - Alta/baja de locales: fuera de esta entrega. El flag queda listo para
   cuando exista esa pantalla.
-- Semana: badge/botón “Vidriera” en el encabezado de la columna del local
-  (el día es el de las pestañas). Se marca y desmarca solo acá.
+- Semana: check “Vidriera” en el encabezado de la columna del local
+  (el día es el de las pestañas). Si está marcado, el encabezado se pinta
+  de amarillo. Se marca y desmarca solo acá.
 - Mes: solo lectura. En la tarjeta del turno de la persona (barra del Gantt)
   se muestra el comentario “Vidriera” en amarillo si ese día ese local tiene
   vidriera. El nombre del local queda con el color habitual.
@@ -30,11 +31,10 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 ## Comportamiento
 
 ### Semana
-- El badge aparece solo si el local tiene `supports_vidriera`.
-- Con `shifts:write`, clic prende/apaga vidriera de ese local en el día
-  seleccionado.
-- Badge activo e inactivo se distinguen. No hace falta que sea amarillo.
-- Sin `shifts:write`, se ve el estado y no es clicable.
+- El check “Vidriera” aparece solo si el local tiene `supports_vidriera`.
+- Con `shifts:write`, el check prende/apaga vidriera de ese local en el día
+  seleccionado. El encabezado de la columna se pinta de amarillo cuando está activo.
+- Sin `shifts:write`, se ve el check y no se puede cambiar.
 
 ### Mes
 - La cabecera del día no muestra vidriera.
@@ -49,7 +49,7 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 ## Criterios de aceptación
 - [ ] En un Lara habilitado y un día concreto puedo marcar vidriera.
 - [ ] Puedo desmarcar esa misma vidriera.
-- [ ] En la semana, el badge de ese local refleja el día seleccionado.
+- [ ] En la semana, el check del encabezado de ese local refleja el día seleccionado y, si está marcado, el encabezado queda amarillo.
 - [ ] En el mes, la tarjeta de quien trabaja en ese local ese día muestra “Vidriera” en amarillo.
 - [ ] Mismo día, dos Lara: cada tarjeta de ese local va en amarillo.
 - [ ] Recargar mantiene el dato.

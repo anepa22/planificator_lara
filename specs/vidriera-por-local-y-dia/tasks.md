@@ -19,7 +19,7 @@
 ## Frontend
 - [x] `client.js`: `getVidrieras`, `putVidriera`, `deleteVidriera`.
 - [x] `App.jsx`: cargar vidrieras con la semana y el mes visibles.
-- [x] `ScheduleGrid`: badge “Vidriera” si `supportsVidriera`; clic prende/apaga el día de las pestañas; sin `shifts:write` se ve y no se cliquea.
+- [x] `ScheduleGrid`: check “Vidriera” si `supportsVidriera`; prende/apaga el día de las pestañas y pinta el encabezado de amarillo; sin `shifts:write` se ve y no se cliquea.
 - [x] `MonthGantt`: comentario “Vidriera” en amarillo en la tarjeta del turno; no se marca desde acá.
 - [x] Filtro de local en el mes: solo vidrieras de esos locales.
 - [x] Recargar mantiene lo marcado.

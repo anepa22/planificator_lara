@@ -252,17 +252,20 @@
     box-shadow:inset -2px 0 0 rgba(22,32,43,0.06);
     display:flex;flex-direction:column;align-items:center;gap:6px;
   }
+  .loc-head.is-vidriera{background:#FFF3B0;}
   .loc-head-main{display:flex;align-items:center;justify-content:center;}
   .loc-head .lname{font-size:12.5px;font-weight:800;}
   .loc-head .ldot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle;}
-  .vidriera-badge{
-    appearance:none;border:1px solid var(--border);background:#fff;color:var(--ink-soft);
-    font:inherit;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
-    line-height:1;padding:4px 7px;border-radius:999px;cursor:pointer;
+  .vidriera-check{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--ink-soft);cursor:pointer;user-select:none;
   }
-  button.vidriera-badge:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
-  .vidriera-badge.is-on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
-  span.vidriera-badge{cursor:default;}
+  .vidriera-check input{
+    width:13px;height:13px;margin:0;accent-color:var(--vidriera);flex:none;
+  }
+  .vidriera-check:has(input:disabled){cursor:default;opacity:.85;}
+  .loc-head.is-vidriera .vidriera-check{color:var(--ink);}
 
   .hour-col{
     border-right:1px solid var(--grid-line);
