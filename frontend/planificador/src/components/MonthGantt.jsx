@@ -81,12 +81,12 @@ export default function MonthGantt({
     return list
   }, [year, month, nDays, currentWeekKeys, holidaysByDate])
 
-  const vidrierasByDate = useMemo(() => {
+  const vidrieraLocsByDate = useMemo(() => {
     const map = new Map()
     for (const v of vidrieras) {
       const key = String(v.workDate).slice(0, 10)
-      if (!map.has(key)) map.set(key, [])
-      map.get(key).push(v)
+      if (!map.has(key)) map.set(key, new Set())
+      map.get(key).add(v.locationId)
     }
     return map
   }, [vidrieras])
@@ -157,11 +157,6 @@ export default function MonthGantt({
               {h.holiday ? (
                 <span className="gantt-holiday-mark">Feriado</span>
               ) : null}
-              {(vidrierasByDate.get(h.key) || []).map((v) => (
-                <span className="gantt-vidriera-name" key={v.locationId}>
-                  {v.locationName}
-                </span>
-              ))}
             </div>
           ))}
         </div>
@@ -259,24 +254,30 @@ export default function MonthGantt({
                       }
                       const start = normalizeTime(s.startTime).slice(0, 5)
                       const end = normalizeTime(s.endTime).slice(0, 5)
+                      const locName = s.locationName || s.locationId
+                      const isVidriera = vidrieraLocsByDate
+                        .get(h.key)
+                        ?.has(s.locationId)
                       return (
                         <button
                           type="button"
                           key={s.id}
-                          className="gantt-bar"
+                          className={`gantt-bar${isVidriera ? ' is-vidriera' : ''}`}
                           style={{
                             '--bar-color': color,
                             '--bar-bg': soft,
                             cursor: canEdit ? 'pointer' : 'default',
                           }}
-                          title={`${s.locationName || s.locationId}: ${start}–${end}`}
+                          title={
+                            isVidriera
+                              ? `${locName}: ${start}–${end} · Vidriera`
+                              : `${locName}: ${start}–${end}`
+                          }
                           onClick={() => {
                             if (canEdit) onEdit(s)
                           }}
                         >
-                          <span className="gantt-bar-loc">
-                            {s.locationName || s.locationId}
-                          </span>
+                          <span className="gantt-bar-loc">{locName}</span>
                           <span className="gantt-bar-time">
                             {start}–{end}
                           </span>

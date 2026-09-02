@@ -33,7 +33,7 @@ Bitácora `entityType = vidriera` en CREATE/DELETE.
 
 ## UI
 - Semana (`ScheduleGrid`): badge en el encabezado de columna.
-- Mes (`MonthGantt`): nombres en amarillo en la cabecera del día.
+- Mes (`MonthGantt`): nombre del local en amarillo en la barra/tarjeta del turno, no en el header.
 - `App.jsx` carga el rango visible (semana o mes), igual que turnos.
 
 ## Archivos

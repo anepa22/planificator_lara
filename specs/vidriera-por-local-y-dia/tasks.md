@@ -20,7 +20,7 @@
 - [x] `client.js`: `getVidrieras`, `putVidriera`, `deleteVidriera`.
 - [x] `App.jsx`: cargar vidrieras con la semana y el mes visibles.
 - [x] `ScheduleGrid`: badge “Vidriera” si `supportsVidriera`; clic prende/apaga el día de las pestañas; sin `shifts:write` se ve y no se cliquea.
-- [x] `MonthGantt`: cabecera del día con nombre(s) en amarillo; no se marca desde acá.
+- [x] `MonthGantt`: nombre del local en amarillo en la tarjeta del turno; no se marca desde acá.
 - [x] Filtro de local en el mes: solo vidrieras de esos locales.
 - [x] Recargar mantiene lo marcado.
 - [x] CSS del nombre amarillo (solo mes).

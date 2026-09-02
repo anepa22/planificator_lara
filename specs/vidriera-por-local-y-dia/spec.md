@@ -15,10 +15,9 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
   cuando exista esa pantalla.
 - Semana: badge/botón “Vidriera” en el encabezado de la columna del local
   (el día es el de las pestañas). Se marca y desmarca solo acá.
-- Mes: solo lectura. En la cabecera del día, el nombre del local en amarillo.
-  Si hay varios locales ese día, todos esos nombres en amarillo.
-- El amarillo es el color del nombre del local en la vista mensual,
-  no un color de producto para toda la app.
+- Mes: solo lectura. En la tarjeta del turno de la persona (barra del Gantt),
+  el nombre del local va en amarillo si ese día ese local tiene vidriera.
+- El amarillo es el color del nombre del local en esa tarjeta, no de la cabecera del día.
 
 ## Fuera de alcance
 - Login, usuarios, roles nuevos.
@@ -38,9 +37,11 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 - Sin `shifts:write`, se ve el estado y no es clicable.
 
 ### Mes
-- Cabecera del día: nombre(s) del/los local(es) con vidriera, en amarillo.
-- Sin vidriera ese día: la cabecera se ve como hoy.
-- Si el mes está filtrado por local, mostrar solo las vidrieras de esos locales.
+- La cabecera del día no muestra vidriera.
+- En la tarjeta del turno, el nombre del local se ve en amarillo si hay vidriera
+  en ese local ese día.
+- Si la persona no tiene turno en ese local, no se muestra (la vidriera se marca en la semana).
+- Si el mes está filtrado por local, aplica a las tarjetas visibles.
 
 ### Persistencia
 - Recargar la página mantiene lo marcado.
@@ -49,8 +50,8 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 - [ ] En un Lara habilitado y un día concreto puedo marcar vidriera.
 - [ ] Puedo desmarcar esa misma vidriera.
 - [ ] En la semana, el badge de ese local refleja el día seleccionado.
-- [ ] En el mes, ese día muestra el nombre del local en amarillo.
-- [ ] Mismo día, dos Lara: dos nombres en amarillo.
+- [ ] En el mes, la tarjeta de quien trabaja en ese local ese día muestra el nombre en amarillo.
+- [ ] Mismo día, dos Lara: cada tarjeta de ese local va en amarillo.
 - [ ] Recargar mantiene el dato.
 - [ ] Un local sin flag (p. ej. vacaciones/franco) no muestra el badge.
 - [ ] Usuario sin `shifts:write` ve el indicador y no puede cambiarlo.
