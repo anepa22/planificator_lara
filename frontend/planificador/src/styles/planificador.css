@@ -722,7 +722,6 @@
     background:var(--holiday);color:#fff;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .gantt-bar.is-vidriera .gantt-bar-loc{color:var(--vidriera);}
   .gantt-bar-vidriera{
     font-size:9px;font-weight:800;line-height:1.2;color:var(--vidriera);
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
