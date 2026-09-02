@@ -13,14 +13,13 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
   en el local (`supports_vidriera`). No aplica a vacaciones ni franco.
 - Alta/baja de locales: fuera de esta entrega. El flag queda listo para
   cuando exista esa pantalla.
-- Carga y modificación: mismo modal **Cargar o modificar vidriera** en Personal
+- Carga y modificación: mismo modal **Vidrieras** en Personal
   (junto a Equipo, Vacaciones, Almuerzo). Destildar un local y guardar lo quita.
 - Semana: sin check. Si ese local tiene vidriera ese día, se ve la palabra
   “Vidriera” y el encabezado pintado de amarillo. Con permiso, el clic en ese
   encabezado abre el modal de ese día para modificar.
 - Mes: en la tarjeta del turno, comentario “Vidriera” en amarillo.
-  El nombre del local queda con el color habitual. Con permiso, el clic en
-  “Vidriera” abre el modal de ese día (sin abrir el turno).
+  El nombre del local queda con el color habitual. Solo lectura.
 
 ## Fuera de alcance
 - Login, usuarios, roles nuevos.
@@ -32,7 +31,7 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 
 ## Comportamiento
 
-### Carga y modificación (menú Personal → Cargar o modificar vidriera)
+### Carga y modificación (menú Personal → Vidrieras)
 - Con `shifts:write`, el ítem abre un modal: día + locales habilitados.
 - El modal lista las vidrieras ya cargadas del período visible; al tocar una se
   carga ese día para editarlo.
@@ -48,16 +47,14 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 - En la tarjeta del turno aparece “Vidriera” en amarillo si hay vidriera
   en ese local ese día. El nombre del local no cambia de color.
 - Si el mes está filtrado por local, aplica a las tarjetas visibles.
-- Con `shifts:write`, clic en el comentario “Vidriera” abre el modal de ese día.
 
 ### Persistencia
 - Recargar la página mantiene lo marcado.
 
 ## Criterios de aceptación
-- [ ] Desde Personal → Cargar o modificar vidriera puedo marcar un Lara en un día concreto.
+- [ ] Desde Personal → Vidrieras puedo marcar un Lara en un día concreto.
 - [ ] Puedo desmarcar o cambiar locales de una vidriera ya cargada desde el mismo modal.
 - [ ] En la semana, clic en el encabezado amarillo abre el modal de ese día.
-- [ ] En el mes, clic en el comentario “Vidriera” abre el modal de ese día.
 - [ ] En la semana, sin check: si está cargada, palabra “Vidriera” y encabezado amarillo.
 - [ ] En el mes, la tarjeta de quien trabaja en ese local ese día muestra “Vidriera” en amarillo.
 - [ ] Recargar mantiene el dato.

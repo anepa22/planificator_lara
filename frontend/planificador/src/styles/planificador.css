@@ -726,9 +726,6 @@
     font-size:9px;font-weight:800;line-height:1.2;color:var(--vidriera);
     max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  .gantt-bar-vidriera.is-clickable{
-    cursor:pointer;text-decoration:underline;text-underline-offset:2px;
-  }
   .gantt-day-head.is-holiday .gantt-dow,
   .gantt-day-head.is-holiday .gantt-dom{color:var(--holiday);}
   .gantt-day-head.is-current-week .gantt-dom{color:var(--accent);}

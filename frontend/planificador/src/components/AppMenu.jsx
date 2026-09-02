@@ -198,7 +198,7 @@ export default function AppMenu({
                           onClose()
                         }}
                       >
-                        Cargar o modificar vidriera
+                        Vidrieras
                       </MenuItem>
                     )}
                   </div>

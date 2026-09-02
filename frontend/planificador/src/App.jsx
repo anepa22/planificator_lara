@@ -811,8 +811,6 @@ function App() {
           onAdd={openAddMonth}
           onRangeAssign={openRangeAssignMonth}
           onAbsence={openAbsenceRemove}
-          canWriteVidriera={canWriteShifts}
-          onEditVidriera={openVidrieraModal}
         />
       ) : (
         <ScheduleGrid
