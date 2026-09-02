@@ -186,7 +186,7 @@ export default function VidrieraModal({
             disabled={busy || loading || !workDate || !vidrieraLocations.length}
             onClick={() => onSave?.({ workDate, locationIds: selectedIds })}
           >
-            {busy ? '…' : hasSelection ? 'Guardar cambios' : 'Quitar vidriera del día'}
+            {busy ? '…' : hasSelection ? 'Guardar cambios' : 'Quitar'}
           </button>
         </div>
       </div>
