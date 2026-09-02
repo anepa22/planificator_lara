@@ -278,6 +278,9 @@ export default function MonthGantt({
                           }}
                         >
                           <span className="gantt-bar-loc">{locName}</span>
+                          {isVidriera ? (
+                            <span className="gantt-bar-vidriera">Vidriera</span>
+                          ) : null}
                           <span className="gantt-bar-time">
                             {start}–{end}
                           </span>

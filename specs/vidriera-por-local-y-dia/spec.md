@@ -16,7 +16,8 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 - Semana: badge/botón “Vidriera” en el encabezado de la columna del local
   (el día es el de las pestañas). Se marca y desmarca solo acá.
 - Mes: solo lectura. En la tarjeta del turno de la persona (barra del Gantt),
-  el nombre del local va en amarillo si ese día ese local tiene vidriera.
+  el nombre del local va en amarillo y se muestra el comentario “Vidriera”
+  si ese día ese local tiene vidriera.
 - El amarillo es el color del nombre del local en esa tarjeta, no de la cabecera del día.
 
 ## Fuera de alcance
@@ -38,8 +39,8 @@ si ese día se hace la vidriera. Hoy no hay forma de indicarlo ni de verlo.
 
 ### Mes
 - La cabecera del día no muestra vidriera.
-- En la tarjeta del turno, el nombre del local se ve en amarillo si hay vidriera
-  en ese local ese día.
+- En la tarjeta del turno, el nombre del local se ve en amarillo y aparece
+  el texto “Vidriera” si hay vidriera en ese local ese día.
 - Si la persona no tiene turno en ese local, no se muestra (la vidriera se marca en la semana).
 - Si el mes está filtrado por local, aplica a las tarjetas visibles.
 
