@@ -57,6 +57,16 @@ export const changePassword = (currentPassword, newPassword) =>
 export const getLocations = () => api('/api/locations')
 export const getPeople = () => api('/api/people')
 export const getHolidays = (year) => api(`/api/holidays?year=${year}`)
+
+export const getVidrieras = (from, to) =>
+  api(`/api/vidrieras?from=${from}&to=${to}`)
+export const putVidriera = (body) =>
+  api('/api/vidrieras', { method: 'PUT', body: JSON.stringify(body) })
+export const deleteVidriera = (locationId, workDate) =>
+  api(
+    `/api/vidrieras?locationId=${encodeURIComponent(locationId)}&workDate=${workDate}`,
+    { method: 'DELETE' },
+  )
 export const createPerson = (name) =>
   api('/api/people', { method: 'POST', body: JSON.stringify({ name }) })
 export const deletePerson = (id) => api(`/api/people/${id}`, { method: 'DELETE' })

@@ -4,10 +4,13 @@ import {
   createShift,
   deletePerson,
   deleteShift,
+  deleteVidriera,
   getHolidays,
   getLocations,
   getPeople,
   getShifts,
+  getVidrieras,
+  putVidriera,
   updateShift,
 } from './api/client'
 import { useAuth } from './auth/AuthContext'
@@ -75,6 +78,8 @@ function App() {
   const [people, setPeople] = useState([])
   const [shifts, setShifts] = useState([])
   const [monthShifts, setMonthShifts] = useState([])
+  const [vidrieras, setVidrieras] = useState([])
+  const [monthVidrieras, setMonthVidrieras] = useState([])
   const [holidaysByDate, setHolidaysByDate] = useState({})
   const [view, setView] = useState('week')
   const [lunchHours, setLunchHours] = useState(() => loadLunchHours())
@@ -165,6 +170,23 @@ function App() {
     return people.filter((p) => personIds.has(p.id))
   }, [people, monthLocFilter, visibleMonthShifts])
 
+  const visibleMonthVidrieras = useMemo(() => {
+    if (!monthLocFilter.length) return monthVidrieras
+    const ids = new Set(monthLocFilter)
+    return monthVidrieras.filter((v) => ids.has(v.locationId))
+  }, [monthVidrieras, monthLocFilter])
+
+  const selectedDateKey = workDateFor(weekStart, selectedDay)
+  const vidrieraLocationIds = useMemo(() => {
+    const ids = new Set()
+    for (const v of vidrieras) {
+      if (String(v.workDate).slice(0, 10) === selectedDateKey) {
+        ids.add(v.locationId)
+      }
+    }
+    return ids
+  }, [vidrieras, selectedDateKey])
+
   function toggleMonthLocFilter(locationId) {
     setMonthLocFilter((prev) =>
       prev.includes(locationId)
@@ -186,7 +208,14 @@ function App() {
 
   // TODO: sincronizar vistas abiertas (polling o SSE) — ver TODO.md
   const reloadWeek = useCallback(async (key) => {
-    setShifts(await getShifts(key))
+    const from = key
+    const to = toDateKey(addDays(parseDateKey(key), 6))
+    const [weekShifts, weekVidrieras] = await Promise.all([
+      getShifts(key),
+      getVidrieras(from, to),
+    ])
+    setShifts(weekShifts)
+    setVidrieras(weekVidrieras)
   }, [])
 
   function handleLunchHoursChange(value) {
@@ -208,7 +237,11 @@ function App() {
 
   const reloadMonth = useCallback(
     async (date) => {
-      const all = await fetchShiftsByWeekKeys(weekStartsOverlappingMonth(date))
+      const { min, max } = monthBounds(date)
+      const [all, monthV] = await Promise.all([
+        fetchShiftsByWeekKeys(weekStartsOverlappingMonth(date)),
+        getVidrieras(min, max),
+      ])
       const y = date.getFullYear()
       const m = date.getMonth()
       setMonthShifts(
@@ -217,6 +250,7 @@ function App() {
           return d.getFullYear() === y && d.getMonth() === m
         }),
       )
+      setMonthVidrieras(monthV)
     },
     [fetchShiftsByWeekKeys],
   )
@@ -564,6 +598,23 @@ function App() {
     })
   }
 
+  async function toggleVidriera(locationId) {
+    if (!canWriteShifts) return
+    const dateKey = workDateFor(weekStart, selectedDay)
+    const on = vidrieras.some(
+      (v) =>
+        v.locationId === locationId &&
+        String(v.workDate).slice(0, 10) === dateKey,
+    )
+    await withBusy(async () => {
+      if (on) await deleteVidriera(locationId, dateKey)
+      else await putVidriera({ locationId, workDate: dateKey })
+      const from = weekKey
+      const to = toDateKey(addDays(weekStart, 6))
+      setVidrieras(await getVidrieras(from, to))
+    })
+  }
+
   function openAddMonth({ personId, workDate }) {
     const work = parseDateKey(workDate)
     setShiftModal({
@@ -719,6 +770,7 @@ function App() {
           monthDate={monthDate}
           people={visibleMonthPeople}
           shifts={visibleMonthShifts}
+          vidrieras={visibleMonthVidrieras}
           lunchHours={lunchHours}
           holidaysByDate={holidaysByDate}
           focusNonce={monthFocusNonce}
@@ -742,6 +794,9 @@ function App() {
           onHourHChange={setHourH}
           canAdd={canWriteShifts}
           canEdit={canWriteShifts}
+          vidrieraLocationIds={vidrieraLocationIds}
+          canWriteVidriera={canWriteShifts}
+          onToggleVidriera={toggleVidriera}
           onAdd={openAdd}
           onEdit={openEdit}
         />

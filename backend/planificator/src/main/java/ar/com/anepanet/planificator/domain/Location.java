@@ -9,6 +9,7 @@ public record Location(
         String colorSoft,
         short sortOrder,
         boolean active,
+        boolean supportsVidriera,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {}

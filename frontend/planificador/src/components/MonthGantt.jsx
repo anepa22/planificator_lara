@@ -18,6 +18,7 @@ export default function MonthGantt({
   monthDate,
   people,
   shifts,
+  vidrieras = [],
   lunchHours = 0,
   holidaysByDate = {},
   focusNonce = 0,
@@ -79,6 +80,16 @@ export default function MonthGantt({
     }
     return list
   }, [year, month, nDays, currentWeekKeys, holidaysByDate])
+
+  const vidrierasByDate = useMemo(() => {
+    const map = new Map()
+    for (const v of vidrieras) {
+      const key = String(v.workDate).slice(0, 10)
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(v)
+    }
+    return map
+  }, [vidrieras])
 
   const byPersonDay = useMemo(() => {
     const map = new Map()
@@ -146,6 +157,11 @@ export default function MonthGantt({
               {h.holiday ? (
                 <span className="gantt-holiday-mark">Feriado</span>
               ) : null}
+              {(vidrierasByDate.get(h.key) || []).map((v) => (
+                <span className="gantt-vidriera-name" key={v.locationId}>
+                  {v.locationName}
+                </span>
+              ))}
             </div>
           ))}
         </div>

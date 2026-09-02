@@ -33,6 +33,7 @@ public class AuditService {
     public static final String TYPE_USER = "user";
     public static final String TYPE_ROLE = "role";
     public static final String TYPE_SESSION = "session";
+    public static final String TYPE_VIDRIERA = "vidriera";
 
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;

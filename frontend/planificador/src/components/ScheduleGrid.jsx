@@ -20,6 +20,9 @@ export default function ScheduleGrid({
   onHourHChange,
   canAdd = true,
   canEdit = true,
+  vidrieraLocationIds,
+  canWriteVidriera = false,
+  onToggleVidriera,
   onAdd,
   onEdit,
 }) {
@@ -64,12 +67,41 @@ export default function ScheduleGrid({
       <div className="grid-scroll" style={{ '--loc-count': locCount }}>
         <div className="head-row">
           <div className="cell-head corner-head" />
-          {locations.map((l) => (
-            <div className="cell-head loc-head" key={l.id}>
-              <span className="ldot" style={{ background: l.color }} />
-              <span className="lname">{l.name}</span>
-            </div>
-          ))}
+          {locations.map((l) => {
+            const vidrieraOn = vidrieraLocationIds?.has(l.id)
+            return (
+              <div className="cell-head loc-head" key={l.id}>
+                <div className="loc-head-main">
+                  <span className="ldot" style={{ background: l.color }} />
+                  <span className="lname">{l.name}</span>
+                </div>
+                {l.supportsVidriera ? (
+                  canWriteVidriera ? (
+                    <button
+                      type="button"
+                      className={`vidriera-badge${vidrieraOn ? ' is-on' : ''}`}
+                      aria-pressed={vidrieraOn}
+                      title={
+                        vidrieraOn
+                          ? 'Quitar vidriera de este local en este día'
+                          : 'Marcar vidriera en este local este día'
+                      }
+                      onClick={() => onToggleVidriera?.(l.id)}
+                    >
+                      Vidriera
+                    </button>
+                  ) : (
+                    <span
+                      className={`vidriera-badge${vidrieraOn ? ' is-on' : ''}`}
+                      aria-pressed={vidrieraOn}
+                    >
+                      Vidriera
+                    </span>
+                  )
+                ) : null}
+              </div>
+            )
+          })}
         </div>
         <div className="body-wrap">
           <div className="hour-col">

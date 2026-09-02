@@ -18,7 +18,7 @@ public class LocationRepository {
 
     public List<Location> findAllActive() {
         return jdbc.sql("""
-                SELECT id, name, color, color_soft, sort_order, is_active, created_at, updated_at
+                SELECT id, name, color, color_soft, sort_order, is_active, supports_vidriera, created_at, updated_at
                 FROM locations
                 WHERE is_active = TRUE
                 ORDER BY sort_order, name
@@ -29,7 +29,7 @@ public class LocationRepository {
 
     public Optional<Location> findById(String id) {
         return jdbc.sql("""
-                SELECT id, name, color, color_soft, sort_order, is_active, created_at, updated_at
+                SELECT id, name, color, color_soft, sort_order, is_active, supports_vidriera, created_at, updated_at
                 FROM locations
                 WHERE id = :id
                 """)
@@ -46,6 +46,7 @@ public class LocationRepository {
                 rs.getString("color_soft"),
                 rs.getShort("sort_order"),
                 rs.getBoolean("is_active"),
+                rs.getBoolean("supports_vidriera"),
                 rs.getObject("created_at", java.time.OffsetDateTime.class),
                 rs.getObject("updated_at", java.time.OffsetDateTime.class)
         );
