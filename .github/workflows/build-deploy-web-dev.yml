@@ -116,15 +116,14 @@ jobs:
             set -euo pipefail
             export KUBECONFIG="${HOME}/.kube/config"
 
-            kubectl apply -f "${{ env.MANIFEST_DST }}"
+            sed -i "s|:sha-placeholder|:${{ env.TAG_PREFIX }}-${{ github.sha }}|" \
+              "${{ env.MANIFEST_DST }}"
 
-            kubectl -n "${{ env.NAMESPACE }}" set image \
-              "deployment/${{ env.DEPLOYMENT }}" \
-              "web=${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"
+            kubectl apply -f "${{ env.MANIFEST_DST }}"
 
             kubectl -n "${{ env.NAMESPACE }}" rollout status \
               "deployment/${{ env.DEPLOYMENT }}" \
-              --timeout=300s
+              --timeout=480s
 
             kubectl -n "${{ env.NAMESPACE }}" get pods -l app=planificator-lara,tier=web -o wide
             echo "OK ${{ env.IMAGE }}:${{ env.TAG_PREFIX }}-${{ github.sha }}"

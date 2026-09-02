@@ -237,15 +237,14 @@ jobs:
             SHA="${{ needs.setup.outputs.sha }}"
             IMG="${{ env.API_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}"
 
-            kubectl apply -f "/tmp/planificator-api-${ENV_NAME}.yaml"
+            sed -i "s|:sha-placeholder|:${{ env.TAG_PREFIX }}-${SHA}|" \
+              "/tmp/planificator-api-${ENV_NAME}.yaml"
 
-            kubectl -n "${NS}" set image \
-              deployment/planificator-api-lara \
-              "api=${IMG}"
+            kubectl apply -f "/tmp/planificator-api-${ENV_NAME}.yaml"
 
             kubectl -n "${NS}" rollout status \
               deployment/planificator-api-lara \
-              --timeout=300s
+              --timeout=480s
 
             kubectl -n "${NS}" get pods -l app=planificator-lara,tier=api -o wide
             echo "OK API promote ${IMG} → ${NS}"
@@ -318,15 +317,14 @@ jobs:
             ENV="${{ inputs.environment }}"
             IMG="${{ env.WEB_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}-${ENV}"
 
-            kubectl apply -f "/tmp/planificator-web-${ENV_NAME}.yaml"
+            sed -i "s|:sha-placeholder|:${{ env.TAG_PREFIX }}-${SHA}-${ENV}|" \
+              "/tmp/planificator-web-${ENV_NAME}.yaml"
 
-            kubectl -n "${NS}" set image \
-              deployment/planificator-web-lara \
-              "web=${IMG}"
+            kubectl apply -f "/tmp/planificator-web-${ENV_NAME}.yaml"
 
             kubectl -n "${NS}" rollout status \
               deployment/planificator-web-lara \
-              --timeout=300s
+              --timeout=480s
 
             kubectl -n "${NS}" get pods -l app=planificator-lara,tier=web -o wide
             echo "OK Web promote ${IMG} → ${NS}"
