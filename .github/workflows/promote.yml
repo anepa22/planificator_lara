@@ -237,7 +237,7 @@ jobs:
             SHA="${{ needs.setup.outputs.sha }}"
             IMG="${{ env.API_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}"
 
-            sed -i "s|:sha-placeholder|:${{ env.TAG_PREFIX }}-${SHA}|" \
+            sed -i "s|^[[:space:]]*image: ${{ env.API_IMAGE }}:.*|          image: ${IMG}|" \
               "/tmp/planificator-api-${ENV_NAME}.yaml"
 
             kubectl apply -f "/tmp/planificator-api-${ENV_NAME}.yaml"
@@ -317,7 +317,7 @@ jobs:
             ENV="${{ inputs.environment }}"
             IMG="${{ env.WEB_IMAGE }}:${{ env.TAG_PREFIX }}-${SHA}-${ENV}"
 
-            sed -i "s|:sha-placeholder|:${{ env.TAG_PREFIX }}-${SHA}-${ENV}|" \
+            sed -i "s|^[[:space:]]*image: ${{ env.WEB_IMAGE }}:.*|          image: ${IMG}|" \
               "/tmp/planificator-web-${ENV_NAME}.yaml"
 
             kubectl apply -f "/tmp/planificator-web-${ENV_NAME}.yaml"
