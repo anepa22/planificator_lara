@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 const COLUMNS = [
   { id: 'PENDING', label: 'Pendientes' },
@@ -35,6 +35,8 @@ export default function TaskBoard({
   const [draggingId, setDraggingId] = useState(null)
   const [blockRequest, setBlockRequest] = useState(null)
   const [blockReason, setBlockReason] = useState('')
+  const [menu, setMenu] = useState(null)
+  const menuRef = useRef(null)
 
   const byStatus = useMemo(() => {
     const map = new Map(COLUMNS.map((column) => [column.id, []]))
@@ -72,6 +74,80 @@ export default function TaskBoard({
     }
   }
 
+  function hasContextMenu(task) {
+    if (busy) return false
+    if (canManage) return true
+    if (
+      canWrite &&
+      currentPersonId &&
+      task.status === 'PENDING' &&
+      !task.assigneePersonId
+    ) {
+      return true
+    }
+    return canMoveTask(task)
+  }
+
+  function openMenu(event, task) {
+    if (!hasContextMenu(task)) return
+    event.preventDefault()
+    event.stopPropagation()
+    setDraggingId(null)
+    setMenu({ x: event.clientX, y: event.clientY, taskId: task.id })
+  }
+
+  useLayoutEffect(() => {
+    const el = menuRef.current
+    if (!el || !menu) return
+    const rect = el.getBoundingClientRect()
+    const dx = Math.min(0, window.innerWidth - 8 - rect.right)
+    const dy = Math.min(0, window.innerHeight - 8 - rect.bottom)
+    if (dx || dy) {
+      el.style.left = `${Math.max(8, rect.left + dx)}px`
+      el.style.top = `${Math.max(8, rect.top + dy)}px`
+    }
+  }, [menu])
+
+  useEffect(() => {
+    if (!menu) return
+    function close() {
+      setMenu(null)
+    }
+    function onKey(event) {
+      if (event.key === 'Escape') close()
+    }
+    function onPointer(event) {
+      if (menuRef.current?.contains(event.target)) return
+      close()
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [menu])
+
+  const menuTask = menu ? tasks.find((task) => task.id === menu.taskId) : null
+  const menuMoveOptions = menuTask
+    ? COLUMNS.filter(
+        (target) =>
+          target.id !== menuTask.status &&
+          (canManage || PERSONAL_DESTINATIONS.has(target.id)) &&
+          canDrop(menuTask, target.id),
+      )
+    : []
+  const canSelfAssign =
+    !!menuTask &&
+    canWrite &&
+    !!currentPersonId &&
+    menuTask.status === 'PENDING' &&
+    !menuTask.assigneePersonId
+
   return (
     <>
       <div className="task-board" aria-label="Tablero de tareas">
@@ -108,18 +184,20 @@ export default function TaskBoard({
                 {columnTasks.map((task) => {
                   const own = task.assigneePersonId === currentPersonId
                   const movable = canMoveTask(task)
-                  const moveOptions = COLUMNS.filter(
-                    (target) =>
-                      target.id !== task.status &&
-                      (canManage || PERSONAL_DESTINATIONS.has(target.id)),
-                  )
+                  const contextual = hasContextMenu(task)
                   return (
                     <article
                       key={task.id}
                       className={`task-card${own ? ' is-own' : ''}${
                         movable ? ' is-movable' : ''
-                      }`}
+                      }${contextual ? ' has-menu' : ''}`}
                       draggable={movable && !busy}
+                      title={
+                        contextual
+                          ? 'Clic derecho para asignar o mover'
+                          : undefined
+                      }
+                      onContextMenu={(event) => openMenu(event, task)}
                       onDragStart={(event) => {
                         setDraggingId(task.id)
                         event.dataTransfer.effectAllowed = 'move'
@@ -173,52 +251,6 @@ export default function TaskBoard({
                         )}
 
                       {canManage && (
-                        <label className="task-inline-field">
-                          <span>Asignada a</span>
-                          <select
-                            value={task.assigneePersonId || ''}
-                            disabled={busy}
-                            onChange={(event) => {
-                              const personId = event.target.value
-                              if (personId) {
-                                void perform(() => onAssign?.(task.id, personId))
-                              } else {
-                                void perform(() => onUnassign?.(task.id))
-                              }
-                            }}
-                          >
-                            <option value="">Sin asignar / Pendientes</option>
-                            {people.map((person) => (
-                              <option key={person.id} value={person.id}>
-                                {person.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-
-                      {movable && (
-                        <label className="task-inline-field">
-                          <span>Mover a</span>
-                          <select
-                            value=""
-                            disabled={busy}
-                            onChange={(event) => {
-                              const status = event.target.value
-                              if (status) requestMove(task, status)
-                            }}
-                          >
-                            <option value="">Elegir estado…</option>
-                            {moveOptions.map((target) => (
-                              <option key={target.id} value={target.id}>
-                                {target.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
-
-                      {canManage && (
                         <button
                           type="button"
                           className="task-retire"
@@ -238,6 +270,87 @@ export default function TaskBoard({
           )
         })}
       </div>
+
+      {menuTask && (
+        <div
+          ref={menuRef}
+          className="task-context-menu"
+          role="menu"
+          style={{ left: menu.x, top: menu.y }}
+        >
+          {(canManage || canSelfAssign) && (
+            <div className="task-context-group">
+              <div className="task-context-label">Asignar</div>
+              {canSelfAssign && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => {
+                    setMenu(null)
+                    void perform(() => onAssign?.(menuTask.id, currentPersonId))
+                  }}
+                >
+                  Asignarme
+                </button>
+              )}
+              {canManage && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={!menuTask.assigneePersonId ? 'is-current' : ''}
+                    disabled={busy || !menuTask.assigneePersonId}
+                    onClick={() => {
+                      setMenu(null)
+                      void perform(() => onUnassign?.(menuTask.id))
+                    }}
+                  >
+                    Sin asignar
+                  </button>
+                  {people.map((person) => (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      key={person.id}
+                      className={
+                        menuTask.assigneePersonId === person.id ? 'is-current' : ''
+                      }
+                      disabled={busy || menuTask.assigneePersonId === person.id}
+                      onClick={() => {
+                        setMenu(null)
+                        void perform(() => onAssign?.(menuTask.id, person.id))
+                      }}
+                    >
+                      {person.name}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+
+          {canMoveTask(menuTask) && menuMoveOptions.length > 0 && (
+            <div className="task-context-group">
+              <div className="task-context-label">Mover a</div>
+              {menuMoveOptions.map((target) => (
+                <button
+                  type="button"
+                  role="menuitem"
+                  key={target.id}
+                  disabled={busy}
+                  onClick={() => {
+                    setMenu(null)
+                    requestMove(menuTask, target.id)
+                  }}
+                >
+                  {target.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {blockRequest && (
         <div
