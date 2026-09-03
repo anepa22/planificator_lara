@@ -80,6 +80,31 @@ export const updateShift = (id, body) =>
 export const deleteShift = (id) =>
   api(`/api/shifts/${id}`, { method: 'DELETE' })
 
+export const getTaskBoard = () => api('/api/tasks/board')
+export const getTasks = () => api('/api/tasks')
+export const createTask = (body) =>
+  api('/api/tasks', { method: 'POST', body: JSON.stringify(body) })
+export const updateTask = (id, body) =>
+  api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+export const deleteTask = (id) =>
+  api(`/api/tasks/${id}`, { method: 'DELETE' })
+export const publishTask = (id) =>
+  api(`/api/tasks/${id}/publish`, { method: 'POST' })
+export const assignTask = (id, personId) =>
+  api(`/api/tasks/${id}/assign`, {
+    method: 'POST',
+    body: JSON.stringify({ personId }),
+  })
+export const unassignTask = (id) =>
+  api(`/api/tasks/${id}/unassign`, { method: 'POST' })
+export const moveTask = (id, status, blockReason = null) =>
+  api(`/api/tasks/${id}/move`, {
+    method: 'POST',
+    body: JSON.stringify({ status, blockReason }),
+  })
+export const retireTask = (id) =>
+  api(`/api/tasks/${id}/retire`, { method: 'POST' })
+
 export const getUsers = () => api('/api/users')
 export const createUser = (body) =>
   api('/api/users', { method: 'POST', body: JSON.stringify(body) })

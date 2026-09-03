@@ -13,10 +13,11 @@ import ConfirmModal from './ConfirmModal'
 
 const ROLE_LABELS = {
   admin: 'Administrador',
-  editor: 'Editor',
+  editor: 'Supervisor',
+  personal: 'Personal',
 }
 
-export default function UsersModal({ open, onClose }) {
+export default function UsersModal({ open, people = [], onClose }) {
   const { can } = useAuth()
   const canManageUsers = can('users:manage')
   const canManageRoles = can('roles:manage')
@@ -32,6 +33,7 @@ export default function UsersModal({ open, onClose }) {
     username: '',
     password: '',
     displayName: '',
+    personId: '',
     roleIds: [],
   })
   const [editingId, setEditingId] = useState(null)
@@ -45,6 +47,7 @@ export default function UsersModal({ open, onClose }) {
       username: '',
       password: '',
       displayName: '',
+      personId: '',
       roleIds: [],
     })
     reload()
@@ -78,6 +81,7 @@ export default function UsersModal({ open, onClose }) {
           displayName: form.displayName.trim(),
           active: true,
           password: form.password.trim() || null,
+          personId: form.personId || null,
           roleIds: form.roleIds,
         })
       } else {
@@ -85,6 +89,7 @@ export default function UsersModal({ open, onClose }) {
           username: form.username.trim(),
           password: form.password,
           displayName: form.displayName.trim(),
+          personId: form.personId || null,
           roleIds: form.roleIds,
         })
       }
@@ -93,6 +98,7 @@ export default function UsersModal({ open, onClose }) {
         username: '',
         password: '',
         displayName: '',
+        personId: '',
         roleIds: [],
       })
       await reload()
@@ -130,6 +136,7 @@ export default function UsersModal({ open, onClose }) {
       username: user.username,
       password: '',
       displayName: user.displayName,
+      personId: user.personId || '',
       roleIds: user.roles?.length ? [...user.roles] : ['editor'],
     })
   }
@@ -238,6 +245,23 @@ export default function UsersModal({ open, onClose }) {
                 />
               </div>
               <div className="field">
+                <label>Persona vinculada</label>
+                <select
+                  value={form.personId}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, personId: e.target.value }))
+                  }
+                >
+                  <option value="">Sin vínculo (cuenta administrativa)</option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
                 <label>Roles</label>
                 <div className="people-pick">
                   {roles.map((r) => (
@@ -267,6 +291,7 @@ export default function UsersModal({ open, onClose }) {
                         username: '',
                         password: '',
                         displayName: '',
+                        personId: '',
                         roleIds: [],
                       })
                     }}
@@ -297,6 +322,12 @@ export default function UsersModal({ open, onClose }) {
                         {(u.roles || [])
                           .map((r) => ROLE_LABELS[r] || r)
                           .join(', ')}
+                        {u.personId
+                          ? ` · ${
+                              people.find((person) => person.id === u.personId)
+                                ?.name || 'Persona vinculada'
+                            }`
+                          : ''}
                       </span>
                     </span>
                     <button

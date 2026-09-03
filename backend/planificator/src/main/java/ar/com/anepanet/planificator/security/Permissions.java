@@ -9,6 +9,8 @@ public final class Permissions {
     public static final String USERS_MANAGE = "users:manage";
     public static final String ROLES_MANAGE = "roles:manage";
     public static final String AUDIT_READ = "audit:read";
+    public static final String TASKS_WRITE = "tasks:write";
+    public static final String TASKS_MANAGE = "tasks:manage";
 
     public static final String VACATION_LOCATION_ID = "vacaciones";
     public static final String FRANCO_LOCATION_ID = "franco";

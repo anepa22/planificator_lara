@@ -41,6 +41,8 @@ export function AuthProvider({ children }) {
       id: payload.id,
       username: payload.username,
       displayName: payload.displayName,
+      personId: payload.personId || null,
+      roles: payload.roles || [],
       permissions: new Set(payload.permissions || []),
     })
   }, [])

@@ -29,6 +29,7 @@ export default function AppMenu({
   showUsers = false,
   showLunch = false,
   showVidriera = false,
+  showTasksAdmin = false,
   showAudit = false,
   userLabel,
   loggedIn = false,
@@ -37,6 +38,7 @@ export default function AppMenu({
   onUsers,
   onLunch,
   onVidriera,
+  onTasksAdmin,
   onAudit,
   onLogin,
   onLogout,
@@ -44,7 +46,7 @@ export default function AppMenu({
   version,
 }) {
   const showPersonalGroup = showPeople || showVacations || showLunch || showVidriera
-  const showOtherActions = showUsers || showAudit
+  const showOtherActions = showUsers || showTasksAdmin || showAudit
   const hasActions = showPersonalGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
 
@@ -107,10 +109,21 @@ export default function AppMenu({
             >
               Mensual
             </button>
+            <button
+              type="button"
+              className={`app-menu-view-btn${view === 'tasks' ? ' active' : ''}`}
+              aria-pressed={view === 'tasks'}
+              onClick={() => {
+                onViewChange('tasks')
+                onClose()
+              }}
+            >
+              Tareas
+            </button>
           </div>
         </div>
 
-        <div className="app-menu-section">
+        {view !== 'tasks' && <div className="app-menu-section">
           <div className="app-menu-label">
             {view === 'month' ? 'Mes' : 'Semana'}
           </div>
@@ -133,7 +146,7 @@ export default function AppMenu({
               Siguiente ›
             </button>
           </div>
-        </div>
+        </div>}
 
         {hasActions && (
           <div className="app-menu-section">
@@ -216,6 +229,16 @@ export default function AppMenu({
                     }}
                   >
                     Usuarios
+                  </MenuItem>
+                )}
+                {showTasksAdmin && (
+                  <MenuItem
+                    onClick={() => {
+                      onTasksAdmin()
+                      onClose()
+                    }}
+                  >
+                    Administrar tareas
                   </MenuItem>
                 )}
                 {showAudit && (

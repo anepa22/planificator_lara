@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createPerson,
   createShift,
+  assignTask,
   deletePerson,
   deleteShift,
   deleteVidriera,
@@ -9,8 +10,12 @@ import {
   getLocations,
   getPeople,
   getShifts,
+  getTaskBoard,
   getVidrieras,
+  moveTask,
   putVidriera,
+  retireTask,
+  unassignTask,
   updateShift,
 } from './api/client'
 import { useAuth } from './auth/AuthContext'
@@ -25,6 +30,8 @@ import PeopleModal from './components/PeopleModal'
 import ScheduleGrid from './components/ScheduleGrid'
 import ShiftModal from './components/ShiftModal'
 import SummaryBar from './components/SummaryBar'
+import TaskAdminModal from './components/TaskAdminModal'
+import TaskBoard from './components/TaskBoard'
 import UsersModal from './components/UsersModal'
 import VacationModal from './components/VacationModal'
 import VacationRemoveModal from './components/VacationRemoveModal'
@@ -74,6 +81,8 @@ function App() {
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
   const canReadAudit = can('audit:read')
+  const canWriteTasks = can('tasks:write')
+  const canManageTasks = can('tasks:manage')
 
   const [locations, setLocations] = useState([])
   const [people, setPeople] = useState([])
@@ -81,6 +90,7 @@ function App() {
   const [monthShifts, setMonthShifts] = useState([])
   const [vidrieras, setVidrieras] = useState([])
   const [monthVidrieras, setMonthVidrieras] = useState([])
+  const [taskBoard, setTaskBoard] = useState([])
   const [holidaysByDate, setHolidaysByDate] = useState({})
   const [view, setView] = useState('week')
   const [lunchHours, setLunchHours] = useState(() => loadLunchHours())
@@ -94,6 +104,7 @@ function App() {
   )
   const [hourH, setHourH] = useState(44)
   const [loading, setLoading] = useState(true)
+  const [taskLoading, setTaskLoading] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [shiftModal, setShiftModal] = useState(null)
@@ -104,6 +115,7 @@ function App() {
   const [vacationOpen, setVacationOpen] = useState(false)
   const [vidrieraOpen, setVidrieraOpen] = useState(false)
   const [vidrieraModalDate, setVidrieraModalDate] = useState(null)
+  const [taskAdminOpen, setTaskAdminOpen] = useState(false)
   const [absenceRemove, setAbsenceRemove] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
@@ -221,6 +233,10 @@ function App() {
     setVidrieras(weekVidrieras)
   }, [])
 
+  const reloadTaskBoard = useCallback(async () => {
+    setTaskBoard(await getTaskBoard())
+  }, [])
+
   function handleLunchHoursChange(value) {
     setLunchHours(saveLunchHours(value))
   }
@@ -312,6 +328,25 @@ function App() {
   }, [booting, view, monthOffset, reloadMonth])
 
   useEffect(() => {
+    if (booting || view !== 'tasks') return
+    let cancelled = false
+    ;(async () => {
+      setTaskLoading(true)
+      try {
+        const rows = await getTaskBoard()
+        if (!cancelled) setTaskBoard(rows)
+      } catch (e) {
+        if (!cancelled) setError(e.message)
+      } finally {
+        if (!cancelled) setTaskLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [booting, view])
+
+  useEffect(() => {
     if (booting) return
     let cancelled = false
     ;(async () => {
@@ -363,6 +398,34 @@ function App() {
     } else {
       await reloadWeek(weekKey)
     }
+  }
+
+  async function handleAssignTask(taskId, personId) {
+    await withBusy(async () => {
+      await assignTask(taskId, personId)
+      await reloadTaskBoard()
+    })
+  }
+
+  async function handleUnassignTask(taskId) {
+    await withBusy(async () => {
+      await unassignTask(taskId)
+      await reloadTaskBoard()
+    })
+  }
+
+  async function handleMoveTask(taskId, status, blockReason) {
+    await withBusy(async () => {
+      await moveTask(taskId, status, blockReason)
+      await reloadTaskBoard()
+    })
+  }
+
+  async function handleRetireTask(taskId) {
+    await withBusy(async () => {
+      await retireTask(taskId)
+      await reloadTaskBoard()
+    })
   }
 
   async function handleAddPerson(name) {
@@ -724,20 +787,24 @@ function App() {
           <span />
           <span />
         </button>
-        <WeekNav
-          label={navLabel}
-          onPrev={() =>
-            view === 'month'
-              ? setMonthOffset((o) => o - 1)
-              : setWeekOffset((o) => o - 1)
-          }
-          onNext={() =>
-            view === 'month'
-              ? setMonthOffset((o) => o + 1)
-              : setWeekOffset((o) => o + 1)
-          }
-          onToday={goToday}
-        />
+        {view === 'tasks' ? (
+          <h1 className="task-view-title">Tablero de tareas</h1>
+        ) : (
+          <WeekNav
+            label={navLabel}
+            onPrev={() =>
+              view === 'month'
+                ? setMonthOffset((o) => o - 1)
+                : setWeekOffset((o) => o - 1)
+            }
+            onNext={() =>
+              view === 'month'
+                ? setMonthOffset((o) => o + 1)
+                : setWeekOffset((o) => o + 1)
+            }
+            onToday={goToday}
+          />
+        )}
       </div>
 
       {error && (
@@ -792,8 +859,21 @@ function App() {
         </div>
       )}
 
-      {loading ? (
+      {loading || (view === 'tasks' && taskLoading) ? (
         <p style={{ color: 'var(--ink-soft)', fontSize: 13 }}>Cargando…</p>
+      ) : view === 'tasks' ? (
+        <TaskBoard
+          tasks={taskBoard}
+          people={people}
+          currentPersonId={user?.personId || null}
+          canWrite={canWriteTasks}
+          canManage={canManageTasks}
+          busy={busy}
+          onAssign={handleAssignTask}
+          onUnassign={handleUnassignTask}
+          onMove={handleMoveTask}
+          onRetire={handleRetireTask}
+        />
       ) : view === 'month' ? (
         <MonthGantt
           monthDate={monthDate}
@@ -876,7 +956,17 @@ function App() {
         onRemove={handleRemovePerson}
       />
 
-      <UsersModal open={usersOpen} onClose={() => setUsersOpen(false)} />
+      <UsersModal
+        open={usersOpen}
+        people={people}
+        onClose={() => setUsersOpen(false)}
+      />
+
+      <TaskAdminModal
+        open={taskAdminOpen}
+        onClose={() => setTaskAdminOpen(false)}
+        onChanged={reloadTaskBoard}
+      />
 
       <AuditModal open={auditOpen} onClose={() => setAuditOpen(false)} />
 
@@ -958,6 +1048,7 @@ function App() {
         showUsers={canManageUsers}
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}
+        showTasksAdmin={canManageTasks}
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
@@ -966,6 +1057,7 @@ function App() {
         onUsers={() => setUsersOpen(true)}
         onLunch={() => setLunchOpen(true)}
         onVidriera={() => openVidrieraModal()}
+        onTasksAdmin={() => setTaskAdminOpen(true)}
         onAudit={() => setAuditOpen(true)}
         onLogin={() => setLoginOpen(true)}
         onLogout={logout}

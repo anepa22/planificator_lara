@@ -60,6 +60,7 @@ public class AuthService {
                 user.id(),
                 user.username(),
                 user.displayName(),
+                user.personId(),
                 user.roleIds(),
                 user.permissions()
         );
@@ -103,6 +104,7 @@ public class AuthService {
                 user.id(),
                 user.username(),
                 user.displayName(),
+                user.personId(),
                 user.roleIds(),
                 user.permissions()
         );

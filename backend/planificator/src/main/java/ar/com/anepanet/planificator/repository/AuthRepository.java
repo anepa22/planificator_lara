@@ -27,7 +27,8 @@ public class AuthRepository {
 
     public Optional<AppUser> findByUsername(String username) {
         return jdbc.sql("""
-                SELECT id, username, password_hash, display_name, is_active, created_at, updated_at
+                SELECT id, username, password_hash, display_name, person_id,
+                       is_active, created_at, updated_at
                 FROM app_users
                 WHERE lower(username) = lower(:username)
                 """)
@@ -39,7 +40,8 @@ public class AuthRepository {
 
     public Optional<AppUser> findById(UUID id) {
         return jdbc.sql("""
-                SELECT id, username, password_hash, display_name, is_active, created_at, updated_at
+                SELECT id, username, password_hash, display_name, person_id,
+                       is_active, created_at, updated_at
                 FROM app_users
                 WHERE id = :id
                 """)
@@ -51,7 +53,8 @@ public class AuthRepository {
 
     public List<AppUser> findAllUsers() {
         List<AppUser> base = jdbc.sql("""
-                SELECT id, username, password_hash, display_name, is_active, created_at, updated_at
+                SELECT id, username, password_hash, display_name, person_id,
+                       is_active, created_at, updated_at
                 FROM app_users
                 ORDER BY username
                 """)
@@ -60,15 +63,22 @@ public class AuthRepository {
         return base.stream().map(this::withRolesAndPermissions).toList();
     }
 
-    public AppUser insertUser(String username, String passwordHash, String displayName, List<String> roleIds) {
+    public AppUser insertUser(
+            String username,
+            String passwordHash,
+            String displayName,
+            UUID personId,
+            List<String> roleIds) {
         AppUser created = jdbc.sql("""
-                INSERT INTO app_users (username, password_hash, display_name)
-                VALUES (:username, :passwordHash, :displayName)
-                RETURNING id, username, password_hash, display_name, is_active, created_at, updated_at
+                INSERT INTO app_users (username, password_hash, display_name, person_id)
+                VALUES (:username, :passwordHash, :displayName, :personId)
+                RETURNING id, username, password_hash, display_name, person_id,
+                          is_active, created_at, updated_at
                 """)
                 .param("username", username.trim())
                 .param("passwordHash", passwordHash)
                 .param("displayName", displayName.trim())
+                .param("personId", personId)
                 .query(this::mapUserBase)
                 .single();
         replaceUserRoles(created.id(), roleIds);
@@ -80,6 +90,7 @@ public class AuthRepository {
             String displayName,
             Boolean active,
             String passwordHash,
+            UUID personId,
             List<String> roleIds) {
         Optional<AppUser> existing = findById(id);
         if (existing.isEmpty()) {
@@ -89,6 +100,7 @@ public class AuthRepository {
                 UPDATE app_users
                 SET display_name = :displayName,
                     is_active = :active,
+                    person_id = :personId,
                     password_hash = COALESCE(:passwordHash, password_hash),
                     updated_at = NOW()
                 WHERE id = :id
@@ -97,6 +109,7 @@ public class AuthRepository {
                 .param("displayName", displayName.trim())
                 .param("active", active)
                 .param("passwordHash", passwordHash)
+                .param("personId", personId)
                 .update();
         if (roleIds != null) {
             replaceUserRoles(id, roleIds);
@@ -226,6 +239,7 @@ public class AuthRepository {
                 base.username(),
                 base.passwordHash(),
                 base.displayName(),
+                base.personId(),
                 base.active(),
                 base.createdAt(),
                 base.updatedAt(),
@@ -240,6 +254,7 @@ public class AuthRepository {
                 rs.getString("username"),
                 rs.getString("password_hash"),
                 rs.getString("display_name"),
+                rs.getObject("person_id", UUID.class),
                 rs.getBoolean("is_active"),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),

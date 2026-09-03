@@ -63,6 +63,24 @@ public class AuthCleanup implements ApplicationRunner {
                         ('admin', 'audit_read')
                     ON CONFLICT DO NOTHING
                     """).update();
+
+            ensurePermission("tasks_write", Permissions.TASKS_WRITE, "Tomar y mover tareas propias");
+            ensurePermission("tasks_manage", Permissions.TASKS_MANAGE, "Administrar todas las tareas");
+            jdbc.sql("""
+                    INSERT INTO roles (id, code, name) VALUES
+                        ('personal', 'personal', 'Personal')
+                    ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name
+                    """).update();
+            jdbc.sql("UPDATE roles SET name = 'Supervisor' WHERE id = 'editor'").update();
+            jdbc.sql("""
+                    INSERT INTO role_permissions (role_id, permission_id) VALUES
+                        ('personal', 'tasks_write'),
+                        ('editor', 'tasks_write'),
+                        ('editor', 'tasks_manage'),
+                        ('admin', 'tasks_write'),
+                        ('admin', 'tasks_manage')
+                    ON CONFLICT DO NOTHING
+                    """).update();
         } catch (Exception ex) {
             log.warn("Auth cleanup skipped: {}", ex.getMessage());
         }

@@ -7,6 +7,7 @@ public record MeResponse(
         UUID id,
         String username,
         String displayName,
+        UUID personId,
         List<String> roles,
         List<String> permissions
 ) {}

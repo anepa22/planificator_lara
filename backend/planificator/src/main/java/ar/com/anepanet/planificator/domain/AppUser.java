@@ -9,6 +9,7 @@ public record AppUser(
         String username,
         String passwordHash,
         String displayName,
+        UUID personId,
         boolean active,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,

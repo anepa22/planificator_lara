@@ -4,6 +4,7 @@ import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Permission;
 import ar.com.anepanet.planificator.domain.Role;
 import ar.com.anepanet.planificator.repository.AuthRepository;
+import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.web.dto.CreateUserRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateRolePermissionsRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateUserRequest;
@@ -24,11 +25,17 @@ import java.util.stream.Collectors;
 public class UserAdminService {
 
     private final AuthRepository auth;
+    private final PersonRepository people;
     private final PasswordEncoder passwordEncoder;
     private final AuditService audit;
 
-    public UserAdminService(AuthRepository auth, PasswordEncoder passwordEncoder, AuditService audit) {
+    public UserAdminService(
+            AuthRepository auth,
+            PersonRepository people,
+            PasswordEncoder passwordEncoder,
+            AuditService audit) {
         this.auth = auth;
+        this.people = people;
         this.passwordEncoder = passwordEncoder;
         this.audit = audit;
     }
@@ -39,11 +46,13 @@ public class UserAdminService {
 
     public UserResponse createUser(CreateUserRequest req) {
         validateRoles(req.roleIds());
+        validatePerson(req.personId());
         try {
             AppUser user = auth.insertUser(
                     req.username(),
                     passwordEncoder.encode(req.password()),
                     req.displayName(),
+                    req.personId(),
                     req.roleIds()
             );
             audit.record(
@@ -55,12 +64,15 @@ public class UserAdminService {
             );
             return toResponse(user);
         } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya existe");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El usuario ya existe o la persona ya está vinculada a otra cuenta");
         }
     }
 
     public UserResponse updateUser(UUID id, UpdateUserRequest req) {
         validateRoles(req.roleIds());
+        validatePerson(req.personId());
         String hash = null;
         boolean passwordChanged = false;
         if (req.password() != null && !req.password().isBlank()) {
@@ -70,8 +82,17 @@ public class UserAdminService {
             hash = passwordEncoder.encode(req.password());
             passwordChanged = true;
         }
-        AppUser user = auth.updateUser(id, req.displayName(), req.active(), hash, req.roleIds())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        AppUser user;
+        try {
+            user = auth.updateUser(
+                            id, req.displayName(), req.active(), hash, req.personId(), req.roleIds())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "La persona ya está vinculada a otra cuenta");
+        }
         audit.record(
                 AuditService.ACTION_UPDATE,
                 AuditService.TYPE_USER,
@@ -155,9 +176,20 @@ public class UserAdminService {
                 user.id(),
                 user.username(),
                 user.displayName(),
+                user.personId(),
                 user.active(),
                 user.roleIds(),
                 user.permissions()
         );
+    }
+
+    private void validatePerson(UUID personId) {
+        if (personId == null) {
+            return;
+        }
+        people.findById(personId)
+                .filter(p -> p.active())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Persona inválida o inactiva"));
     }
 }
