@@ -28,6 +28,11 @@ on:
   workflow_dispatch:
 
 env:
+  # El post-step de build-push-action sube el "build record" a la API de
+  # GitHub y con builds multi-arch se queda colgado. El deploy ya terminó
+  # para ese momento, así que lo desactivamos.
+  DOCKER_BUILD_SUMMARY: false
+  DOCKER_BUILD_RECORD_UPLOAD: false
   IMAGE: ghcr.io/anepa22/planificator-api-lara
   # Tag inmutable por commit (promovible en Paso 4)
   TAG_PREFIX: sha

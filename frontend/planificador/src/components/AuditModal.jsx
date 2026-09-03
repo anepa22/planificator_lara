@@ -171,22 +171,22 @@ export default function AuditModal({ open, onClose }) {
 
   return (
     <div
-      className="overlay open audit-overlay"
+      className="overlay open panel-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
-        className="modal audit-modal"
+        className="modal panel-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="audit-title"
       >
-        <div className="audit-head">
+        <div className="panel-head">
           <h3 id="audit-title">Bitácora</h3>
           <button
             type="button"
-            className="audit-close"
+            className="panel-close"
             onClick={onClose}
             aria-label="Cerrar"
           >
@@ -195,7 +195,7 @@ export default function AuditModal({ open, onClose }) {
         </div>
 
         <form
-          className="audit-filters"
+          className="panel-form audit-filters"
           onSubmit={(e) => {
             e.preventDefault()
             load({ from, to, username, entityType })
@@ -249,7 +249,7 @@ export default function AuditModal({ open, onClose }) {
               ))}
             </select>
           </div>
-          <div className="audit-filter-actions">
+          <div className="panel-form-actions">
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Buscando…' : 'Buscar'}
             </button>
@@ -258,8 +258,8 @@ export default function AuditModal({ open, onClose }) {
 
         {error && <div className="m-warn">{error}</div>}
 
-        <div className="audit-toolbar">
-          <span className="audit-count">
+        <div className="panel-toolbar">
+          <span className="panel-count">
             {!loaded || busy
               ? 'Cargando…'
               : entries.length === 0
@@ -268,10 +268,10 @@ export default function AuditModal({ open, onClose }) {
           </span>
         </div>
 
-        <div className={`audit-list${busy ? ' is-busy' : ''}`}>
+        <div className={`panel-list${busy ? ' is-busy' : ''}`}>
           {!busy && loaded && entries.length === 0 ? (
-            <div className="audit-empty">
-              <div className="audit-empty-title">Nada en este rango</div>
+            <div className="panel-empty">
+              <div className="panel-empty-title">Nada en este rango</div>
               <div>Probá ampliar las fechas o quitar filtros.</div>
             </div>
           ) : (

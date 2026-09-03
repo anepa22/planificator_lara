@@ -24,6 +24,10 @@ on:
   workflow_dispatch:
 
 env:
+  # Ver nota en build-deploy-api-dev.yml: el post-step de build-push-action
+  # cuelga el job al subir el build record.
+  DOCKER_BUILD_SUMMARY: false
+  DOCKER_BUILD_RECORD_UPLOAD: false
   IMAGE: ghcr.io/anepa22/planificator-web-lara
   TAG_PREFIX: sha
   NAMESPACE: dev

@@ -23,6 +23,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
   const [pendingDelete, setPendingDelete] = useState(null)
   const [form, setForm] = useState({ title: '', description: '' })
   const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
       setError(err.message)
     } finally {
       setBusy(false)
+      setLoaded(true)
     }
   }
 
@@ -82,25 +84,45 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
   return (
     <>
       <div
-        className="overlay open"
+        className="overlay open panel-overlay"
         onClick={(event) => {
           if (event.target === event.currentTarget && !pendingDelete && !busy) {
             onClose()
           }
         }}
       >
-        <div className="modal task-admin-modal">
-          <h3>Administrar tareas</h3>
+        <div
+          className="modal panel-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-admin-title"
+        >
+          <div className="panel-head">
+            <h3 id="task-admin-title">Administrar tareas</h3>
+            <button
+              type="button"
+              className="panel-close"
+              disabled={busy}
+              onClick={onClose}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
           <div className="m-sub">
             Alta, modificación, baja y publicación en Pendientes.
           </div>
+
           {error && <div className="m-warn">{error}</div>}
 
-          <form className="task-admin-form" onSubmit={save}>
+          <form className="panel-form task-admin-form" onSubmit={save}>
             <div className="field">
-              <label htmlFor="task-title">Título</label>
+              <label htmlFor="task-title">
+                {editing ? 'Título (editando)' : 'Título'}
+              </label>
               <input
                 id="task-title"
+                type="text"
                 value={form.title}
                 maxLength={160}
                 disabled={busy}
@@ -125,7 +147,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                 }
               />
             </div>
-            <div className="modal-actions">
+            <div className="panel-form-actions">
               {editing && (
                 <button
                   type="button"
@@ -142,73 +164,97 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
             </div>
           </form>
 
-          <div className="task-admin-list">
-            {!tasks.length && <div className="task-column-empty">Sin tareas.</div>}
-            {tasks.map((task) => (
-              <article className="task-admin-row" key={task.id}>
-                <div className="task-admin-info">
-                  <strong>{task.title}</strong>
-                  <span>
-                    {task.onBoard
-                      ? `${STATUS_LABELS[task.status] || task.status}${
-                          task.assigneeName ? ` · ${task.assigneeName}` : ''
-                        }`
-                      : 'Fuera del tablero'}
-                  </span>
-                </div>
-                <div className="task-admin-actions">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setEditing(task)
-                      setForm({
-                        title: task.title,
-                        description: task.description || '',
-                      })
-                    }}
-                  >
-                    Modificar
-                  </button>
-                  {!task.onBoard ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => run(() => publishTask(task.id))}
-                    >
-                      Agregar a Pendientes
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => run(() => retireTask(task.id))}
-                    >
-                      Sacar del tablero
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={busy}
-                    onClick={() => setPendingDelete(task)}
-                  >
-                    Baja
-                  </button>
-                </div>
-              </article>
-            ))}
+          <div className="panel-toolbar">
+            <span className="panel-count">
+              {!loaded || busy
+                ? 'Cargando…'
+                : tasks.length === 0
+                  ? 'Sin tareas'
+                  : `${tasks.length} tarea${tasks.length === 1 ? '' : 's'}`}
+            </span>
           </div>
 
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={busy}
-              onClick={onClose}
-            >
-              Cerrar
-            </button>
+          <div className={`panel-list${busy ? ' is-busy' : ''}`}>
+            {!busy && loaded && tasks.length === 0 ? (
+              <div className="panel-empty">
+                <div className="panel-empty-title">Todavía no hay tareas</div>
+                <div>Creá la primera con el formulario de arriba.</div>
+              </div>
+            ) : (
+              <ul>
+                {tasks.map((task) => {
+                  const state = task.onBoard ? task.status : 'OFF_BOARD'
+                  return (
+                    <li
+                      key={task.id}
+                      className={`task-admin-item state-${state}${
+                        editing?.id === task.id ? ' is-editing' : ''
+                      }`}
+                    >
+                      <div className="task-admin-rail" aria-hidden />
+                      <div className="task-admin-body">
+                        <div className="task-admin-meta">
+                          <span className={`task-admin-badge state-${state}`}>
+                            {task.onBoard
+                              ? STATUS_LABELS[task.status] || task.status
+                              : 'Fuera del tablero'}
+                          </span>
+                          {task.assigneeName && (
+                            <span className="task-admin-badge soft">
+                              {task.assigneeName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="task-admin-title">{task.title}</div>
+                        {task.description && (
+                          <div className="task-admin-desc">{task.description}</div>
+                        )}
+                      </div>
+                      <div className="task-admin-actions">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            setEditing(task)
+                            setForm({
+                              title: task.title,
+                              description: task.description || '',
+                            })
+                          }}
+                        >
+                          Modificar
+                        </button>
+                        {!task.onBoard ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => run(() => publishTask(task.id))}
+                          >
+                            Agregar a Pendientes
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => run(() => retireTask(task.id))}
+                          >
+                            Sacar del tablero
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="danger"
+                          disabled={busy}
+                          onClick={() => setPendingDelete(task)}
+                        >
+                          Baja
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
         </div>
       </div>
