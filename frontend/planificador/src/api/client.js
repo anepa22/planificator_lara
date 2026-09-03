@@ -67,10 +67,6 @@ export const deleteVidriera = (locationId, workDate) =>
     `/api/vidrieras?locationId=${encodeURIComponent(locationId)}&workDate=${workDate}`,
     { method: 'DELETE' },
   )
-export const createStaff = (name) =>
-  api('/api/staff', { method: 'POST', body: JSON.stringify({ name }) })
-export const deleteStaff = (id) => api(`/api/staff/${id}`, { method: 'DELETE' })
-
 export const getShifts = (weekStart) =>
   api(`/api/shifts?weekStart=${weekStart}`)
 export const createShift = (body) =>

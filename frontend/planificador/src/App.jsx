@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createShift,
-  createStaff,
   assignTask,
   deleteShift,
-  deleteStaff,
   deleteVidriera,
   getHolidays,
   getLocations,
@@ -29,7 +27,6 @@ import LunchModal from './components/LunchModal'
 import MonthGantt from './components/MonthGantt'
 import ScheduleGrid from './components/ScheduleGrid'
 import ShiftModal from './components/ShiftModal'
-import StaffModal from './components/StaffModal'
 import SummaryBar from './components/SummaryBar'
 import TaskAdminModal from './components/TaskAdminModal'
 import TaskBoard from './components/TaskBoard'
@@ -78,7 +75,6 @@ function App() {
   const { user, booting, can, logout } = useAuth()
   const canWriteShifts = can('shifts:write')
   const canWriteVacations = can('vacations:write')
-  const canWriteStaff = can('staff:write')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
   const canReadAudit = can('audit:read')
@@ -110,7 +106,6 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [shiftModal, setShiftModal] = useState(null)
-  const [staffOpen, setStaffOpen] = useState(false)
   const [usersOpen, setUsersOpen] = useState(false)
   const [auditOpen, setAuditOpen] = useState(false)
   const [lunchOpen, setLunchOpen] = useState(false)
@@ -443,21 +438,6 @@ function App() {
   const reloadStaff = useCallback(async () => {
     setStaff(activeOnly(await getStaff()))
   }, [])
-
-  async function handleAddStaff(name) {
-    await withBusy(async () => {
-      await createStaff(name)
-      await reloadStaff()
-    })
-  }
-
-  async function handleRemoveStaff(id) {
-    await withBusy(async () => {
-      await deleteStaff(id)
-      await reloadStaff()
-      await refreshAfterShiftChange()
-    })
-  }
 
   const fetchShiftsForRange = useCallback(
     async (from, to) => fetchShiftsByWeekKeys(weekStartsOverlappingRange(from, to)),
@@ -960,16 +940,6 @@ function App() {
         }}
       />
 
-      <StaffModal
-        open={staffOpen}
-        staff={staff}
-        busy={busy}
-        canWrite={canWriteStaff}
-        onClose={() => setStaffOpen(false)}
-        onAdd={handleAddStaff}
-        onRemove={handleRemoveStaff}
-      />
-
       <UsersModal
         open={usersOpen}
         onClose={() => setUsersOpen(false)}
@@ -1061,7 +1031,6 @@ function App() {
             : setWeekOffset((o) => o + 1)
         }
         onToday={goToday}
-        showStaff={canWriteStaff}
         showVacations={canWriteVacations}
         showUsers={canManageUsers}
         showLunch={canManageLunch}
@@ -1070,7 +1039,6 @@ function App() {
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
-        onStaff={() => setStaffOpen(true)}
         onVacations={() => setVacationOpen(true)}
         onUsers={() => setUsersOpen(true)}
         onLunch={() => setLunchOpen(true)}

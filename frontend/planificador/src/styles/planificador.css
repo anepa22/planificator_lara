@@ -531,15 +531,6 @@
   .btn-add-same{background:var(--accent-soft);color:var(--accent);border:1px solid transparent;}
   .btn-add-same:hover{border-color:var(--accent);}
 
-  .staff-modal ul{list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto;}
-  .staff-modal li{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--border-soft);}
-  .staff-modal li .av{width:22px;height:22px;border-radius:50%;font-size:9.5px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;flex:none;}
-  .staff-modal li .pn{font-size:13px;font-weight:600;flex:1;}
-  .staff-modal li button{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-size:13px;}
-  .staff-modal li button:hover{color:var(--danger);}
-  .new-staff-row{display:flex;gap:8px;margin-top:12px;}
-  .new-staff-row input{flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;}
-
   /* Drawer menu */
   .app-menu-overlay{
     position:fixed;inset:0;z-index:80;

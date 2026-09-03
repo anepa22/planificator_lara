@@ -655,7 +655,7 @@ export default function ShiftModal({
         </h3>
         <div className="m-sub">
           {noStaff
-            ? 'Cargá personal desde el menú (Personal).'
+            ? 'Cargá usuarios con rol Personal desde el menú (Usuarios).'
             : subtitle}
         </div>
         {warn && <div className="m-warn">{warn}</div>}
