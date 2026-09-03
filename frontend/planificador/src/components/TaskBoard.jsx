@@ -77,15 +77,12 @@ export default function TaskBoard({
   function hasContextMenu(task) {
     if (busy) return false
     if (canManage) return true
-    if (
+    return (
       canWrite &&
-      currentPersonId &&
+      !!currentPersonId &&
       task.status === 'PENDING' &&
       !task.assigneePersonId
-    ) {
-      return true
-    }
-    return canMoveTask(task)
+    )
   }
 
   function openMenu(event, task) {
@@ -133,15 +130,12 @@ export default function TaskBoard({
   }, [menu])
 
   const menuTask = menu ? tasks.find((task) => task.id === menu.taskId) : null
-  const menuMoveOptions = menuTask
-    ? COLUMNS.filter(
-        (target) =>
-          target.id !== menuTask.status &&
-          (canManage || PERSONAL_DESTINATIONS.has(target.id)) &&
-          canDrop(menuTask, target.id),
-      )
-    : []
   const canSelfAssign =
+    !!menuTask &&
+    canWrite &&
+    !!currentPersonId &&
+    menuTask.status === 'PENDING' &&
+    !menuTask.assigneePersonId
     !!menuTask &&
     canWrite &&
     !!currentPersonId &&
@@ -192,11 +186,7 @@ export default function TaskBoard({
                         movable ? ' is-movable' : ''
                       }${contextual ? ' has-menu' : ''}`}
                       draggable={movable && !busy}
-                      title={
-                        contextual
-                          ? 'Clic derecho para asignar o mover'
-                          : undefined
-                      }
+                      title={contextual ? 'Clic derecho para asignar' : undefined}
                       onContextMenu={(event) => openMenu(event, task)}
                       onDragStart={(event) => {
                         setDraggingId(task.id)
@@ -327,26 +317,6 @@ export default function TaskBoard({
                   ))}
                 </>
               )}
-            </div>
-          )}
-
-          {canMoveTask(menuTask) && menuMoveOptions.length > 0 && (
-            <div className="task-context-group">
-              <div className="task-context-label">Mover a</div>
-              {menuMoveOptions.map((target) => (
-                <button
-                  type="button"
-                  role="menuitem"
-                  key={target.id}
-                  disabled={busy}
-                  onClick={() => {
-                    setMenu(null)
-                    requestMove(menuTask, target.id)
-                  }}
-                >
-                  {target.label}
-                </button>
-              ))}
             </div>
           )}
         </div>
