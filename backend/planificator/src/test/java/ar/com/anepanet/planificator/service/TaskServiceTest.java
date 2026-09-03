@@ -105,35 +105,16 @@ class TaskServiceTest {
     }
 
     @Test
-    void personalCannotMoveAssignedTaskFromPending() {
+    void personalCanDragOwnAssignedTaskFromPending() {
         login(Permissions.TASKS_WRITE);
         when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
         UUID taskId = UUID.randomUUID();
-        when(tasks.findById(taskId))
-                .thenReturn(Optional.of(task(taskId, "PENDING", userId)));
-
-        ResponseStatusException ex = assertThrows(
-                ResponseStatusException.class,
-                () -> service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null)));
-
-        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        verify(tasks, never()).move(any(), any(), any());
-    }
-
-    @Test
-    void personalSelfAssignStartsInProgress() {
-        login(Permissions.TASKS_WRITE);
-        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
-        UUID taskId = UUID.randomUUID();
-        Task before = task(taskId, "PENDING", null);
-        Task assigned = task(taskId, "PENDING", userId);
-        Task started = task(taskId, "IN_PROGRESS", userId);
+        Task before = task(taskId, "PENDING", userId);
+        Task after = task(taskId, "IN_PROGRESS", userId);
         when(tasks.findById(taskId)).thenReturn(Optional.of(before));
-        when(tasks.isOnVacation(eq(userId), any())).thenReturn(false);
-        when(tasks.assign(taskId, userId)).thenReturn(Optional.of(assigned));
-        when(tasks.move(taskId, "IN_PROGRESS", null)).thenReturn(Optional.of(started));
+        when(tasks.move(taskId, "IN_PROGRESS", null)).thenReturn(Optional.of(after));
 
-        Task result = service.assign(taskId, new AssignTaskRequest(userId));
+        Task result = service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null));
 
         assertEquals("IN_PROGRESS", result.status());
         assertEquals(userId, result.assigneeUserId());

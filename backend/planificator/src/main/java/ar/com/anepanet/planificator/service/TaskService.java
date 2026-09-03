@@ -163,11 +163,6 @@ public class TaskService {
 
         Task updated = tasks.assign(id, target.id()).orElseThrow(() -> notFound());
         recordChange(before, updated, "ASSIGN", null);
-        if (!manager) {
-            Task started = tasks.move(id, "IN_PROGRESS", null).orElseThrow(() -> notFound());
-            recordChange(updated, started, "MOVE", null);
-            return started;
-        }
         return updated;
     }
 
@@ -199,11 +194,6 @@ public class TaskService {
         }
 
         if (!isManager()) {
-            if ("PENDING".equals(before.status())) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "Solo el supervisor puede cambiar las tareas en Pendientes");
-            }
             if (!user.id().equals(before.assigneeUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede mover sus propias tareas");
