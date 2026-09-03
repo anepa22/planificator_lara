@@ -949,14 +949,17 @@
     gap:6px 10px;margin:8px 0 6px;padding:9px 10px;
   }
   .task-admin-form .field{margin-bottom:0;}
-  .task-admin-form .field:first-of-type{align-self:start;}
-  .task-admin-fields{display:flex;flex-direction:column;gap:6px;min-width:0;align-self:start;}
+  .task-admin-fields{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  /* El combo Local queda pegado al piso de su columna y el textarea crece hasta
+     esa misma línea, así ambos terminan alineados abajo. */
+  .task-admin-fields .field:last-child{margin-top:auto;}
+  .task-admin-form > .field{display:flex;flex-direction:column;min-width:0;}
   .task-admin-form .field label{font-size:10px;margin-bottom:3px;}
   .task-admin-form .field input,
   .task-admin-form .field select,
   .task-admin-form .field textarea{padding:6px 8px;font-size:12.5px;}
   .task-admin-form textarea{
-    min-height:5.6em;height:5.6em;line-height:1.35;resize:vertical;
+    flex:1 1 auto;min-height:5.6em;line-height:1.35;resize:vertical;
   }
   .task-admin-form .panel-form-actions{grid-column:auto;align-self:end;gap:6px;}
   .task-admin-form .panel-form-actions .btn{
