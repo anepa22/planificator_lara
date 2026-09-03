@@ -92,7 +92,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
         }}
       >
         <div
-          className="modal panel-modal"
+          className="modal panel-modal task-admin-modal"
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-admin-title"
@@ -109,10 +109,6 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
               ✕
             </button>
           </div>
-          <div className="m-sub">
-            Alta, modificación, baja y publicación en Pendientes.
-          </div>
-
           {error && <div className="m-warn">{error}</div>}
 
           <form className="panel-form task-admin-form" onSubmit={save}>
@@ -193,23 +189,21 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                     >
                       <div className="task-admin-rail" aria-hidden />
                       <div className="task-admin-body">
-                        <div className="task-admin-meta">
-                          <span className={`task-admin-badge state-${state}`}>
-                            {task.onBoard
-                              ? STATUS_LABELS[task.status] || task.status
-                              : 'Fuera del tablero'}
-                          </span>
-                          {task.assigneeName && (
-                            <span className="task-admin-badge soft">
-                              {task.assigneeName}
-                            </span>
-                          )}
-                        </div>
-                        <div className="task-admin-title">{task.title}</div>
-                        {task.description && (
-                          <div className="task-admin-desc">{task.description}</div>
+                        <span
+                          className="task-admin-title"
+                          title={task.description || task.title}
+                        >
+                          {task.title}
+                        </span>
+                        {task.assigneeName && (
+                          <span className="task-admin-who">{task.assigneeName}</span>
                         )}
                       </div>
+                      <span className="task-admin-state">
+                        {task.onBoard
+                          ? STATUS_LABELS[task.status] || task.status
+                          : 'Fuera del tablero'}
+                      </span>
                       <div className="task-admin-actions">
                         <button
                           type="button"
@@ -222,23 +216,25 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                             })
                           }}
                         >
-                          Modificar
+                          Editar
                         </button>
                         {!task.onBoard ? (
                           <button
                             type="button"
                             disabled={busy}
+                            title="Agregar a Pendientes"
                             onClick={() => run(() => publishTask(task.id))}
                           >
-                            Agregar a Pendientes
+                            Publicar
                           </button>
                         ) : (
                           <button
                             type="button"
                             disabled={busy}
+                            title="Sacar del tablero"
                             onClick={() => run(() => retireTask(task.id))}
                           >
-                            Sacar del tablero
+                            Quitar
                           </button>
                         )}
                         <button
