@@ -90,10 +90,11 @@ export const deleteTask = (id) =>
   api(`/api/tasks/${id}`, { method: 'DELETE' })
 export const publishTask = (id) =>
   api(`/api/tasks/${id}/publish`, { method: 'POST' })
-export const assignTask = (id, personId) =>
+export const getTaskAssignees = () => api('/api/tasks/assignees')
+export const assignTask = (id, userId) =>
   api(`/api/tasks/${id}/assign`, {
     method: 'POST',
-    body: JSON.stringify({ personId }),
+    body: JSON.stringify({ userId }),
   })
 export const unassignTask = (id) =>
   api(`/api/tasks/${id}/unassign`, { method: 'POST' })

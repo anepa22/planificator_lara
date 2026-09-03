@@ -2,17 +2,16 @@ package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Location;
-import ar.com.anepanet.planificator.domain.Person;
 import ar.com.anepanet.planificator.domain.Task;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
-import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
+import ar.com.anepanet.planificator.web.dto.TaskAssignee;
 import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,20 +34,19 @@ public class TaskService {
     private static final ZoneId BUSINESS_ZONE =
             ZoneId.of("America/Argentina/Buenos_Aires");
 
+    private static final String PERSONAL_ROLE = "personal";
+
     private final TaskRepository tasks;
-    private final PersonRepository people;
     private final LocationRepository locations;
     private final AuthRepository auth;
     private final AuditService audit;
 
     public TaskService(
             TaskRepository tasks,
-            PersonRepository people,
             LocationRepository locations,
             AuthRepository auth,
             AuditService audit) {
         this.tasks = tasks;
-        this.people = people;
         this.locations = locations;
         this.auth = auth;
         this.audit = audit;
@@ -61,6 +59,18 @@ public class TaskService {
     public List<Task> listAll() {
         requireManager();
         return tasks.findAll();
+    }
+
+    public List<TaskAssignee> assignees() {
+        requireManager();
+        return auth.findAllUsers().stream()
+                .filter(AppUser::active)
+                .filter(user -> user.roleIds() != null && user.roleIds().contains(PERSONAL_ROLE))
+                .map(user -> new TaskAssignee(
+                        user.id(),
+                        user.username(),
+                        displayName(user)))
+                .toList();
     }
 
     @Transactional
@@ -125,32 +135,32 @@ public class TaskService {
 
         boolean manager = isManager();
         if (!manager) {
-            if (user.personId() == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN, "El usuario no está vinculado a una persona");
-            }
-            if (!user.personId().equals(req.personId())) {
+            if (!user.id().equals(req.userId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede asignarse tareas a sí mismo");
             }
-            if (!"PENDING".equals(before.status()) || before.assigneePersonId() != null) {
+            if (!"PENDING".equals(before.status()) || before.assigneeUserId() != null) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT, "La tarea ya fue asignada o no está Pendiente");
             }
         }
 
-        Person person = people.findById(req.personId())
-                .filter(Person::active)
+        AppUser target = auth.findById(req.userId())
+                .filter(AppUser::active)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Persona inválida o inactiva"));
+                        HttpStatus.BAD_REQUEST, "Usuario inválido o inactivo"));
+        if (target.roleIds() == null || !target.roleIds().contains(PERSONAL_ROLE)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Solo se puede asignar a usuarios con rol Personal");
+        }
         LocalDate today = LocalDate.now(BUSINESS_ZONE);
-        if (tasks.isOnVacation(person.id(), today)) {
+        if (target.personId() != null && tasks.isOnVacation(target.personId(), today)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    person.name() + " está de vacaciones y no se le puede asignar la tarea");
+                    displayName(target) + " está de vacaciones y no se le puede asignar la tarea");
         }
 
-        Task updated = tasks.assign(id, person.id()).orElseThrow(() -> notFound());
+        Task updated = tasks.assign(id, target.id()).orElseThrow(() -> notFound());
         recordChange(before, updated, "ASSIGN", null);
         return updated;
     }
@@ -177,13 +187,13 @@ public class TaskService {
         if (!before.onBoard()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La tarea no está en el tablero");
         }
-        if (before.assigneePersonId() == null) {
+        if (before.assigneeUserId() == null) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Hay que asignar la tarea antes de moverla");
         }
 
         if (!isManager()) {
-            if (user.personId() == null || !user.personId().equals(before.assigneePersonId())) {
+            if (!user.id().equals(before.assigneeUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede mover sus propias tareas");
             }
@@ -258,6 +268,13 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estado de tarea inválido");
         }
         return normalized;
+    }
+
+    private static String displayName(AppUser user) {
+        if (user.displayName() == null || user.displayName().isBlank()) {
+            return user.username();
+        }
+        return user.displayName();
     }
 
     private String resolveLocationId(String locationId) {

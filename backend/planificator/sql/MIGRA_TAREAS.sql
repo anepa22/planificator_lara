@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   description TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
   block_reason TEXT,
-  assignee_person_id UUID NULL REFERENCES people(id),
+  assignee_user_id UUID NULL REFERENCES app_users(id),
   on_board BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     status IN ('PENDING', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'VERIFIED')
   ),
   CONSTRAINT tasks_board_consistency CHECK (
-    (NOT on_board AND assignee_person_id IS NULL)
+    (NOT on_board AND assignee_user_id IS NULL)
     OR on_board
   )
 );
@@ -53,8 +53,6 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS ix_tasks_board_status
   ON tasks(on_board, status, updated_at DESC);
-CREATE INDEX IF NOT EXISTS ix_tasks_assignee
-  ON tasks(assignee_person_id) WHERE assignee_person_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS task_history (
   id BIGSERIAL PRIMARY KEY,
@@ -63,8 +61,8 @@ CREATE TABLE IF NOT EXISTS task_history (
   action VARCHAR(30) NOT NULL,
   from_status VARCHAR(20),
   to_status VARCHAR(20),
-  from_assignee_person_id UUID NULL REFERENCES people(id),
-  to_assignee_person_id UUID NULL REFERENCES people(id),
+  from_assignee_user_id UUID NULL REFERENCES app_users(id),
+  to_assignee_user_id UUID NULL REFERENCES app_users(id),
   block_reason TEXT,
   occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -92,3 +90,93 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
   ('admin', 'tasks_write'),
   ('admin', 'tasks_manage')
 ON CONFLICT DO NOTHING;
+
+-- Asignación a usuarios con rol Personal (ya no al equipo).
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS assignee_user_id UUID NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tasks_assignee_user_fk'
+  ) THEN
+    ALTER TABLE tasks
+      ADD CONSTRAINT tasks_assignee_user_fk
+      FOREIGN KEY (assignee_user_id) REFERENCES app_users(id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tasks'
+      AND column_name = 'assignee_person_id'
+  ) THEN
+    UPDATE tasks t
+    SET assignee_user_id = u.id
+    FROM app_users u
+    WHERE t.assignee_user_id IS NULL
+      AND u.person_id IS NOT NULL
+      AND u.person_id = t.assignee_person_id;
+  END IF;
+END $$;
+
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_board_consistency;
+ALTER TABLE tasks ADD CONSTRAINT tasks_board_consistency CHECK (
+  (NOT on_board AND assignee_user_id IS NULL) OR on_board
+);
+
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_assignee_person_id_fkey;
+ALTER TABLE tasks DROP COLUMN IF EXISTS assignee_person_id;
+
+DROP INDEX IF EXISTS ix_tasks_assignee;
+CREATE INDEX IF NOT EXISTS ix_tasks_assignee
+  ON tasks(assignee_user_id) WHERE assignee_user_id IS NOT NULL;
+
+ALTER TABLE task_history ADD COLUMN IF NOT EXISTS from_assignee_user_id UUID NULL;
+ALTER TABLE task_history ADD COLUMN IF NOT EXISTS to_assignee_user_id UUID NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'task_history_from_assignee_user_fk'
+  ) THEN
+    ALTER TABLE task_history
+      ADD CONSTRAINT task_history_from_assignee_user_fk
+      FOREIGN KEY (from_assignee_user_id) REFERENCES app_users(id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'task_history_to_assignee_user_fk'
+  ) THEN
+    ALTER TABLE task_history
+      ADD CONSTRAINT task_history_to_assignee_user_fk
+      FOREIGN KEY (to_assignee_user_id) REFERENCES app_users(id);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'task_history'
+      AND column_name = 'from_assignee_person_id'
+  ) THEN
+    UPDATE task_history h
+    SET from_assignee_user_id = u.id
+    FROM app_users u
+    WHERE h.from_assignee_user_id IS NULL
+      AND u.person_id IS NOT NULL
+      AND u.person_id = h.from_assignee_person_id;
+    UPDATE task_history h
+    SET to_assignee_user_id = u.id
+    FROM app_users u
+    WHERE h.to_assignee_user_id IS NULL
+      AND u.person_id IS NOT NULL
+      AND u.person_id = h.to_assignee_person_id;
+  END IF;
+END $$;
+
+ALTER TABLE task_history DROP CONSTRAINT IF EXISTS task_history_from_assignee_person_id_fkey;
+ALTER TABLE task_history DROP CONSTRAINT IF EXISTS task_history_to_assignee_person_id_fkey;
+ALTER TABLE task_history DROP COLUMN IF EXISTS from_assignee_person_id;
+ALTER TABLE task_history DROP COLUMN IF EXISTS to_assignee_person_id;

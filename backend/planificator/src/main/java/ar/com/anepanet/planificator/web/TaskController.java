@@ -5,6 +5,7 @@ import ar.com.anepanet.planificator.service.TaskService;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
+import ar.com.anepanet.planificator.web.dto.TaskAssignee;
 import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,11 @@ public class TaskController {
     @GetMapping("/board")
     public List<Task> board() {
         return tasks.board();
+    }
+
+    @GetMapping("/assignees")
+    public List<TaskAssignee> assignees() {
+        return tasks.assignees();
     }
 
     @GetMapping

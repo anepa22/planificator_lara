@@ -22,8 +22,8 @@ function initials(name = '') {
 
 export default function TaskBoard({
   tasks = [],
-  people = [],
-  currentPersonId = null,
+  assignees = [],
+  currentUserId = null,
   canWrite = false,
   canManage = false,
   busy = false,
@@ -45,8 +45,8 @@ export default function TaskBoard({
   }, [tasks])
 
   function canMoveTask(task) {
-    if (!task.assigneePersonId) return false
-    return canManage || (canWrite && task.assigneePersonId === currentPersonId)
+    if (!task.assigneeUserId) return false
+    return canManage || (canWrite && task.assigneeUserId === currentUserId)
   }
 
   function canDrop(task, status) {
@@ -79,9 +79,9 @@ export default function TaskBoard({
     if (canManage) return true
     return (
       canWrite &&
-      !!currentPersonId &&
+      !!currentUserId &&
       task.status === 'PENDING' &&
-      !task.assigneePersonId
+      !task.assigneeUserId
     )
   }
 
@@ -133,9 +133,9 @@ export default function TaskBoard({
   const canSelfAssign =
     !!menuTask &&
     canWrite &&
-    !!currentPersonId &&
+    !!currentUserId &&
     menuTask.status === 'PENDING' &&
-    !menuTask.assigneePersonId
+    !menuTask.assigneeUserId
 
   return (
     <>
@@ -171,7 +171,7 @@ export default function TaskBoard({
                   <div className="task-column-empty">Sin tareas</div>
                 )}
                 {columnTasks.map((task) => {
-                  const own = task.assigneePersonId === currentPersonId
+                  const own = task.assigneeUserId === currentUserId
                   const movable = canMoveTask(task)
                   const contextual = hasContextMenu(task)
                   return (
@@ -207,7 +207,7 @@ export default function TaskBoard({
                       )}
 
                       <div className="task-card-assignee">
-                        {task.assigneePersonId ? (
+                        {task.assigneeUserId ? (
                           <>
                             <span
                               className="task-avatar"
@@ -234,9 +234,9 @@ export default function TaskBoard({
                       </div>
 
                       {column.id === 'PENDING' &&
-                        !task.assigneePersonId &&
+                        !task.assigneeUserId &&
                         canWrite &&
-                        currentPersonId &&
+                        currentUserId &&
                         !canManage && (
                           <button
                             type="button"
@@ -244,7 +244,7 @@ export default function TaskBoard({
                             disabled={busy}
                             onClick={() =>
                               void perform(() =>
-                                onAssign?.(task.id, currentPersonId),
+                                onAssign?.(task.id, currentUserId),
                               )
                             }
                           >
@@ -277,7 +277,7 @@ export default function TaskBoard({
                   disabled={busy}
                   onClick={() => {
                     setMenu(null)
-                    void perform(() => onAssign?.(menuTask.id, currentPersonId))
+                    void perform(() => onAssign?.(menuTask.id, currentUserId))
                   }}
                 >
                   Asignarme
@@ -288,8 +288,8 @@ export default function TaskBoard({
                   <button
                     type="button"
                     role="menuitem"
-                    className={!menuTask.assigneePersonId ? 'is-current' : ''}
-                    disabled={busy || !menuTask.assigneePersonId}
+                    className={!menuTask.assigneeUserId ? 'is-current' : ''}
+                    disabled={busy || !menuTask.assigneeUserId}
                     onClick={() => {
                       setMenu(null)
                       void perform(() => onUnassign?.(menuTask.id))
@@ -297,21 +297,21 @@ export default function TaskBoard({
                   >
                     Sin asignar
                   </button>
-                  {people.map((person) => (
+                  {assignees.map((assignee) => (
                     <button
                       type="button"
                       role="menuitem"
-                      key={person.id}
+                      key={assignee.id}
                       className={
-                        menuTask.assigneePersonId === person.id ? 'is-current' : ''
+                        menuTask.assigneeUserId === assignee.id ? 'is-current' : ''
                       }
-                      disabled={busy || menuTask.assigneePersonId === person.id}
+                      disabled={busy || menuTask.assigneeUserId === assignee.id}
                       onClick={() => {
                         setMenu(null)
-                        void perform(() => onAssign?.(menuTask.id, person.id))
+                        void perform(() => onAssign?.(menuTask.id, assignee.id))
                       }}
                     >
-                      {person.name}
+                      {assignee.displayName || assignee.username}
                     </button>
                   ))}
                 </>

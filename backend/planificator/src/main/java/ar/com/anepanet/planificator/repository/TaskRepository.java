@@ -12,14 +12,19 @@ import java.util.UUID;
 @Repository
 public class TaskRepository {
 
+    private static final String[] ASSIGNEE_COLORS = {
+            "#0D9488", "#2563EB", "#C026D3", "#D97706", "#DC2626",
+            "#059669", "#7C3AED", "#0891B2", "#DB2777", "#4F46E5"
+    };
+
     private static final String SELECT = """
             SELECT t.id, t.title, t.description, t.status, t.block_reason,
                    t.location_id, l.name AS location_name, l.color AS location_color,
-                   t.assignee_person_id, p.name AS assignee_name,
-                   p.color AS assignee_color, t.on_board,
-                   t.created_at, t.updated_at
+                   t.assignee_user_id,
+                   COALESCE(NULLIF(u.display_name, ''), u.username) AS assignee_name,
+                   t.on_board, t.created_at, t.updated_at
             FROM tasks t
-            LEFT JOIN people p ON p.id = t.assignee_person_id
+            LEFT JOIN app_users u ON u.id = t.assignee_user_id
             LEFT JOIN locations l ON l.id = t.location_id
             """;
 
@@ -97,7 +102,7 @@ public class TaskRepository {
         int changed = jdbc.sql("""
                 UPDATE tasks
                 SET on_board = TRUE, status = 'PENDING',
-                    block_reason = NULL, assignee_person_id = NULL, updated_at = NOW()
+                    block_reason = NULL, assignee_user_id = NULL, updated_at = NOW()
                 WHERE id = :id AND on_board = FALSE
                 """)
                 .param("id", id)
@@ -105,14 +110,14 @@ public class TaskRepository {
         return changed == 0 ? Optional.empty() : findById(id);
     }
 
-    public Optional<Task> assign(UUID id, UUID personId) {
+    public Optional<Task> assign(UUID id, UUID userId) {
         int changed = jdbc.sql("""
                 UPDATE tasks
-                SET assignee_person_id = :personId, updated_at = NOW()
+                SET assignee_user_id = :userId, updated_at = NOW()
                 WHERE id = :id AND on_board = TRUE
                 """)
                 .param("id", id)
-                .param("personId", personId)
+                .param("userId", userId)
                 .update();
         return changed == 0 ? Optional.empty() : findById(id);
     }
@@ -120,7 +125,7 @@ public class TaskRepository {
     public Optional<Task> unassignToPending(UUID id) {
         int changed = jdbc.sql("""
                 UPDATE tasks
-                SET assignee_person_id = NULL, status = 'PENDING',
+                SET assignee_user_id = NULL, status = 'PENDING',
                     block_reason = NULL, updated_at = NOW()
                 WHERE id = :id AND on_board = TRUE
                 """)
@@ -145,7 +150,7 @@ public class TaskRepository {
     public Optional<Task> retire(UUID id) {
         int changed = jdbc.sql("""
                 UPDATE tasks
-                SET on_board = FALSE, assignee_person_id = NULL, updated_at = NOW()
+                SET on_board = FALSE, assignee_user_id = NULL, updated_at = NOW()
                 WHERE id = :id AND on_board = TRUE
                 """)
                 .param("id", id)
@@ -177,7 +182,7 @@ public class TaskRepository {
         jdbc.sql("""
                 INSERT INTO task_history (
                     task_id, actor_user_id, action, from_status, to_status,
-                    from_assignee_person_id, to_assignee_person_id, block_reason
+                    from_assignee_user_id, to_assignee_user_id, block_reason
                 ) VALUES (
                     :taskId, :actorUserId, :action, :fromStatus, :toStatus,
                     :fromAssignee, :toAssignee, :blockReason
@@ -188,13 +193,14 @@ public class TaskRepository {
                 .param("action", action)
                 .param("fromStatus", before != null ? before.status() : null)
                 .param("toStatus", after != null ? after.status() : null)
-                .param("fromAssignee", before != null ? before.assigneePersonId() : null)
-                .param("toAssignee", after != null ? after.assigneePersonId() : null)
+                .param("fromAssignee", before != null ? before.assigneeUserId() : null)
+                .param("toAssignee", after != null ? after.assigneeUserId() : null)
                 .param("blockReason", blockReason)
                 .update();
     }
 
     private Task map(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        UUID assigneeUserId = rs.getObject("assignee_user_id", UUID.class);
         return new Task(
                 rs.getObject("id", UUID.class),
                 rs.getString("title"),
@@ -204,12 +210,19 @@ public class TaskRepository {
                 rs.getString("location_id"),
                 rs.getString("location_name"),
                 rs.getString("location_color"),
-                rs.getObject("assignee_person_id", UUID.class),
+                assigneeUserId,
                 rs.getString("assignee_name"),
-                rs.getString("assignee_color"),
+                colorFor(assigneeUserId),
                 rs.getBoolean("on_board"),
                 rs.getObject("created_at", java.time.OffsetDateTime.class),
                 rs.getObject("updated_at", java.time.OffsetDateTime.class)
         );
+    }
+
+    private static String colorFor(UUID id) {
+        if (id == null) {
+            return null;
+        }
+        return ASSIGNEE_COLORS[Math.floorMod(id.hashCode(), ASSIGNEE_COLORS.length)];
     }
 }

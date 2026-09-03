@@ -12,7 +12,7 @@ public record Task(
         String locationId,
         String locationName,
         String locationColor,
-        UUID assigneePersonId,
+        UUID assigneeUserId,
         String assigneeName,
         String assigneeColor,
         boolean onBoard,

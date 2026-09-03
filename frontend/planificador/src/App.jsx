@@ -10,6 +10,7 @@ import {
   getLocations,
   getPeople,
   getShifts,
+  getTaskAssignees,
   getTaskBoard,
   getVidrieras,
   moveTask,
@@ -91,6 +92,7 @@ function App() {
   const [vidrieras, setVidrieras] = useState([])
   const [monthVidrieras, setMonthVidrieras] = useState([])
   const [taskBoard, setTaskBoard] = useState([])
+  const [taskAssignees, setTaskAssignees] = useState([])
   const [holidaysByDate, setHolidaysByDate] = useState({})
   const [view, setView] = useState('week')
   const [lunchHours, setLunchHours] = useState(() => loadLunchHours())
@@ -235,7 +237,14 @@ function App() {
 
   const reloadTaskBoard = useCallback(async () => {
     setTaskBoard(await getTaskBoard())
-  }, [])
+    if (canManageTasks) {
+      try {
+        setTaskAssignees(await getTaskAssignees())
+      } catch {
+        setTaskAssignees([])
+      }
+    }
+  }, [canManageTasks])
 
   function handleLunchHoursChange(value) {
     setLunchHours(saveLunchHours(value))
@@ -335,6 +344,9 @@ function App() {
       try {
         const rows = await getTaskBoard()
         if (!cancelled) setTaskBoard(rows)
+        if (canManageTasks && !cancelled) {
+          setTaskAssignees(await getTaskAssignees())
+        }
       } catch (e) {
         if (!cancelled) setError(e.message)
       } finally {
@@ -344,7 +356,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [booting, view])
+  }, [booting, view, canManageTasks])
 
   useEffect(() => {
     if (booting) return
@@ -400,9 +412,9 @@ function App() {
     }
   }
 
-  async function handleAssignTask(taskId, personId) {
+  async function handleAssignTask(taskId, userId) {
     await withBusy(async () => {
-      await assignTask(taskId, personId)
+      await assignTask(taskId, userId)
       await reloadTaskBoard()
     })
   }
@@ -864,8 +876,8 @@ function App() {
       ) : view === 'tasks' ? (
         <TaskBoard
           tasks={taskBoard}
-          people={people}
-          currentPersonId={user?.personId || null}
+          assignees={taskAssignees}
+          currentUserId={user?.id || null}
           canWrite={canWriteTasks}
           canManage={canManageTasks}
           busy={busy}

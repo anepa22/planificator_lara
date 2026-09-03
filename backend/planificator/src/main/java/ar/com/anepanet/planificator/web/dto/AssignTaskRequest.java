@@ -5,5 +5,5 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record AssignTaskRequest(
-        @NotNull UUID personId
+        @NotNull UUID userId
 ) {}

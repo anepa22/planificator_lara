@@ -1,11 +1,9 @@
 package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.AppUser;
-import ar.com.anepanet.planificator.domain.Person;
 import ar.com.anepanet.planificator.domain.Task;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
-import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
 import ar.com.anepanet.planificator.security.AuthUser;
 import ar.com.anepanet.planificator.security.Permissions;
@@ -40,7 +38,6 @@ import static org.mockito.Mockito.when;
 class TaskServiceTest {
 
     @Mock TaskRepository tasks;
-    @Mock PersonRepository people;
     @Mock LocationRepository locations;
     @Mock AuthRepository auth;
     @Mock AuditService audit;
@@ -51,7 +48,7 @@ class TaskServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TaskService(tasks, people, locations, auth, audit);
+        service = new TaskService(tasks, locations, auth, audit);
         userId = UUID.randomUUID();
         personId = UUID.randomUUID();
     }
@@ -62,7 +59,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void personalCannotAssignTaskToAnotherPerson() {
+    void personalCannotAssignTaskToAnotherUser() {
         login(Permissions.TASKS_WRITE);
         when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
         UUID other = UUID.randomUUID();
@@ -78,17 +75,17 @@ class TaskServiceTest {
     }
 
     @Test
-    void assignmentIsRejectedWhenPersonIsOnVacation() {
+    void assignmentIsRejectedWhenLinkedPersonIsOnVacation() {
         login(Permissions.TASKS_WRITE);
-        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        AppUser self = appUser(false);
+        when(auth.findById(userId)).thenReturn(Optional.of(self));
         UUID taskId = UUID.randomUUID();
         when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "PENDING", null)));
-        when(people.findById(personId)).thenReturn(Optional.of(person()));
         when(tasks.isOnVacation(eq(personId), any())).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> service.assign(taskId, new AssignTaskRequest(personId)));
+                () -> service.assign(taskId, new AssignTaskRequest(userId)));
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(tasks, never()).assign(any(), any());
@@ -100,7 +97,7 @@ class TaskServiceTest {
         when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
         UUID taskId = UUID.randomUUID();
         when(tasks.findById(taskId))
-                .thenReturn(Optional.of(task(taskId, "IN_PROGRESS", personId)));
+                .thenReturn(Optional.of(task(taskId, "IN_PROGRESS", userId)));
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
@@ -144,17 +141,11 @@ class TaskServiceTest {
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
     }
 
-    private Person person() {
-        return new Person(
-                personId, "Persona", "#123456", true,
-                OffsetDateTime.now(), OffsetDateTime.now());
-    }
-
     private Task task(UUID id, String status, UUID assignee) {
         return new Task(
                 id, "Tarea", "Descripción", status, null,
                 null, null, null, assignee,
-                assignee == null ? null : "Persona", "#123456", true,
+                assignee == null ? null : "Test", "#123456", true,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }
 }
