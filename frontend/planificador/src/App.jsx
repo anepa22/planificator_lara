@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  createPerson,
   createShift,
+  createStaff,
   assignTask,
-  deletePerson,
   deleteShift,
+  deleteStaff,
   deleteVidriera,
   getHolidays,
   getLocations,
-  getPeople,
   getShifts,
+  getStaff,
   getTaskAssignees,
   getTaskBoard,
   getVidrieras,
@@ -27,9 +27,9 @@ import ChangePasswordModal from './components/ChangePasswordModal'
 import LoginScreen from './components/LoginScreen'
 import LunchModal from './components/LunchModal'
 import MonthGantt from './components/MonthGantt'
-import PeopleModal from './components/PeopleModal'
 import ScheduleGrid from './components/ScheduleGrid'
 import ShiftModal from './components/ShiftModal'
+import StaffModal from './components/StaffModal'
 import SummaryBar from './components/SummaryBar'
 import TaskAdminModal from './components/TaskAdminModal'
 import TaskBoard from './components/TaskBoard'
@@ -78,7 +78,7 @@ function App() {
   const { user, booting, can, logout } = useAuth()
   const canWriteShifts = can('shifts:write')
   const canWriteVacations = can('vacations:write')
-  const canWritePeople = can('people:write')
+  const canWriteStaff = can('staff:write')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
   const canReadAudit = can('audit:read')
@@ -86,7 +86,7 @@ function App() {
   const canManageTasks = can('tasks:manage')
 
   const [locations, setLocations] = useState([])
-  const [people, setPeople] = useState([])
+  const [staff, setStaff] = useState([])
   const [shifts, setShifts] = useState([])
   const [monthShifts, setMonthShifts] = useState([])
   const [vidrieras, setVidrieras] = useState([])
@@ -110,7 +110,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [shiftModal, setShiftModal] = useState(null)
-  const [peopleOpen, setPeopleOpen] = useState(false)
+  const [staffOpen, setStaffOpen] = useState(false)
   const [usersOpen, setUsersOpen] = useState(false)
   const [auditOpen, setAuditOpen] = useState(false)
   const [lunchOpen, setLunchOpen] = useState(false)
@@ -181,11 +181,11 @@ function App() {
     return monthShifts.filter((s) => ids.has(s.locationId))
   }, [monthShifts, monthLocFilter])
 
-  const visibleMonthPeople = useMemo(() => {
-    if (!monthLocFilter.length) return people
-    const personIds = new Set(visibleMonthShifts.map((s) => s.personId))
-    return people.filter((p) => personIds.has(p.id))
-  }, [people, monthLocFilter, visibleMonthShifts])
+  const visibleMonthStaff = useMemo(() => {
+    if (!monthLocFilter.length) return staff
+    const userIds = new Set(visibleMonthShifts.map((s) => s.userId))
+    return staff.filter((p) => userIds.has(p.id))
+  }, [staff, monthLocFilter, visibleMonthShifts])
 
   const visibleMonthVidrieras = useMemo(() => {
     if (!monthLocFilter.length) return monthVidrieras
@@ -290,10 +290,10 @@ function App() {
       setLoading(true)
       setError(null)
       try {
-        const [locs, peeps] = await Promise.all([getLocations(), getPeople()])
+        const [locs, members] = await Promise.all([getLocations(), getStaff()])
         if (cancelled) return
         setLocations(activeOnly(locs))
-        setPeople(activeOnly(peeps))
+        setStaff(activeOnly(members))
       } catch (e) {
         if (!cancelled) setError(e.message)
       } finally {
@@ -440,19 +440,21 @@ function App() {
     })
   }
 
-  async function handleAddPerson(name) {
+  const reloadStaff = useCallback(async () => {
+    setStaff(activeOnly(await getStaff()))
+  }, [])
+
+  async function handleAddStaff(name) {
     await withBusy(async () => {
-      await createPerson(name)
-      const peeps = await getPeople()
-      setPeople(activeOnly(peeps))
+      await createStaff(name)
+      await reloadStaff()
     })
   }
 
-  async function handleRemovePerson(id) {
+  async function handleRemoveStaff(id) {
     await withBusy(async () => {
-      await deletePerson(id)
-      const peeps = await getPeople()
-      setPeople(activeOnly(peeps))
+      await deleteStaff(id)
+      await reloadStaff()
       await refreshAfterShiftChange()
     })
   }
@@ -477,10 +479,10 @@ function App() {
       const pool = await fetchShiftsForRange(payload.dateFrom, payload.dateTo)
 
       for (const workDate of workDates) {
-        for (const personId of payload.personIds) {
+        for (const userId of payload.userIds) {
           const overlapping = pool.filter(
             (s) =>
-              s.personId === personId &&
+              s.userId === userId &&
               String(s.workDate) === workDate &&
               timesOverlap(startTime, endTime, s.startTime, s.endTime),
           )
@@ -491,9 +493,9 @@ function App() {
       }
 
       for (const workDate of workDates) {
-        for (const personId of payload.personIds) {
+        for (const userId of payload.userIds) {
           await createShift({
-            personId,
+            userId,
             locationId,
             workDate,
             startTime,
@@ -527,15 +529,15 @@ function App() {
     }
     const range = findContiguousAbsenceRange(
       pool,
-      shift.personId,
+      shift.userId,
       day,
       shift.locationId,
     )
     if (!range) return
-    const person = people.find((p) => p.id === shift.personId)
+    const member = staff.find((p) => p.id === shift.userId)
     setAbsenceRemove({
       kind: shift.locationId === FRANCO_LOCATION_ID ? 'franco' : 'vacation',
-      personName: person?.name || shift.personName || 'Persona',
+      staffName: member?.name || shift.userName || 'Persona',
       workDate: day,
       dateFrom: range.dateFrom,
       dateTo: range.dateTo,
@@ -565,10 +567,10 @@ function App() {
       )
       const pool = view === 'month' ? monthShifts : shifts
       const replaceIds = new Set(payload.replaceConflictIds || [])
-      const personIds =
+      const userIds =
         payload.mode === 'edit'
-          ? [payload.personId]
-          : payload.personIds || []
+          ? [payload.userId]
+          : payload.userIds || []
 
       let workDates
       let francoDates = []
@@ -589,11 +591,11 @@ function App() {
 
       async function clearOverlaps(dates, fromTime, toTime) {
         for (const workDate of dates) {
-          for (const personId of personIds) {
+          for (const userId of userIds) {
             const overlapping = pool.filter(
               (s) =>
                 s.id !== payload.shiftId &&
-                s.personId === personId &&
+                s.userId === userId &&
                 String(s.workDate) === workDate &&
                 timesOverlap(fromTime, toTime, s.startTime, s.endTime),
             )
@@ -618,9 +620,9 @@ function App() {
         })
       } else {
         for (const workDate of workDates) {
-          for (const personId of personIds) {
+          for (const userId of userIds) {
             await createShift({
-              personId,
+              userId,
               locationId: payload.locationId,
               workDate,
               startTime,
@@ -629,9 +631,9 @@ function App() {
           }
         }
         for (const workDate of francoDates) {
-          for (const personId of personIds) {
+          for (const userId of userIds) {
             await createShift({
-              personId,
+              userId,
               locationId: FRANCO_LOCATION_ID,
               workDate,
               startTime: francoStart,
@@ -719,22 +721,22 @@ function App() {
     })
   }
 
-  function openAddMonth({ personId, workDate }) {
+  function openAddMonth({ userId, workDate }) {
     const work = parseDateKey(workDate)
     setShiftModal({
       mode: 'add',
       pickLocation: true,
-      personLocked: !!personId,
+      userLocked: !!userId,
       locationId: workLocations(locations)[0]?.id || '',
       workDate,
       dayIndex: (work.getDay() + 6) % 7,
       startTime: '09:00',
       endTime: '17:00',
-      preselect: personId ? [personId] : [],
+      preselect: userId ? [userId] : [],
     })
   }
 
-  function openRangeAssignMonth(person) {
+  function openRangeAssignMonth(member) {
     const bounds = monthBounds(monthDate)
     const today = toDateKey(new Date())
     const startKey =
@@ -742,7 +744,7 @@ function App() {
     setShiftModal({
       mode: 'add',
       rangeAssign: true,
-      personLocked: true,
+      userLocked: true,
       locationId: workLocations(locations)[0]?.id || '',
       workDate: startKey,
       dateFrom: startKey,
@@ -751,7 +753,7 @@ function App() {
       maxDate: bounds.max,
       startTime: '09:00',
       endTime: '17:00',
-      preselect: person?.id ? [person.id] : [],
+      preselect: member?.id ? [member.id] : [],
     })
   }
 
@@ -763,7 +765,7 @@ function App() {
     setShiftModal({
       mode: 'edit',
       shiftId: s.id,
-      personId: s.personId,
+      userId: s.userId,
       locationId: s.locationId,
       dayIndex: Number(s.dayIndex),
       workDate: s.workDate,
@@ -889,7 +891,7 @@ function App() {
       ) : view === 'month' ? (
         <MonthGantt
           monthDate={monthDate}
-          people={visibleMonthPeople}
+          staff={visibleMonthStaff}
           shifts={visibleMonthShifts}
           vidrieras={visibleMonthVidrieras}
           lunchHours={lunchHours}
@@ -907,7 +909,7 @@ function App() {
       ) : (
         <ScheduleGrid
           locations={workLocations(locations)}
-          people={people}
+          staff={staff}
           shifts={shifts}
           selectedDay={selectedDay}
           isToday={isTodayCol}
@@ -927,7 +929,7 @@ function App() {
 
       {view === 'week' && (
         <SummaryBar
-          people={people}
+          staff={staff}
           shifts={shifts}
           weekStart={weekStart}
           lunchHours={lunchHours}
@@ -937,7 +939,7 @@ function App() {
       <ShiftModal
         open={!!shiftModal}
         ctx={shiftModal}
-        people={people}
+        staff={staff}
         locations={locations}
         shifts={modalShifts}
         weekStart={weekStart}
@@ -958,20 +960,23 @@ function App() {
         }}
       />
 
-      <PeopleModal
-        open={peopleOpen}
-        people={people}
+      <StaffModal
+        open={staffOpen}
+        staff={staff}
         busy={busy}
-        canWrite={canWritePeople}
-        onClose={() => setPeopleOpen(false)}
-        onAdd={handleAddPerson}
-        onRemove={handleRemovePerson}
+        canWrite={canWriteStaff}
+        onClose={() => setStaffOpen(false)}
+        onAdd={handleAddStaff}
+        onRemove={handleRemoveStaff}
       />
 
       <UsersModal
         open={usersOpen}
-        people={people}
         onClose={() => setUsersOpen(false)}
+        onChanged={async () => {
+          await reloadStaff()
+          await refreshAfterShiftChange()
+        }}
       />
 
       <TaskAdminModal
@@ -992,7 +997,7 @@ function App() {
 
       <VacationModal
         open={vacationOpen}
-        people={people}
+        staff={staff}
         locations={locations}
         busy={busy}
         canWrite={canWriteVacations}
@@ -1021,7 +1026,7 @@ function App() {
       <VacationRemoveModal
         open={!!absenceRemove}
         kind={absenceRemove?.kind || 'vacation'}
-        personName={absenceRemove?.personName}
+        staffName={absenceRemove?.staffName}
         workDate={absenceRemove?.workDate}
         dateFrom={absenceRemove?.dateFrom}
         dateTo={absenceRemove?.dateTo}
@@ -1056,7 +1061,7 @@ function App() {
             : setWeekOffset((o) => o + 1)
         }
         onToday={goToday}
-        showPeople={canWritePeople}
+        showStaff={canWriteStaff}
         showVacations={canWriteVacations}
         showUsers={canManageUsers}
         showLunch={canManageLunch}
@@ -1065,7 +1070,7 @@ function App() {
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
-        onPeople={() => setPeopleOpen(true)}
+        onStaff={() => setStaffOpen(true)}
         onVacations={() => setVacationOpen(true)}
         onUsers={() => setUsersOpen(true)}
         onLunch={() => setLunchOpen(true)}

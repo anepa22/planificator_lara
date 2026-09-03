@@ -1,11 +1,11 @@
 package ar.com.anepanet.planificator.web;
 
 import ar.com.anepanet.planificator.domain.Location;
-import ar.com.anepanet.planificator.domain.Person;
+import ar.com.anepanet.planificator.domain.StaffMember;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.service.LocationService;
-import ar.com.anepanet.planificator.service.PersonService;
-import ar.com.anepanet.planificator.web.dto.CreatePersonRequest;
+import ar.com.anepanet.planificator.service.StaffService;
+import ar.com.anepanet.planificator.web.dto.CreateStaffRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,11 +19,11 @@ import java.util.UUID;
 public class CatalogController {
 
     private final LocationService locations;
-    private final PersonService people;
+    private final StaffService staff;
 
-    public CatalogController(LocationService locations, PersonService people) {
+    public CatalogController(LocationService locations, StaffService staff) {
         this.locations = locations;
-        this.people = people;
+        this.staff = staff;
     }
 
     @GetMapping("/locations")
@@ -31,22 +31,22 @@ public class CatalogController {
         return locations.list();
     }
 
-    @GetMapping("/people")
-    public List<Person> people() {
-        return people.list();
+    @GetMapping("/staff")
+    public List<StaffMember> staff() {
+        return staff.list();
     }
 
-    @PostMapping("/people")
+    @PostMapping("/staff")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('" + Permissions.PEOPLE_WRITE + "')")
-    public Person createPerson(@Valid @RequestBody CreatePersonRequest request) {
-        return people.create(request);
+    @PreAuthorize("hasAuthority('" + Permissions.STAFF_WRITE + "')")
+    public StaffMember createStaff(@Valid @RequestBody CreateStaffRequest request) {
+        return staff.create(request);
     }
 
-    @DeleteMapping("/people/{id}")
+    @DeleteMapping("/staff/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('" + Permissions.PEOPLE_WRITE + "')")
-    public void deletePerson(@PathVariable UUID id) {
-        people.delete(id);
+    @PreAuthorize("hasAuthority('" + Permissions.STAFF_WRITE + "')")
+    public void deleteStaff(@PathVariable UUID id) {
+        staff.deactivate(id);
     }
 }

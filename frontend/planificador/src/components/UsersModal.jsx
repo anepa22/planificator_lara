@@ -17,7 +17,16 @@ const ROLE_LABELS = {
   personal: 'Personal',
 }
 
-export default function UsersModal({ open, people = [], onClose }) {
+const EMPTY_FORM = {
+  username: '',
+  password: '',
+  displayName: '',
+  canLogin: true,
+  active: true,
+  roleIds: [],
+}
+
+export default function UsersModal({ open, onClose, onChanged }) {
   const { can } = useAuth()
   const canManageUsers = can('users:manage')
   const canManageRoles = can('roles:manage')
@@ -29,13 +38,7 @@ export default function UsersModal({ open, people = [], onClose }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState(null)
-  const [form, setForm] = useState({
-    username: '',
-    password: '',
-    displayName: '',
-    personId: '',
-    roleIds: [],
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
@@ -43,13 +46,7 @@ export default function UsersModal({ open, people = [], onClose }) {
     setError('')
     setTab('users')
     setEditingId(null)
-    setForm({
-      username: '',
-      password: '',
-      displayName: '',
-      personId: '',
-      roleIds: [],
-    })
+    setForm(EMPTY_FORM)
     reload()
   }, [open])
 
@@ -79,29 +76,24 @@ export default function UsersModal({ open, people = [], onClose }) {
       if (editingId) {
         await updateUser(editingId, {
           displayName: form.displayName.trim(),
-          active: true,
+          active: form.active,
           password: form.password.trim() || null,
-          personId: form.personId || null,
+          canLogin: form.canLogin,
           roleIds: form.roleIds,
         })
       } else {
         await createUser({
           username: form.username.trim(),
-          password: form.password,
+          password: form.canLogin ? form.password : null,
           displayName: form.displayName.trim(),
-          personId: form.personId || null,
+          canLogin: form.canLogin,
           roleIds: form.roleIds,
         })
       }
       setEditingId(null)
-      setForm({
-        username: '',
-        password: '',
-        displayName: '',
-        personId: '',
-        roleIds: [],
-      })
+      setForm(EMPTY_FORM)
       await reload()
+      onChanged?.()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -123,6 +115,7 @@ export default function UsersModal({ open, people = [], onClose }) {
     try {
       await deleteUser(user.id)
       await reload()
+      onChanged?.()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -136,8 +129,9 @@ export default function UsersModal({ open, people = [], onClose }) {
       username: user.username,
       password: '',
       displayName: user.displayName,
-      personId: user.personId || '',
-      roleIds: user.roles?.length ? [...user.roles] : ['editor'],
+      canLogin: user.canLogin !== false,
+      active: user.active !== false,
+      roleIds: user.roles?.length ? [...user.roles] : [],
     })
   }
 
@@ -168,6 +162,8 @@ export default function UsersModal({ open, people = [], onClose }) {
     }
   }
 
+  const needsPassword = form.canLogin && !editingId
+
   return (
     <>
     <div
@@ -178,7 +174,10 @@ export default function UsersModal({ open, people = [], onClose }) {
     >
       <div className="modal users-modal">
         <h3>Usuarios y roles</h3>
-        <div className="m-sub">Administrá quién entra y qué puede hacer.</div>
+        <div className="m-sub">
+          Todo el personal es un usuario. Sin acceso habilitado igual aparece en
+          el planificador.
+        </div>
         {error && <div className="m-warn">{error}</div>}
 
         <div className="users-tabs">
@@ -229,41 +228,62 @@ export default function UsersModal({ open, people = [], onClose }) {
                   required
                 />
               </div>
-              <div className="field">
-                <label>
-                  {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-                </label>
+              <label className={`check-card check-card-compact${form.canLogin ? ' is-on' : ''}`}>
                 <input
-                  type="password"
-                  value={form.password}
+                  type="checkbox"
+                  checked={form.canLogin}
                   disabled={busy}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, password: e.target.value }))
+                    setForm((f) => ({ ...f, canLogin: e.target.checked }))
                   }
-                  required={!editingId}
-                  minLength={editingId ? undefined : 6}
                 />
-              </div>
-              <div className="field">
-                <label>Persona vinculada</label>
-                <select
-                  value={form.personId}
-                  disabled={busy}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, personId: e.target.value }))
-                  }
-                >
-                  <option value="">Sin vínculo (cuenta administrativa)</option>
-                  {people.map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <span className="check-card-box" aria-hidden />
+                <span className="check-card-text">
+                  <span className="check-card-title">Puede ingresar al sistema</span>
+                  <span className="check-card-sub">
+                    Si está apagado solo figura en el planificador
+                  </span>
+                </span>
+              </label>
+              {form.canLogin && (
+                <div className="field">
+                  <label>
+                    {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                    required={needsPassword}
+                    minLength={6}
+                  />
+                </div>
+              )}
+              {editingId && (
+                <label className={`check-card check-card-compact${form.active ? ' is-on' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, active: e.target.checked }))
+                    }
+                  />
+                  <span className="check-card-box" aria-hidden />
+                  <span className="check-card-text">
+                    <span className="check-card-title">Activo</span>
+                    <span className="check-card-sub">
+                      Al desactivarlo desaparece de la grilla y del resumen
+                    </span>
+                  </span>
+                </label>
+              )}
               <div className="field">
                 <label>Roles</label>
-                <div className="people-pick">
+                <div className="pick-list">
                   {roles.map((r) => (
                     <label className="pp-item" key={r.id}>
                       <input
@@ -287,13 +307,7 @@ export default function UsersModal({ open, people = [], onClose }) {
                     disabled={busy}
                     onClick={() => {
                       setEditingId(null)
-                      setForm({
-                        username: '',
-                        password: '',
-                        displayName: '',
-                        personId: '',
-                        roleIds: [],
-                      })
+                      setForm(EMPTY_FORM)
                     }}
                   >
                     Cancelar edición
@@ -318,15 +332,11 @@ export default function UsersModal({ open, people = [], onClose }) {
                       <span className="vac-list-range">
                         {u.username}
                         {!u.active ? ' · inactivo' : ''}
-                        {' · '}
-                        {(u.roles || [])
-                          .map((r) => ROLE_LABELS[r] || r)
-                          .join(', ')}
-                        {u.personId
-                          ? ` · ${
-                              people.find((person) => person.id === u.personId)
-                                ?.name || 'Persona vinculada'
-                            }`
+                        {u.canLogin === false ? ' · sin acceso' : ''}
+                        {(u.roles || []).length
+                          ? ` · ${(u.roles || [])
+                              .map((r) => ROLE_LABELS[r] || r)
+                              .join(', ')}`
                           : ''}
                       </span>
                     </span>
@@ -362,7 +372,7 @@ export default function UsersModal({ open, people = [], onClose }) {
                 <div className="role-title">
                   {ROLE_LABELS[role.code] || role.name}
                 </div>
-                <div className="people-pick">
+                <div className="pick-list">
                   {permissions.map((p) => (
                     <label className="pp-item" key={p.id}>
                       <input
@@ -401,7 +411,7 @@ export default function UsersModal({ open, people = [], onClose }) {
       title="Eliminar usuario"
       message={
         pendingDelete
-          ? `¿Eliminar el usuario ${pendingDelete.username}?`
+          ? `¿Eliminar el usuario ${pendingDelete.username}? Se borran también sus turnos.`
           : ''
       }
       confirmLabel="Eliminar"

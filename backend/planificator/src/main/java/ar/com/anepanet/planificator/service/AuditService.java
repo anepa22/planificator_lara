@@ -29,7 +29,7 @@ public class AuditService {
     public static final String TYPE_SHIFT = "shift";
     public static final String TYPE_VACATION = "vacation";
     public static final String TYPE_FRANCO = "franco";
-    public static final String TYPE_PERSON = "person";
+    public static final String TYPE_STAFF = "staff";
     public static final String TYPE_USER = "user";
     public static final String TYPE_ROLE = "role";
     public static final String TYPE_SESSION = "session";

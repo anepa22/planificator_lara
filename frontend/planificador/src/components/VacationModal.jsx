@@ -28,21 +28,21 @@ function shiftWhere(shift, locations) {
 }
 
 function buildVacationConflicts({
-  personIds,
+  userIds,
   dateKeys,
   shifts,
-  people,
+  staff,
   locations,
 }) {
-  if (!personIds.length || !dateKeys.length) return []
+  if (!userIds.length || !dateKeys.length) return []
   const dateSet = new Set(dateKeys)
 
-  return personIds.flatMap((personId) => {
-    const emp = people.find((p) => p.id === personId)
+  return userIds.flatMap((userId) => {
+    const emp = staff.find((p) => p.id === userId)
     return shifts
       .filter(
         (s) =>
-          s.personId === personId &&
+          s.userId === userId &&
           dateSet.has(String(s.workDate).slice(0, 10)) &&
           timesOverlap(VAC_START, VAC_END, s.startTime, s.endTime),
       )
@@ -62,7 +62,7 @@ function buildVacationConflicts({
 
 export default function VacationModal({
   open,
-  people,
+  staff,
   locations,
   busy,
   canWrite = true,
@@ -125,13 +125,13 @@ export default function VacationModal({
   const conflicts = useMemo(
     () =>
       buildVacationConflicts({
-        personIds: selectedIds,
+        userIds: selectedIds,
         dateKeys,
         shifts: pool,
-        people,
+        staff,
         locations,
       }),
-    [selectedIds, dateKeys, pool, people, locations],
+    [selectedIds, dateKeys, pool, staff, locations],
   )
 
   useEffect(() => {
@@ -165,7 +165,7 @@ export default function VacationModal({
 
   if (!open) return null
 
-  function togglePerson(id) {
+  function toggleMember(id) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     )
@@ -183,10 +183,10 @@ export default function VacationModal({
     }
 
     const currentConflicts = buildVacationConflicts({
-      personIds: selectedIds,
+      userIds: selectedIds,
       dateKeys,
       shifts: pool,
-      people,
+      staff,
       locations,
     })
 
@@ -199,7 +199,7 @@ export default function VacationModal({
     confirmPendingRef.current = false
     setConfirmMove(false)
     await onSave({
-      personIds: selectedIds,
+      userIds: selectedIds,
       dateFrom,
       dateTo,
       startTime: VAC_START,
@@ -246,14 +246,14 @@ export default function VacationModal({
         </div>
 
         <div className="field">
-          <label>Personas</label>
-          <div className="people-pick">
-            {!people.length && (
-              <div className="pp-empty">Todavía no hay personas.</div>
+          <label>Personal</label>
+          <div className="pick-list">
+            {!staff.length && (
+              <div className="pp-empty">Todavía no hay personal.</div>
             )}
-            {people.map((e) => {
-              const av = paletteFor(e.id, people).c
-              const dayShifts = pool.filter((s) => s.personId === e.id)
+            {staff.map((e) => {
+              const av = paletteFor(e.id, staff).c
+              const dayShifts = pool.filter((s) => s.userId === e.id)
               const hasOverlap =
                 dateKeys.length > 0 &&
                 dayShifts.some(
@@ -270,7 +270,7 @@ export default function VacationModal({
                     type="checkbox"
                     checked={selectedIds.includes(e.id)}
                     disabled={busy}
-                    onChange={() => togglePerson(e.id)}
+                    onChange={() => toggleMember(e.id)}
                   />
                   <span className="pp-av" style={{ background: av }}>
                     {initials(e.name)}
@@ -304,7 +304,7 @@ export default function VacationModal({
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || !people.length || loadingPool}
+              disabled={busy || !staff.length || loadingPool}
               onClick={handleSave}
             >
               {confirmMove ? 'Confirmar y guardar' : 'Guardar'}

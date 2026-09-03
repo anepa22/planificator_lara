@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record Shift(
         UUID id,
-        UUID personId,
+        UUID userId,
         String locationId,
         LocalDate workDate,
         LocalTime startTime,

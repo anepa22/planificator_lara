@@ -4,7 +4,6 @@ import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Permission;
 import ar.com.anepanet.planificator.domain.Role;
 import ar.com.anepanet.planificator.repository.AuthRepository;
-import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.web.dto.CreateUserRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateRolePermissionsRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateUserRequest;
@@ -24,18 +23,20 @@ import java.util.stream.Collectors;
 @Service
 public class UserAdminService {
 
+    private static final int PASSWORD_MIN = 6;
+
+    /** Marca para cuentas sin login; ningún hash real puede coincidir. */
+    private static final String NO_LOGIN_HASH = "!";
+
     private final AuthRepository auth;
-    private final PersonRepository people;
     private final PasswordEncoder passwordEncoder;
     private final AuditService audit;
 
     public UserAdminService(
             AuthRepository auth,
-            PersonRepository people,
             PasswordEncoder passwordEncoder,
             AuditService audit) {
         this.auth = auth;
-        this.people = people;
         this.passwordEncoder = passwordEncoder;
         this.audit = audit;
     }
@@ -46,13 +47,19 @@ public class UserAdminService {
 
     public UserResponse createUser(CreateUserRequest req) {
         validateRoles(req.roleIds());
-        validatePerson(req.personId());
+        boolean canLogin = req.canLogin() == null || req.canLogin();
+        String hash = NO_LOGIN_HASH;
+        if (canLogin) {
+            requirePassword(req.password());
+            hash = passwordEncoder.encode(req.password());
+        }
         try {
             AppUser user = auth.insertUser(
                     req.username(),
-                    passwordEncoder.encode(req.password()),
+                    hash,
                     req.displayName(),
-                    req.personId(),
+                    req.color(),
+                    canLogin,
                     req.roleIds()
             );
             audit.record(
@@ -61,38 +68,40 @@ public class UserAdminService {
                     user.id().toString(),
                     user.username()
                             + " (" + String.join(", ", req.roleIds()) + ")"
+                            + (canLogin ? "" : " · sin login")
             );
             return toResponse(user);
         } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "El usuario ya existe o la persona ya está vinculada a otra cuenta");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El nombre de usuario ya existe");
         }
     }
 
     public UserResponse updateUser(UUID id, UpdateUserRequest req) {
         validateRoles(req.roleIds());
-        validatePerson(req.personId());
+        AppUser existing = auth.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+        boolean canLogin = req.canLogin() == null ? existing.canLogin() : req.canLogin();
+
         String hash = null;
         boolean passwordChanged = false;
         if (req.password() != null && !req.password().isBlank()) {
-            if (req.password().length() < 6) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 6 caracteres");
-            }
+            requirePassword(req.password());
             hash = passwordEncoder.encode(req.password());
             passwordChanged = true;
         }
-        AppUser user;
-        try {
-            user = auth.updateUser(
-                            id, req.displayName(), req.active(), hash, req.personId(), req.roleIds())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        } catch (DataIntegrityViolationException ex) {
+        if (canLogin && !existing.canLogin() && !passwordChanged) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "La persona ya está vinculada a otra cuenta");
+                    HttpStatus.BAD_REQUEST, "Para habilitar el ingreso hay que definir una contraseña");
         }
+        if (!canLogin) {
+            hash = NO_LOGIN_HASH;
+            passwordChanged = false;
+        }
+
+        AppUser user = auth.updateUser(
+                        id, req.displayName(), req.active(), hash, req.color(), canLogin, req.roleIds())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         audit.record(
                 AuditService.ACTION_UPDATE,
                 AuditService.TYPE_USER,
@@ -100,6 +109,7 @@ public class UserAdminService {
                 user.username()
                         + " · roles=[" + String.join(", ", req.roleIds()) + "]"
                         + " · activo=" + req.active()
+                        + " · login=" + canLogin
                         + (passwordChanged ? " · contraseña cambiada" : "")
         );
         return toResponse(user);
@@ -157,6 +167,13 @@ public class UserAdminService {
         return role;
     }
 
+    private void requirePassword(String password) {
+        if (password == null || password.isBlank() || password.length() < PASSWORD_MIN) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos " + PASSWORD_MIN + " caracteres");
+        }
+    }
+
     private void validateRoles(List<String> roleIds) {
         if (roleIds == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roles inválidos");
@@ -176,20 +193,11 @@ public class UserAdminService {
                 user.id(),
                 user.username(),
                 user.displayName(),
-                user.personId(),
+                user.color(),
                 user.active(),
+                user.canLogin(),
                 user.roleIds(),
                 user.permissions()
         );
-    }
-
-    private void validatePerson(UUID personId) {
-        if (personId == null) {
-            return;
-        }
-        people.findById(personId)
-                .filter(p -> p.active())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Persona inválida o inactiva"));
     }
 }

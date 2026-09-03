@@ -1,17 +1,17 @@
 import { addDays, normalizeTime, parseDateKey, toDateKey } from './dates'
 
-/** Agrupa turnos de un local de ausencia en tramos contiguos por persona. */
+/** Agrupa turnos de un local de ausencia en tramos contiguos por usuario. */
 function groupAbsenceRanges(shifts, locationId) {
-  const byPerson = new Map()
+  const byUser = new Map()
   for (const s of shifts || []) {
     if (s.locationId !== locationId) continue
-    const pid = s.personId
-    if (!byPerson.has(pid)) byPerson.set(pid, [])
-    byPerson.get(pid).push(s)
+    const uid = s.userId
+    if (!byUser.has(uid)) byUser.set(uid, [])
+    byUser.get(uid).push(s)
   }
 
   const ranges = []
-  for (const [personId, list] of byPerson) {
+  for (const [userId, list] of byUser) {
     const sorted = list
       .slice()
       .sort((a, b) =>
@@ -21,7 +21,7 @@ function groupAbsenceRanges(shifts, locationId) {
     for (const s of sorted) {
       const day = String(s.workDate).slice(0, 10)
       if (!run) {
-        run = { personId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
+        run = { userId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
         continue
       }
       const expected = toDateKey(addDays(parseDateKey(run.dateTo), 1))
@@ -30,7 +30,7 @@ function groupAbsenceRanges(shifts, locationId) {
         run.shiftIds.push(s.id)
       } else {
         ranges.push(run)
-        run = { personId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
+        run = { userId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
       }
     }
     if (run) ranges.push(run)
@@ -39,18 +39,18 @@ function groupAbsenceRanges(shifts, locationId) {
   ranges.sort((a, b) => {
     const byFrom = a.dateFrom.localeCompare(b.dateFrom)
     if (byFrom) return byFrom
-    return a.personId.localeCompare(b.personId)
+    return a.userId.localeCompare(b.userId)
   })
   return ranges
 }
 
-/** Rango contiguo de ausencia que incluye dateKey para una persona. */
-export function findContiguousAbsenceRange(shifts, personId, dateKey, locationId) {
+/** Rango contiguo de ausencia que incluye dateKey para un usuario. */
+export function findContiguousAbsenceRange(shifts, userId, dateKey, locationId) {
   const key = String(dateKey).slice(0, 10)
   return (
     groupAbsenceRanges(shifts, locationId).find(
       (r) =>
-        r.personId === personId &&
+        r.userId === userId &&
         r.dateFrom <= key &&
         key <= r.dateTo,
     ) || null
@@ -58,12 +58,12 @@ export function findContiguousAbsenceRange(shifts, personId, dateKey, locationId
 }
 
 /**
- * Tramo contiguo de turnos de trabajo: misma persona, local y horario
+ * Tramo contiguo de turnos de trabajo: mismo usuario, local y horario
  * en días calendario seguidos.
  */
 export function findContiguousWorkShiftRange(
   shifts,
-  personId,
+  userId,
   dateKey,
   locationId,
   startTime,
@@ -75,7 +75,7 @@ export function findContiguousWorkShiftRange(
   const list = (shifts || [])
     .filter(
       (s) =>
-        s.personId === personId &&
+        s.userId === userId &&
         s.locationId === locationId &&
         normalizeTime(s.startTime) === start &&
         normalizeTime(s.endTime) === end,
@@ -88,7 +88,7 @@ export function findContiguousWorkShiftRange(
   for (const s of list) {
     const day = String(s.workDate).slice(0, 10)
     if (!run) {
-      run = { personId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
+      run = { userId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
       continue
     }
     const expected = toDateKey(addDays(parseDateKey(run.dateTo), 1))
@@ -97,7 +97,7 @@ export function findContiguousWorkShiftRange(
       run.shiftIds.push(s.id)
     } else {
       ranges.push(run)
-      run = { personId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
+      run = { userId, dateFrom: day, dateTo: day, shiftIds: [s.id] }
     }
   }
   if (run) ranges.push(run)

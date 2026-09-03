@@ -3,6 +3,7 @@ package ar.com.anepanet.planificator.repository;
 import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Permission;
 import ar.com.anepanet.planificator.domain.Role;
+import ar.com.anepanet.planificator.domain.StaffMember;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -19,6 +20,11 @@ import java.util.UUID;
 @Repository
 public class AuthRepository {
 
+    private static final String USER_COLUMNS = """
+            id, username, password_hash, display_name, color,
+            is_active, can_login, created_at, updated_at
+            """;
+
     private final JdbcClient jdbc;
 
     public AuthRepository(JdbcClient jdbc) {
@@ -27,11 +33,10 @@ public class AuthRepository {
 
     public Optional<AppUser> findByUsername(String username) {
         return jdbc.sql("""
-                SELECT id, username, password_hash, display_name, person_id,
-                       is_active, created_at, updated_at
+                SELECT %s
                 FROM app_users
                 WHERE lower(username) = lower(:username)
-                """)
+                """.formatted(USER_COLUMNS))
                 .param("username", username)
                 .query(this::mapUserBase)
                 .optional()
@@ -40,11 +45,10 @@ public class AuthRepository {
 
     public Optional<AppUser> findById(UUID id) {
         return jdbc.sql("""
-                SELECT id, username, password_hash, display_name, person_id,
-                       is_active, created_at, updated_at
+                SELECT %s
                 FROM app_users
                 WHERE id = :id
-                """)
+                """.formatted(USER_COLUMNS))
                 .param("id", id)
                 .query(this::mapUserBase)
                 .optional()
@@ -53,32 +57,61 @@ public class AuthRepository {
 
     public List<AppUser> findAllUsers() {
         List<AppUser> base = jdbc.sql("""
-                SELECT id, username, password_hash, display_name, person_id,
-                       is_active, created_at, updated_at
+                SELECT %s
                 FROM app_users
-                ORDER BY username
-                """)
+                ORDER BY display_name
+                """.formatted(USER_COLUMNS))
                 .query(this::mapUserBase)
                 .list();
         return base.stream().map(this::withRolesAndPermissions).toList();
+    }
+
+    /**
+     * Personal visible en el planificador: usuarios activos con rol Personal,
+     * tengan habilitado el ingreso o no. Las cuentas administrativas quedan
+     * afuera de la grilla.
+     */
+    public List<StaffMember> findActiveStaff() {
+        return jdbc.sql("""
+                SELECT u.id, u.display_name, u.color
+                FROM app_users u
+                JOIN user_roles ur ON ur.user_id = u.id AND ur.role_id = 'personal'
+                WHERE u.is_active = TRUE
+                ORDER BY u.display_name
+                """)
+                .query((rs, n) -> new StaffMember(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("display_name"),
+                        rs.getString("color")
+                ))
+                .list();
+    }
+
+    public boolean usernameExists(String username) {
+        Integer n = jdbc.sql("SELECT COUNT(*) FROM app_users WHERE lower(username) = lower(:username)")
+                .param("username", username)
+                .query(Integer.class)
+                .single();
+        return n != null && n > 0;
     }
 
     public AppUser insertUser(
             String username,
             String passwordHash,
             String displayName,
-            UUID personId,
+            String color,
+            boolean canLogin,
             List<String> roleIds) {
         AppUser created = jdbc.sql("""
-                INSERT INTO app_users (username, password_hash, display_name, person_id)
-                VALUES (:username, :passwordHash, :displayName, :personId)
-                RETURNING id, username, password_hash, display_name, person_id,
-                          is_active, created_at, updated_at
-                """)
+                INSERT INTO app_users (username, password_hash, display_name, color, can_login)
+                VALUES (:username, :passwordHash, :displayName, :color, :canLogin)
+                RETURNING %s
+                """.formatted(USER_COLUMNS))
                 .param("username", username.trim())
                 .param("passwordHash", passwordHash)
                 .param("displayName", displayName.trim())
-                .param("personId", personId)
+                .param("color", color)
+                .param("canLogin", canLogin)
                 .query(this::mapUserBase)
                 .single();
         replaceUserRoles(created.id(), roleIds);
@@ -90,7 +123,8 @@ public class AuthRepository {
             String displayName,
             Boolean active,
             String passwordHash,
-            UUID personId,
+            String color,
+            boolean canLogin,
             List<String> roleIds) {
         Optional<AppUser> existing = findById(id);
         if (existing.isEmpty()) {
@@ -100,7 +134,8 @@ public class AuthRepository {
                 UPDATE app_users
                 SET display_name = :displayName,
                     is_active = :active,
-                    person_id = :personId,
+                    color = :color,
+                    can_login = :canLogin,
                     password_hash = COALESCE(:passwordHash, password_hash),
                     updated_at = NOW()
                 WHERE id = :id
@@ -108,8 +143,9 @@ public class AuthRepository {
                 .param("id", id)
                 .param("displayName", displayName.trim())
                 .param("active", active)
+                .param("color", color)
+                .param("canLogin", canLogin)
                 .param("passwordHash", passwordHash)
-                .param("personId", personId)
                 .update();
         if (roleIds != null) {
             replaceUserRoles(id, roleIds);
@@ -130,6 +166,17 @@ public class AuthRepository {
 
     public boolean deleteUser(UUID id) {
         return jdbc.sql("DELETE FROM app_users WHERE id = :id")
+                .param("id", id)
+                .update() > 0;
+    }
+
+    /** Baja lógica: el usuario deja de aparecer en el planificador y no puede ingresar. */
+    public boolean deactivateUser(UUID id) {
+        return jdbc.sql("""
+                UPDATE app_users
+                SET is_active = FALSE, updated_at = NOW()
+                WHERE id = :id AND is_active = TRUE
+                """)
                 .param("id", id)
                 .update() > 0;
     }
@@ -239,8 +286,9 @@ public class AuthRepository {
                 base.username(),
                 base.passwordHash(),
                 base.displayName(),
-                base.personId(),
+                base.color(),
                 base.active(),
+                base.canLogin(),
                 base.createdAt(),
                 base.updatedAt(),
                 roleIds,
@@ -254,8 +302,9 @@ public class AuthRepository {
                 rs.getString("username"),
                 rs.getString("password_hash"),
                 rs.getString("display_name"),
-                rs.getObject("person_id", UUID.class),
+                rs.getString("color"),
                 rs.getBoolean("is_active"),
+                rs.getBoolean("can_login"),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),
                 List.of(),

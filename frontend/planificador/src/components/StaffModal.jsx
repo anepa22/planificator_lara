@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { initials, paletteFor } from '../lib/palette'
 import ConfirmModal from './ConfirmModal'
 
-export default function PeopleModal({
+export default function StaffModal({
   open,
-  people,
+  staff,
   onClose,
   onAdd,
   onRemove,
@@ -31,30 +31,32 @@ export default function PeopleModal({
           if (e.target === e.currentTarget && !pendingRemove) onClose()
         }}
       >
-        <div className="modal people-modal">
-          <h3>Personas</h3>
+        <div className="modal staff-modal">
+          <h3>Personal</h3>
           <div className="m-sub">
-            {canWrite ? 'Agregar o quitar del equipo' : 'Personal del equipo'}
+            {canWrite
+              ? 'Se dan de alta sin acceso al sistema; el ingreso se habilita desde Usuarios'
+              : 'Personal del planificador'}
           </div>
           <ul>
-            {people.length === 0 && (
+            {staff.length === 0 && (
               <li style={{ color: 'var(--ink-soft)', fontSize: '12.5px' }}>
-                Sin personas todavía.
+                Sin personal todavía.
               </li>
             )}
-            {people.map((emp) => {
-              const av = paletteFor(emp.id, people).c
+            {staff.map((member) => {
+              const av = paletteFor(member.id, staff).c
               return (
-                <li key={emp.id}>
+                <li key={member.id}>
                   <span className="av" style={{ background: av }}>
-                    {initials(emp.name)}
+                    {initials(member.name)}
                   </span>
-                  <span className="pn">{emp.name}</span>
+                  <span className="pn">{member.name}</span>
                   {canWrite && (
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => setPendingRemove(emp)}
+                      onClick={() => setPendingRemove(member)}
                     >
                       Quitar
                     </button>
@@ -64,7 +66,7 @@ export default function PeopleModal({
             })}
           </ul>
           {canWrite && (
-            <div className="new-person-row">
+            <div className="new-staff-row">
               <input
                 type="text"
                 value={name}
@@ -101,10 +103,10 @@ export default function PeopleModal({
 
       <ConfirmModal
         open={!!pendingRemove}
-        title="Quitar persona"
+        title="Quitar del personal"
         message={
           pendingRemove
-            ? `¿Quitar a ${pendingRemove.name} del equipo?`
+            ? `¿Quitar a ${pendingRemove.name} del planificador? Sus turnos dejan de verse.`
             : ''
         }
         busy={busy}

@@ -8,9 +8,9 @@ import java.util.UUID;
 /** Fila de la vista v_shifts_week */
 public record ShiftWeekView(
         UUID id,
-        UUID personId,
-        String personName,
-        String personColor,
+        UUID userId,
+        String userName,
+        String userColor,
         String locationId,
         String locationName,
         String locationColor,

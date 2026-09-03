@@ -7,7 +7,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 public record CreateShiftRequest(
-        @NotNull UUID personId,
+        @NotNull UUID userId,
         @NotNull String locationId,
         @NotNull LocalDate workDate,
         @NotNull LocalTime startTime,

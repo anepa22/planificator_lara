@@ -7,8 +7,9 @@ public record UserResponse(
         UUID id,
         String username,
         String displayName,
-        UUID personId,
+        String color,
         boolean active,
+        boolean canLogin,
         List<String> roles,
         List<String> permissions
 ) {}

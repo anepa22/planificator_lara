@@ -38,24 +38,24 @@ function sameWorkDay(s, ctx, dateKeys) {
 function buildConflicts({
   ctx,
   locationId,
-  personIds,
-  dayShiftsByPerson,
-  people,
+  userIds,
+  dayShiftsByUser,
+  staff,
   locations,
   startN,
   endN,
 }) {
-  if (!ctx || !personIds.length) return []
+  if (!ctx || !userIds.length) return []
   if (toMinutes(endN) <= toMinutes(startN)) return []
   const locId = locationId || ctx.locationId
 
-  return personIds.flatMap((id) => {
-    const dayShifts = dayShiftsByPerson.get(id) || []
+  return userIds.flatMap((id) => {
+    const dayShifts = dayShiftsByUser.get(id) || []
     const overlapping = dayShifts.filter((s) =>
       timesOverlap(startN, endN, s.startTime, s.endTime),
     )
     if (!overlapping.length) return []
-    const emp = people.find((p) => p.id === id)
+    const emp = staff.find((p) => p.id === id)
     return overlapping.map((existing) => {
       const sameLoc = existing.locationId === locId
       const where = shiftLabel(existing, locations)
@@ -76,7 +76,7 @@ function dedupeConflicts(list) {
   return [...byId.values()]
 }
 
-function PersonStatusBadges({
+function StaffStatusBadges({
   dayShifts,
   start,
   end,
@@ -130,7 +130,7 @@ function PersonStatusBadges({
 export default function ShiftModal({
   open,
   ctx,
-  people,
+  staff,
   locations,
   shifts,
   weekStart,
@@ -168,7 +168,7 @@ export default function ShiftModal({
     if (!open || !ctx || ctx.mode !== 'edit') return null
     return findContiguousWorkShiftRange(
       shifts,
-      ctx.personId,
+      ctx.userId,
       ctx.workDate,
       ctx.locationId,
       ctx.startTime,
@@ -229,21 +229,21 @@ export default function ShiftModal({
     return addDays(weekStart, ctx.dayIndex)
   }, [ctx, weekStart])
 
-  const dayShiftsByPerson = useMemo(() => {
+  const dayShiftsByUser = useMemo(() => {
     if (!ctx) return new Map()
     const map = new Map()
     for (const s of shifts) {
       if (!sameWorkDay(s, ctx, rangeMode ? conflictDateKeys : null)) continue
       if (ctx.mode === 'edit' && s.id === ctx.shiftId) continue
-      if (!map.has(s.personId)) map.set(s.personId, [])
-      map.get(s.personId).push(s)
+      if (!map.has(s.userId)) map.set(s.userId, [])
+      map.get(s.userId).push(s)
     }
     return map
   }, [ctx, shifts, rangeMode, conflictDateKeys])
 
-  const activePersonIds = useMemo(() => {
+  const activeUserIds = useMemo(() => {
     if (!ctx) return []
-    return ctx.mode === 'edit' ? [ctx.personId] : selectedIds
+    return ctx.mode === 'edit' ? [ctx.userId] : selectedIds
   }, [ctx, selectedIds])
 
   function clearConfirm() {
@@ -318,7 +318,7 @@ export default function ShiftModal({
   function dayShiftsForDates(dateKeys) {
     const set = new Set(dateKeys)
     const map = new Map()
-    for (const [pid, list] of dayShiftsByPerson) {
+    for (const [pid, list] of dayShiftsByUser) {
       const filtered = list.filter((s) =>
         set.has(String(s.workDate).slice(0, 10)),
       )
@@ -328,7 +328,7 @@ export default function ShiftModal({
   }
 
   const conflicts = useMemo(() => {
-    if (!ctx || !activePersonIds.length) return []
+    if (!ctx || !activeUserIds.length) return []
 
     if (rangeMode) {
       const workC =
@@ -336,9 +336,9 @@ export default function ShiftModal({
           ? buildConflicts({
               ctx,
               locationId: locationId || ctx.locationId,
-              personIds: activePersonIds,
-              dayShiftsByPerson: dayShiftsForDates(rangeKeys),
-              people,
+              userIds: activeUserIds,
+              dayShiftsByUser: dayShiftsForDates(rangeKeys),
+              staff,
               locations,
               startN: normalizeTime(start),
               endN: normalizeTime(end),
@@ -349,9 +349,9 @@ export default function ShiftModal({
           ? buildConflicts({
               ctx,
               locationId: FRANCO_LOCATION_ID,
-              personIds: activePersonIds,
-              dayShiftsByPerson: dayShiftsForDates(francoRangeKeys),
-              people,
+              userIds: activeUserIds,
+              dayShiftsByUser: dayShiftsForDates(francoRangeKeys),
+              staff,
               locations,
               startN: francoStart,
               endN: francoEnd,
@@ -363,9 +363,9 @@ export default function ShiftModal({
     return buildConflicts({
       ctx,
       locationId: effectiveLocationId,
-      personIds: activePersonIds,
-      dayShiftsByPerson,
-      people,
+      userIds: activeUserIds,
+      dayShiftsByUser,
+      staff,
       locations,
       startN: normalizeTime(start),
       endN: normalizeTime(end),
@@ -377,9 +377,9 @@ export default function ShiftModal({
     francoRangeKeys,
     locationId,
     effectiveLocationId,
-    activePersonIds,
-    dayShiftsByPerson,
-    people,
+    activeUserIds,
+    dayShiftsByUser,
+    staff,
     locations,
     start,
     end,
@@ -425,7 +425,7 @@ export default function ShiftModal({
 
   if (!open || !ctx) return null
 
-  const noPeople = people.length === 0
+  const noStaff = staff.length === 0
   const noLocations = pickLocations.length === 0
   const minDate = ctx.minDate || ''
   const maxDate = ctx.maxDate || ''
@@ -442,29 +442,29 @@ export default function ShiftModal({
           ? `${DAYS[ctx.dayIndex]} ${dDate.getDate()}/${dDate.getMonth() + 1}`
           : ''
 
-  const editPerson =
-    ctx.mode === 'edit' ? people.find((p) => p.id === ctx.personId) : null
-  const lockedPersonId =
-    ctx.personLocked
-      ? ctx.preselect?.[0] || ctx.personId || selectedIds[0]
+  const editMember =
+    ctx.mode === 'edit' ? staff.find((p) => p.id === ctx.userId) : null
+  const lockedUserId =
+    ctx.userLocked
+      ? ctx.preselect?.[0] || ctx.userId || selectedIds[0]
       : null
-  const lockedPerson = lockedPersonId
-    ? people.find((p) => p.id === lockedPersonId)
+  const lockedMember = lockedUserId
+    ? staff.find((p) => p.id === lockedUserId)
     : null
   const editDayShifts =
-    ctx.mode === 'edit' ? dayShiftsByPerson.get(ctx.personId) || [] : []
-  const lockedDayShifts = lockedPersonId
-    ? dayShiftsByPerson.get(lockedPersonId) || []
+    ctx.mode === 'edit' ? dayShiftsByUser.get(ctx.userId) || [] : []
+  const lockedDayShifts = lockedUserId
+    ? dayShiftsByUser.get(lockedUserId) || []
     : []
-  const showPeoplePick =
-    ctx.mode === 'add' && !noPeople && !rangeMode && !ctx.personLocked
-  const showLockedPerson =
-    ctx.mode === 'add' && !noPeople && !!lockedPerson && !!ctx.personLocked
+  const showStaffPick =
+    ctx.mode === 'add' && !noStaff && !rangeMode && !ctx.userLocked
+  const showLockedMember =
+    ctx.mode === 'add' && !noStaff && !!lockedMember && !!ctx.userLocked
   const showLocationPick =
     ctx.mode === 'edit' ||
     (ctx.mode === 'add' && (rangeNeedsLocation || dayNeedsLocation))
 
-  function togglePerson(id) {
+  function toggleMember(id) {
     clearConfirm()
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -507,7 +507,7 @@ export default function ShiftModal({
       setRangeInvalid(false)
     }
 
-    const personIds = ctx.mode === 'edit' ? [ctx.personId] : selectedIds
+    const userIds = ctx.mode === 'edit' ? [ctx.userId] : selectedIds
     let currentConflicts
     if (rangeMode) {
       const workC =
@@ -515,9 +515,9 @@ export default function ShiftModal({
           ? buildConflicts({
               ctx,
               locationId: effectiveLoc,
-              personIds,
-              dayShiftsByPerson: dayShiftsForDates(rangeKeys),
-              people,
+              userIds,
+              dayShiftsByUser: dayShiftsForDates(rangeKeys),
+              staff,
               locations,
               startN: startSnapped,
               endN: endSnapped,
@@ -528,9 +528,9 @@ export default function ShiftModal({
           ? buildConflicts({
               ctx,
               locationId: FRANCO_LOCATION_ID,
-              personIds,
-              dayShiftsByPerson: dayShiftsForDates(francoRangeKeys),
-              people,
+              userIds,
+              dayShiftsByUser: dayShiftsForDates(francoRangeKeys),
+              staff,
               locations,
               startN: francoStart,
               endN: francoEnd,
@@ -541,9 +541,9 @@ export default function ShiftModal({
       currentConflicts = buildConflicts({
         ctx,
         locationId: effectiveLoc,
-        personIds,
-        dayShiftsByPerson,
-        people,
+        userIds,
+        dayShiftsByUser,
+        staff,
         locations,
         startN: startSnapped,
         endN: endSnapped,
@@ -567,7 +567,7 @@ export default function ShiftModal({
       await onSave({
         mode: 'edit',
         shiftId: ctx.shiftId,
-        personId: ctx.personId,
+        userId: ctx.userId,
         locationId: effectiveLoc,
         dayIndex: ctx.dayIndex,
         workDate: ctx.workDate,
@@ -604,7 +604,7 @@ export default function ShiftModal({
       await onSave({
         mode: 'add',
         rangeAssign: true,
-        personIds: selectedIds,
+        userIds: selectedIds,
         locationId: effectiveLoc,
         dateFrom,
         dateTo,
@@ -621,7 +621,7 @@ export default function ShiftModal({
 
     await onSave({
       mode: 'add',
-      personIds: selectedIds,
+      userIds: selectedIds,
       locationId: effectiveLoc,
       dayIndex: ctx.dayIndex,
       workDate: ctx.workDate,
@@ -641,8 +641,8 @@ export default function ShiftModal({
     >
       <div className="modal">
         <h3>
-          {noPeople
-            ? 'Agregá personas primero'
+          {noStaff
+            ? 'Agregá personal primero'
             : ctx.mode === 'edit'
               ? asFranco
                 ? 'Editar · franco'
@@ -654,7 +654,7 @@ export default function ShiftModal({
                   : 'Asignar turno'}
         </h3>
         <div className="m-sub">
-          {noPeople
+          {noStaff
             ? 'Cargá personal desde el menú (Personal).'
             : subtitle}
         </div>
@@ -665,7 +665,7 @@ export default function ShiftModal({
             <input
               type="checkbox"
               checked={asFranco}
-              disabled={noPeople || busy}
+              disabled={noStaff || busy}
               onChange={(e) => setFrancoChecked(e.target.checked)}
             />
             <span className="check-card-box" aria-hidden />
@@ -701,7 +701,7 @@ export default function ShiftModal({
           </div>
         )}
 
-        {ctx.mode === 'edit' && !noPeople && (
+        {ctx.mode === 'edit' && !noStaff && (
           <div className="field">
             <label>Persona</label>
             <div
@@ -709,12 +709,12 @@ export default function ShiftModal({
             >
               <span
                 className="pp-av"
-                style={{ background: paletteFor(ctx.personId, people).c }}
+                style={{ background: paletteFor(ctx.userId, staff).c }}
               >
-                {initials(editPerson?.name)}
+                {initials(editMember?.name)}
               </span>
-              <span className="pp-name">{editPerson?.name || 'Persona'}</span>
-              <PersonStatusBadges
+              <span className="pp-name">{editMember?.name || 'Persona'}</span>
+              <StaffStatusBadges
                 dayShifts={editDayShifts}
                 start={start}
                 end={end}
@@ -725,7 +725,7 @@ export default function ShiftModal({
           </div>
         )}
 
-        {showLockedPerson && (
+        {showLockedMember && (
           <div className="field">
             <label>Persona</label>
             <div
@@ -733,12 +733,12 @@ export default function ShiftModal({
             >
               <span
                 className="pp-av"
-                style={{ background: paletteFor(lockedPerson.id, people).c }}
+                style={{ background: paletteFor(lockedMember.id, staff).c }}
               >
-                {initials(lockedPerson.name)}
+                {initials(lockedMember.name)}
               </span>
-              <span className="pp-name">{lockedPerson.name}</span>
-              <PersonStatusBadges
+              <span className="pp-name">{lockedMember.name}</span>
+              <StaffStatusBadges
                 dayShifts={lockedDayShifts}
                 start={start}
                 end={end}
@@ -749,13 +749,13 @@ export default function ShiftModal({
           </div>
         )}
 
-        {showPeoplePick && (
+        {showStaffPick && (
           <div className="field">
-            <label>Personas en esta franja</label>
-            <div className="people-pick">
-              {people.map((e) => {
-                const av = paletteFor(e.id, people).c
-                const dayShifts = dayShiftsByPerson.get(e.id) || []
+            <label>Personal en esta franja</label>
+            <div className="pick-list">
+              {staff.map((e) => {
+                const av = paletteFor(e.id, staff).c
+                const dayShifts = dayShiftsByUser.get(e.id) || []
                 const startN = normalizeTime(start)
                 const endN = normalizeTime(end)
                 const hasOverlap =
@@ -771,13 +771,13 @@ export default function ShiftModal({
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(e.id)}
-                      onChange={() => togglePerson(e.id)}
+                      onChange={() => toggleMember(e.id)}
                     />
                     <span className="pp-av" style={{ background: av }}>
                       {initials(e.name)}
                     </span>
                     <span className="pp-name">{e.name}</span>
-                    <PersonStatusBadges
+                    <StaffStatusBadges
                       dayShifts={dayShifts}
                       start={start}
                       end={end}
@@ -801,7 +801,7 @@ export default function ShiftModal({
                   value={dateFrom}
                   min={minDate || undefined}
                   max={maxDate || undefined}
-                  disabled={noPeople || busy}
+                  disabled={noStaff || busy}
                   style={rangeInvalid ? { borderColor: '#C4436D' } : undefined}
                   onChange={(e) => setDateFrom(e.target.value)}
                 />
@@ -813,7 +813,7 @@ export default function ShiftModal({
                   value={dateTo}
                   min={minDate || undefined}
                   max={maxDate || undefined}
-                  disabled={noPeople || busy}
+                  disabled={noStaff || busy}
                   style={rangeInvalid ? { borderColor: '#C4436D' } : undefined}
                   onChange={(e) => setDateTo(e.target.value)}
                 />
@@ -823,7 +823,7 @@ export default function ShiftModal({
               <input
                 type="checkbox"
                 checked={includeSundays}
-                disabled={noPeople || busy}
+                disabled={noStaff || busy}
                 onChange={(e) => setIncludeSundays(e.target.checked)}
               />
               <span className="check-card-box" aria-hidden />
@@ -851,7 +851,7 @@ export default function ShiftModal({
                         <input
                           type="checkbox"
                           checked={on}
-                          disabled={noPeople || busy}
+                          disabled={noStaff || busy}
                           onChange={() => toggleFrancoWeekday(idx)}
                         />
                         <span className="weekday-chip-label">{label}</span>
@@ -888,7 +888,7 @@ export default function ShiftModal({
               type="time"
               value={start}
               step={900}
-              disabled={noPeople || busy || asFranco}
+              disabled={noStaff || busy || asFranco}
               onChange={(e) => setStart(e.target.value)}
             />
           </div>
@@ -898,7 +898,7 @@ export default function ShiftModal({
               type="time"
               value={end}
               step={900}
-              disabled={noPeople || busy || asFranco}
+              disabled={noStaff || busy || asFranco}
               style={endInvalid ? { borderColor: '#C4436D' } : undefined}
               onChange={(e) => setEnd(e.target.value)}
             />
@@ -912,7 +912,7 @@ export default function ShiftModal({
         )}
 
         <div className="modal-actions">
-          {ctx.mode === 'edit' && !noPeople && (
+          {ctx.mode === 'edit' && !noStaff && (
             <button
               type="button"
               className="btn btn-delete"
@@ -922,7 +922,7 @@ export default function ShiftModal({
               Quitar
             </button>
           )}
-          {showAddSame && ctx.mode === 'edit' && !noPeople && (
+          {showAddSame && ctx.mode === 'edit' && !noStaff && (
             <button
               type="button"
               className="btn btn-add-same"
@@ -939,7 +939,7 @@ export default function ShiftModal({
             type="button"
             className={`btn btn-primary${confirmMove ? ' btn-confirm-move' : ''}`}
             disabled={
-              noPeople ||
+              noStaff ||
               rangeHasNoDays ||
               francoOnlyRange ||
               (rangeNeedsLocation && noLocations) ||
@@ -958,7 +958,7 @@ export default function ShiftModal({
       <VacationRemoveModal
         open={pendingDelete}
         kind="shift"
-        personName={editPerson?.name}
+        staffName={editMember?.name}
         workDate={ctx.workDate}
         dateFrom={workDeleteRange.dateFrom}
         dateTo={workDeleteRange.dateTo}

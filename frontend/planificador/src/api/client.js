@@ -55,7 +55,7 @@ export const changePassword = (currentPassword, newPassword) =>
   })
 
 export const getLocations = () => api('/api/locations')
-export const getPeople = () => api('/api/people')
+export const getStaff = () => api('/api/staff')
 export const getHolidays = (year) => api(`/api/holidays?year=${year}`)
 
 export const getVidrieras = (from, to) =>
@@ -67,9 +67,9 @@ export const deleteVidriera = (locationId, workDate) =>
     `/api/vidrieras?locationId=${encodeURIComponent(locationId)}&workDate=${workDate}`,
     { method: 'DELETE' },
   )
-export const createPerson = (name) =>
-  api('/api/people', { method: 'POST', body: JSON.stringify({ name }) })
-export const deletePerson = (id) => api(`/api/people/${id}`, { method: 'DELETE' })
+export const createStaff = (name) =>
+  api('/api/staff', { method: 'POST', body: JSON.stringify({ name }) })
+export const deleteStaff = (id) => api(`/api/staff/${id}`, { method: 'DELETE' })
 
 export const getShifts = (weekStart) =>
   api(`/api/shifts?weekStart=${weekStart}`)

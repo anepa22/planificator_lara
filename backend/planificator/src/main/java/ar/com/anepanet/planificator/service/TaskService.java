@@ -65,6 +65,7 @@ public class TaskService {
         requireManager();
         return auth.findAllUsers().stream()
                 .filter(AppUser::active)
+                .filter(AppUser::canLogin)
                 .filter(user -> user.roleIds() != null && user.roleIds().contains(PERSONAL_ROLE))
                 .map(user -> new TaskAssignee(
                         user.id(),
@@ -154,7 +155,7 @@ public class TaskService {
                     HttpStatus.BAD_REQUEST, "Solo se puede asignar a usuarios con rol Personal");
         }
         LocalDate today = LocalDate.now(BUSINESS_ZONE);
-        if (target.personId() != null && tasks.isOnVacation(target.personId(), today)) {
+        if (tasks.isOnVacation(target.id(), today)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     displayName(target) + " está de vacaciones y no se le puede asignar la tarea");

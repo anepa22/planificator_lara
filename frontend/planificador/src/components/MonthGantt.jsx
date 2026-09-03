@@ -7,16 +7,16 @@ import {
   normalizeTime,
   toDateKey,
 } from '../lib/dates'
-import { fmtHours, netHoursForPerson } from '../lib/hours'
+import { fmtHours, netHoursForUser } from '../lib/hours'
 import { isAbsenceLocation, absenceLabel, isFrancoLocation } from '../lib/locations'
 import { initials, paletteFor } from '../lib/palette'
 
 const DAY_COL_PX = 80
-const PERSON_COL_PX = 140
+const STAFF_COL_PX = 140
 
 export default function MonthGantt({
   monthDate,
-  people,
+  staff,
   shifts,
   vidrieras = [],
   lunchHours = 0,
@@ -91,10 +91,10 @@ export default function MonthGantt({
     return map
   }, [vidrieras])
 
-  const byPersonDay = useMemo(() => {
+  const byUserDay = useMemo(() => {
     const map = new Map()
     for (const s of shifts) {
-      const key = `${s.personId}|${s.workDate}`
+      const key = `${s.userId}|${s.workDate}`
       if (!map.has(key)) map.set(key, [])
       map.get(key).push(s)
     }
@@ -115,19 +115,19 @@ export default function MonthGantt({
     scroller.scrollLeft = Math.max(0, (focusDay - 1) * dayW)
   }, [focusDay, year, month, nDays, focusNonce])
 
-  const rows = people.length
-    ? people
-    : [{ id: '__empty', name: 'Sin personas', _empty: true }]
+  const rows = staff.length
+    ? staff
+    : [{ id: '__empty', name: 'Sin personal', _empty: true }]
 
   const gridStyle = {
     '--gantt-days': nDays,
     '--gantt-day-w': `${DAY_COL_PX}px`,
-    '--gantt-person-w': `${PERSON_COL_PX}px`,
+    '--gantt-person-w': `${STAFF_COL_PX}px`,
   }
 
-  function openAddFor(personId, header) {
+  function openAddFor(userId, header) {
     onAdd?.({
-      personId,
+      userId,
       workDate: header.key,
     })
   }
@@ -137,7 +137,7 @@ export default function MonthGantt({
       <div className="gantt-scroll" ref={scrollRef} style={gridStyle}>
         <div className="gantt-head">
           <div className="gantt-corner">
-            <span className="gantt-corner-title">Persona</span>
+            <span className="gantt-corner-title">Personal</span>
             {canAdd && onRangeAssign ? (
               <span className="gantt-corner-hint">Nombre → rango</span>
             ) : null}
@@ -161,11 +161,11 @@ export default function MonthGantt({
           ))}
         </div>
 
-        {rows.map((person) => {
-          if (person._empty) {
+        {rows.map((member) => {
+          if (member._empty) {
             return (
-              <div className="gantt-row" key={person.id}>
-                <div className="gantt-person gantt-person-empty">{person.name}</div>
+              <div className="gantt-row" key={member.id}>
+                <div className="gantt-person gantt-person-empty">{member.name}</div>
                 {dayHeaders.map((h) => (
                   <div
                     key={h.key}
@@ -178,26 +178,26 @@ export default function MonthGantt({
             )
           }
 
-          const av = paletteFor(person.id, people)
-          const monthHours = netHoursForPerson(person.id, shifts, lunchHours)
+          const av = paletteFor(member.id, staff)
+          const monthHours = netHoursForUser(member.id, shifts, lunchHours)
           return (
-            <div className="gantt-row" key={person.id}>
+            <div className="gantt-row" key={member.id}>
               <div className="gantt-person">
                 <span className="gantt-av" style={{ background: av.c }}>
-                  {initials(person.name)}
+                  {initials(member.name)}
                 </span>
                 <div className="gantt-person-text">
                   {canAdd && onRangeAssign ? (
                     <button
                       type="button"
                       className="gantt-pname gantt-pname-btn"
-                      title={`Asignar rango a ${person.name}`}
-                      onClick={() => onRangeAssign(person)}
+                      title={`Asignar rango a ${member.name}`}
+                      onClick={() => onRangeAssign(member)}
                     >
-                      {person.name}
+                      {member.name}
                     </button>
                   ) : (
-                    <span className="gantt-pname">{person.name}</span>
+                    <span className="gantt-pname">{member.name}</span>
                   )}
                   <span
                     className="gantt-phours"
@@ -208,7 +208,7 @@ export default function MonthGantt({
                 </div>
               </div>
               {dayHeaders.map((h) => {
-                const cellShifts = byPersonDay.get(`${person.id}|${h.key}`) || []
+                const cellShifts = byUserDay.get(`${member.id}|${h.key}`) || []
                 return (
                   <div
                     key={h.key}
@@ -291,8 +291,8 @@ export default function MonthGantt({
                       <button
                         type="button"
                         className="gantt-add"
-                        title={`Asignar a ${person.name} el ${h.dow} ${h.day}`}
-                        onClick={() => openAddFor(person.id, h)}
+                        title={`Asignar a ${member.name} el ${h.dow} ${h.day}`}
+                        onClick={() => openAddFor(member.id, h)}
                       >
                         +
                       </button>

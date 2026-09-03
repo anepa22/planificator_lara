@@ -5,12 +5,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
-import java.util.UUID;
 
 public record UpdateUserRequest(
         @NotBlank @Size(max = 120) String displayName,
         @NotNull Boolean active,
-        String password,
-        UUID personId,
+        @Size(max = 100) String password,
+        @Size(max = 20) String color,
+        Boolean canLogin,
         @NotNull List<String> roleIds
 ) {}

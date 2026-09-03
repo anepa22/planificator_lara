@@ -36,7 +36,10 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         String username = request.username() == null ? "" : request.username().trim();
-        AppUser user = auth.findByUsername(username).filter(AppUser::active).orElse(null);
+        AppUser user = auth.findByUsername(username)
+                .filter(AppUser::active)
+                .filter(AppUser::canLogin)
+                .orElse(null);
         if (user == null || !passwordEncoder.matches(request.password(), user.passwordHash())) {
             audit.recordAs(
                     null,
@@ -60,7 +63,6 @@ public class AuthService {
                 user.id(),
                 user.username(),
                 user.displayName(),
-                user.personId(),
                 user.roleIds(),
                 user.permissions()
         );
@@ -104,7 +106,6 @@ public class AuthService {
                 user.id(),
                 user.username(),
                 user.displayName(),
-                user.personId(),
                 user.roleIds(),
                 user.permissions()
         );

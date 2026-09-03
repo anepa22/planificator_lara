@@ -24,7 +24,7 @@ export default function AppMenu({
   onPrevPeriod,
   onNextPeriod,
   onToday,
-  showPeople = true,
+  showStaff = true,
   showVacations = true,
   showUsers = false,
   showLunch = false,
@@ -33,7 +33,7 @@ export default function AppMenu({
   showAudit = false,
   userLabel,
   loggedIn = false,
-  onPeople,
+  onStaff,
   onVacations,
   onUsers,
   onLunch,
@@ -45,7 +45,7 @@ export default function AppMenu({
   onChangePassword,
   version,
 }) {
-  const showPersonalGroup = showPeople || showVacations || showLunch || showVidriera
+  const showPersonalGroup = showStaff || showVacations || showLunch || showVidriera
   const showOtherActions = showUsers || showTasksAdmin || showAudit
   const hasActions = showPersonalGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
@@ -170,15 +170,15 @@ export default function AppMenu({
                 </button>
                 {personalOpen && (
                   <div className="app-menu-sublist">
-                    {showPeople && (
+                    {showStaff && (
                       <MenuItem
                         nested
                         onClick={() => {
-                          onPeople()
+                          onStaff()
                           onClose()
                         }}
                       >
-                        Equipo
+                        Personal
                       </MenuItem>
                     )}
                     {showVacations && (

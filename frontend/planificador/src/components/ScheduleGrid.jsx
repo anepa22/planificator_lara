@@ -12,7 +12,7 @@ import { paletteFor } from '../lib/palette'
 
 export default function ScheduleGrid({
   locations,
-  people,
+  staff,
   shifts,
   selectedDay,
   isToday,
@@ -175,7 +175,7 @@ export default function ScheduleGrid({
                     20,
                     ((endMin - startMin) / 60) * hourH,
                   )
-                  const pal = paletteFor(s.personId, people)
+                  const pal = paletteFor(s.userId, staff)
                   const sizeClass =
                     height < 22
                       ? ' tiny'
@@ -197,14 +197,14 @@ export default function ScheduleGrid({
                         '--block-ink': pal.ink,
                         cursor: canEdit ? 'pointer' : 'default',
                       }}
-                      title={`${s.personName} · ${s.startTime}–${s.endTime}`}
+                      title={`${s.userName} · ${s.startTime}–${s.endTime}`}
                       onClick={(e) => {
                         e.stopPropagation()
                         if (canEdit) onEdit(s)
                       }}
                     >
                       <div className="sb-inner">
-                        <span className="sb-name">{s.personName}</span>
+                        <span className="sb-name">{s.userName}</span>
                         <span className="sb-time">
                           {s.startTime} – {s.endTime}
                         </span>

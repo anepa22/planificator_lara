@@ -4,11 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-/** Fila de la vista v_hours_by_person_week */
-public record HoursByPersonWeek(
+/** Fila de la vista v_hours_by_user_week */
+public record HoursByUserWeek(
         LocalDate weekStart,
-        UUID personId,
-        String personName,
+        UUID userId,
+        String userName,
         BigDecimal totalHours,
         int shiftCount
 ) {}

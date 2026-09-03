@@ -1,4 +1,4 @@
-const PERSON_PALETTE = [
+const STAFF_PALETTE = [
   { c: '#0D9488', soft: '#CCFBF1', ink: '#115E59' },
   { c: '#2563EB', soft: '#DBEAFE', ink: '#1E40AF' },
   { c: '#C026D3', soft: '#FAE8FF', ink: '#86198F' },
@@ -18,7 +18,7 @@ export function initials(name) {
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase()
 }
 
-export function paletteFor(personId, people) {
-  const idx = people.findIndex((p) => p.id === personId)
-  return PERSON_PALETTE[(idx >= 0 ? idx : 0) % PERSON_PALETTE.length]
+export function paletteFor(userId, staff) {
+  const idx = (staff || []).findIndex((s) => s.id === userId)
+  return STAFF_PALETTE[(idx >= 0 ? idx : 0) % STAFF_PALETTE.length]
 }

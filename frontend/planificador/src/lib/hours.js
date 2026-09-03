@@ -19,10 +19,10 @@ function shiftHours(shift) {
  * Horas netas: sin vacaciones ni francos; descuenta almuerzo por día trabajado.
  * Si se pasan dateKeys, solo cuenta turnos de esas fechas.
  */
-export function netHoursForPerson(personId, shifts, lunchHours = 0, dateKeys = null) {
+export function netHoursForUser(userId, shifts, lunchHours = 0, dateKeys = null) {
   const dates = dateKeys ? new Set(dateKeys) : null
   const work = (shifts || []).filter((s) => {
-    if (s.personId !== personId || isAbsenceLocation(s.locationId)) return false
+    if (s.userId !== userId || isAbsenceLocation(s.locationId)) return false
     if (!dates) return true
     return dates.has(String(s.workDate).slice(0, 10))
   })

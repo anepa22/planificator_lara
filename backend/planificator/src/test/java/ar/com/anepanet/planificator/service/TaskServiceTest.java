@@ -44,13 +44,11 @@ class TaskServiceTest {
 
     private TaskService service;
     private UUID userId;
-    private UUID personId;
 
     @BeforeEach
     void setUp() {
         service = new TaskService(tasks, locations, auth, audit);
         userId = UUID.randomUUID();
-        personId = UUID.randomUUID();
     }
 
     @AfterEach
@@ -75,13 +73,12 @@ class TaskServiceTest {
     }
 
     @Test
-    void assignmentIsRejectedWhenLinkedPersonIsOnVacation() {
+    void assignmentIsRejectedWhenUserIsOnVacation() {
         login(Permissions.TASKS_WRITE);
-        AppUser self = appUser(false);
-        when(auth.findById(userId)).thenReturn(Optional.of(self));
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
         UUID taskId = UUID.randomUUID();
         when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "PENDING", null)));
-        when(tasks.isOnVacation(eq(personId), any())).thenReturn(true);
+        when(tasks.isOnVacation(eq(userId), any())).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
@@ -137,7 +134,7 @@ class TaskServiceTest {
                 ? List.of(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE)
                 : List.of(Permissions.TASKS_WRITE);
         return new AppUser(
-                userId, "test", "hash", "Test", personId, true,
+                userId, "test", "hash", "Test", "#123456", true, true,
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
     }
 

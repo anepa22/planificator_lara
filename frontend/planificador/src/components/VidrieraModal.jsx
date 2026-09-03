@@ -152,7 +152,7 @@ export default function VidrieraModal({
 
         <div className="field">
           <label>Locales</label>
-          <div className="people-pick">
+          <div className="pick-list">
             {!vidrieraLocations.length && (
               <div className="pp-empty">No hay locales habilitados para vidriera.</div>
             )}

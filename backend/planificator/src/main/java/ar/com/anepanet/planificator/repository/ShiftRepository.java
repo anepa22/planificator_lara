@@ -1,6 +1,6 @@
 package ar.com.anepanet.planificator.repository;
 
-import ar.com.anepanet.planificator.domain.HoursByPersonWeek;
+import ar.com.anepanet.planificator.domain.HoursByUserWeek;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -23,30 +23,30 @@ public class ShiftRepository {
 
     public List<ShiftWeekView> findByWeekStart(LocalDate weekStart) {
         return jdbc.sql("""
-                SELECT id, person_id, person_name, person_color,
+                SELECT id, user_id, user_name, user_color,
                        location_id, location_name, location_color, location_color_soft,
                        work_date, week_start, day_index, start_time, end_time, hours, notes
                 FROM v_shifts_week
                 WHERE week_start = :weekStart
-                ORDER BY location_id, start_time, person_name
+                ORDER BY location_id, start_time, user_name
                 """)
                 .param("weekStart", weekStart)
                 .query(this::mapWeekView)
                 .list();
     }
 
-    public List<HoursByPersonWeek> hoursByWeek(LocalDate weekStart) {
+    public List<HoursByUserWeek> hoursByWeek(LocalDate weekStart) {
         return jdbc.sql("""
-                SELECT week_start, person_id, person_name, total_hours, shift_count
-                FROM v_hours_by_person_week
+                SELECT week_start, user_id, user_name, total_hours, shift_count
+                FROM v_hours_by_user_week
                 WHERE week_start = :weekStart
-                ORDER BY person_name
+                ORDER BY user_name
                 """)
                 .param("weekStart", weekStart)
-                .query((rs, n) -> new HoursByPersonWeek(
+                .query((rs, n) -> new HoursByUserWeek(
                         rs.getObject("week_start", LocalDate.class),
-                        rs.getObject("person_id", UUID.class),
-                        rs.getString("person_name"),
+                        rs.getObject("user_id", UUID.class),
+                        rs.getString("user_name"),
                         rs.getBigDecimal("total_hours"),
                         rs.getInt("shift_count")
                 ))
@@ -55,7 +55,7 @@ public class ShiftRepository {
 
     public Optional<Shift> findById(UUID id) {
         return jdbc.sql("""
-                SELECT id, person_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
+                SELECT id, user_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
                 FROM shifts
                 WHERE id = :id
                 """)
@@ -64,14 +64,14 @@ public class ShiftRepository {
                 .optional();
     }
 
-    public Shift insert(UUID personId, String locationId, LocalDate workDate,
+    public Shift insert(UUID userId, String locationId, LocalDate workDate,
                         LocalTime startTime, LocalTime endTime, String notes) {
         return jdbc.sql("""
-                INSERT INTO shifts (person_id, location_id, work_date, start_time, end_time, notes)
-                VALUES (:personId, :locationId, :workDate, :startTime, :endTime, :notes)
-                RETURNING id, person_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
+                INSERT INTO shifts (user_id, location_id, work_date, start_time, end_time, notes)
+                VALUES (:userId, :locationId, :workDate, :startTime, :endTime, :notes)
+                RETURNING id, user_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
                 """)
-                .param("personId", personId)
+                .param("userId", userId)
                 .param("locationId", locationId)
                 .param("workDate", workDate)
                 .param("startTime", startTime)
@@ -92,7 +92,7 @@ public class ShiftRepository {
                     notes = :notes,
                     updated_at = NOW()
                 WHERE id = :id
-                RETURNING id, person_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
+                RETURNING id, user_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at
                 """)
                 .param("id", id)
                 .param("locationId", locationId)
@@ -114,7 +114,7 @@ public class ShiftRepository {
     private Shift mapShift(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new Shift(
                 rs.getObject("id", UUID.class),
-                rs.getObject("person_id", UUID.class),
+                rs.getObject("user_id", UUID.class),
                 rs.getString("location_id"),
                 rs.getObject("work_date", LocalDate.class),
                 rs.getObject("start_time", LocalTime.class),
@@ -128,9 +128,9 @@ public class ShiftRepository {
     private ShiftWeekView mapWeekView(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new ShiftWeekView(
                 rs.getObject("id", UUID.class),
-                rs.getObject("person_id", UUID.class),
-                rs.getString("person_name"),
-                rs.getString("person_color"),
+                rs.getObject("user_id", UUID.class),
+                rs.getString("user_name"),
+                rs.getString("user_color"),
                 rs.getString("location_id"),
                 rs.getString("location_name"),
                 rs.getString("location_color"),

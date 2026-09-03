@@ -3,7 +3,7 @@ import { fmtVacationDay, fmtVacationRangeLabel } from '../lib/vacations'
 export default function VacationRemoveModal({
   open,
   kind = 'vacation',
-  personName,
+  staffName,
   workDate,
   dateFrom,
   dateTo,
@@ -33,7 +33,7 @@ export default function VacationRemoveModal({
       <div className="modal">
         <h3>{title}</h3>
         <div className="m-sub">
-          {personName || 'Persona'}
+          {staffName || 'Persona'}
           {multiDay
             ? ` · tramo ${fmtVacationRangeLabel(dateFrom, dateTo)}`
             : ` · ${fmtVacationDay(workDate || dateFrom)}`}

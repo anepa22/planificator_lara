@@ -158,15 +158,15 @@ public class TaskRepository {
         return changed == 0 ? Optional.empty() : findById(id);
     }
 
-    public boolean isOnVacation(UUID personId, LocalDate date) {
+    public boolean isOnVacation(UUID userId, LocalDate date) {
         Integer count = jdbc.sql("""
                 SELECT COUNT(*)
                 FROM shifts
-                WHERE person_id = :personId
+                WHERE user_id = :userId
                   AND work_date = :workDate
                   AND location_id = 'vacaciones'
                 """)
-                .param("personId", personId)
+                .param("userId", userId)
                 .param("workDate", date)
                 .query(Integer.class)
                 .single();
