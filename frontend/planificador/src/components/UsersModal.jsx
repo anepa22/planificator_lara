@@ -26,6 +26,16 @@ const EMPTY_FORM = {
   roleIds: [],
 }
 
+function usernameFromName(name) {
+  return name
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+    .slice(0, 80)
+}
+
 export default function UsersModal({ open, onClose, onChanged }) {
   const { can } = useAuth()
   const canManageUsers = can('users:manage')
@@ -40,6 +50,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
   const [pendingDelete, setPendingDelete] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
+  const [usernameTouched, setUsernameTouched] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -47,6 +58,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
     setTab('users')
     setEditingId(null)
     setForm(EMPTY_FORM)
+    setUsernameTouched(false)
     reload()
   }, [open])
 
@@ -82,8 +94,13 @@ export default function UsersModal({ open, onClose, onChanged }) {
           roleIds: form.roleIds,
         })
       } else {
+        const username = form.username.trim() || usernameFromName(form.displayName)
+        if (!username) {
+          setError('El nombre de usuario es obligatorio')
+          return
+        }
         await createUser({
-          username: form.username.trim(),
+          username,
           password: form.canLogin ? form.password : null,
           displayName: form.displayName.trim(),
           canLogin: form.canLogin,
@@ -92,6 +109,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
       }
       setEditingId(null)
       setForm(EMPTY_FORM)
+      setUsernameTouched(false)
       await reload()
       onChanged?.()
     } catch (err) {
@@ -125,6 +143,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
 
   function startEdit(user) {
     setEditingId(user.id)
+    setUsernameTouched(true)
     setForm({
       username: user.username,
       password: '',
@@ -204,28 +223,38 @@ export default function UsersModal({ open, onClose, onChanged }) {
         {tab === 'users' && canManageUsers && (
           <>
             <form className="users-form" onSubmit={handleSaveUser}>
-              {!editingId && (
-                <div className="field">
-                  <label>Usuario</label>
-                  <input
-                    value={form.username}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, username: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-              )}
               <div className="field">
                 <label>Nombre</label>
                 <input
                   value={form.displayName}
                   disabled={busy}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, displayName: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const displayName = e.target.value
+                    setForm((f) => ({
+                      ...f,
+                      displayName,
+                      username:
+                        editingId || usernameTouched
+                          ? f.username
+                          : usernameFromName(displayName),
+                    }))
+                  }}
                   required
+                />
+              </div>
+              <div className="field">
+                <label>Nombre de usuario</label>
+                <input
+                  value={form.username}
+                  disabled={busy || !!editingId}
+                  autoComplete="username"
+                  placeholder="ej. brenda.cappa"
+                  onChange={(e) => {
+                    setUsernameTouched(true)
+                    setForm((f) => ({ ...f, username: e.target.value }))
+                  }}
+                  required={!editingId}
+                  minLength={2}
                 />
               </div>
               <label className={`check-card check-card-compact${form.canLogin ? ' is-on' : ''}`}>
@@ -308,6 +337,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
                     onClick={() => {
                       setEditingId(null)
                       setForm(EMPTY_FORM)
+                      setUsernameTouched(false)
                     }}
                   >
                     Cancelar edición

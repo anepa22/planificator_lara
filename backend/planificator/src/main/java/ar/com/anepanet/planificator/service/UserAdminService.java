@@ -47,6 +47,7 @@ public class UserAdminService {
 
     public UserResponse createUser(CreateUserRequest req) {
         validateRoles(req.roleIds());
+        String username = requireUsername(req.username());
         boolean canLogin = req.canLogin() == null || req.canLogin();
         String hash = NO_LOGIN_HASH;
         if (canLogin) {
@@ -55,7 +56,7 @@ public class UserAdminService {
         }
         try {
             AppUser user = auth.insertUser(
-                    req.username(),
+                    username,
                     hash,
                     req.displayName(),
                     req.color(),
@@ -165,6 +166,20 @@ public class UserAdminService {
                 "Permisos del rol " + roleId + ": [" + perms + "]"
         );
         return role;
+    }
+
+    private static String requireUsername(String username) {
+        String value = username == null ? "" : username.trim().toLowerCase();
+        if (value.length() < 2) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "El nombre de usuario es obligatorio");
+        }
+        if (!value.matches("[a-z0-9][a-z0-9._-]*")) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El nombre de usuario solo puede tener letras, números, punto, guion o guion bajo");
+        }
+        return value;
     }
 
     private void requirePassword(String password) {
