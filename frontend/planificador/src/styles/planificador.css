@@ -844,57 +844,69 @@
   }
 
   /* Task board */
-  .task-view-title{margin:0;font-size:20px;font-weight:800;color:var(--ink);}
+  .task-view-title{margin:0;font-size:17px;font-weight:800;color:var(--ink);}
+  /* El tablero ocupa el alto disponible: cada columna scrollea por dentro,
+     así las 5 entran en pantalla sin scroll de página (17" y más chicos). */
   .task-board{
-    display:grid;grid-template-columns:repeat(5,minmax(250px,1fr));gap:12px;
-    overflow-x:auto;padding:2px 2px 16px;align-items:start;
+    display:grid;grid-template-columns:repeat(5,minmax(180px,1fr));gap:10px;
+    height:calc(100dvh - 140px);min-height:320px;
+    overflow-x:auto;overflow-y:hidden;padding:2px 2px 6px;align-items:stretch;
   }
   .task-column{
-    min-height:420px;background:#F4F6F8;border:1px solid var(--border);
-    border-radius:14px;overflow:hidden;transition:border-color .12s,box-shadow .12s;
+    display:flex;flex-direction:column;min-height:0;
+    background:#F4F6F8;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;transition:border-color .12s,box-shadow .12s;
   }
   .task-column.can-drop{
     border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);
   }
   .task-column-head{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:11px 12px;border-bottom:1px solid var(--border);background:#fff;
+    display:flex;align-items:center;justify-content:space-between;flex:none;
+    padding:7px 10px;border-bottom:1px solid var(--border);background:#fff;
   }
-  .task-column-head h2{margin:0;font-size:13px;font-weight:800;}
+  .task-column-head h2{margin:0;font-size:12px;font-weight:800;}
   .task-column-head span{
-    min-width:22px;padding:2px 6px;border-radius:999px;background:var(--border-soft);
-    color:var(--ink-soft);font-size:11px;font-weight:800;text-align:center;
+    min-width:20px;padding:1px 6px;border-radius:999px;background:var(--border-soft);
+    color:var(--ink-soft);font-size:10.5px;font-weight:800;text-align:center;
   }
   .task-column-blocked .task-column-head{background:#FFF5F2;}
   .task-column-verified .task-column-head{background:#EAF6EF;}
-  .task-column-body{display:flex;flex-direction:column;gap:9px;padding:9px;}
-  .task-column-empty{padding:18px 8px;color:var(--ink-soft);font-size:12px;text-align:center;}
-  .task-card{
-    padding:11px;background:#fff;border:1px solid var(--border);
-    border-radius:10px;box-shadow:0 2px 5px rgba(16,22,30,.06);
+  .task-column-body{
+    flex:1;min-height:0;overflow-y:auto;
+    display:flex;flex-direction:column;gap:7px;padding:7px;
   }
-  .task-card.is-own{border-left:4px solid var(--accent);}
+  .task-column-empty{padding:14px 8px;color:var(--ink-soft);font-size:11.5px;text-align:center;}
+  .task-card{
+    flex:none;padding:8px 9px;background:#fff;border:1px solid var(--border);
+    border-radius:9px;box-shadow:0 1px 3px rgba(16,22,30,.06);
+  }
+  .task-card.is-own{border-left:3px solid var(--accent);}
   .task-card.is-movable{cursor:grab;}
   .task-card.is-movable:active{cursor:grabbing;}
-  .task-card h3{margin:0 0 6px;font-size:13px;line-height:1.3;}
+  .task-card h3{
+    margin:0 0 4px;font-size:12.5px;line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
   .task-card-description{
-    margin:0 0 9px;color:var(--ink-soft);font-size:11.5px;line-height:1.35;
-    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+    margin:0 0 6px;color:var(--ink-soft);font-size:11px;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   }
   .task-block-reason{
-    margin:0 0 9px;padding:6px 7px;border-radius:6px;background:#FFF1ED;
-    color:#8B3A1A;font-size:11px;line-height:1.35;
+    margin:0 0 6px;padding:5px 6px;border-radius:6px;background:#FFF1ED;
+    color:#8B3A1A;font-size:10.5px;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   }
-  .task-card-assignee{display:flex;align-items:center;gap:6px;font-size:11.5px;}
+  .task-card-assignee{display:flex;align-items:center;gap:5px;font-size:11px;min-width:0;}
+  .task-card-assignee > span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .task-avatar{
-    width:22px;height:22px;border-radius:50%;display:inline-flex;
-    align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:800;
+    width:19px;height:19px;flex:none;border-radius:50%;display:inline-flex;
+    align-items:center;justify-content:center;color:#fff;font-size:7.5px;font-weight:800;
   }
   .task-unassigned{color:var(--ink-soft);font-style:italic;}
   .task-action,.task-retire{
-    width:100%;margin-top:9px;padding:6px 8px;border:1px solid var(--border);
+    width:100%;margin-top:6px;padding:4px 8px;border:1px solid var(--border);
     border-radius:7px;background:#fff;color:var(--accent);
-    font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;
+    font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;
   }
   .task-action:hover{background:var(--accent-soft);}
   .task-retire{color:var(--ink-soft);}
@@ -918,6 +930,8 @@
   }
   .task-context-menu button:hover:not(:disabled){background:var(--accent-soft);color:var(--accent);}
   .task-context-menu button.is-current{color:var(--accent);}
+  .task-context-menu button.is-danger{color:var(--danger);}
+  .task-context-menu button.is-danger:hover:not(:disabled){background:#F8E8EE;color:var(--danger);}
   .task-context-menu button:disabled{opacity:.45;cursor:default;}
   .task-block-modal{max-width:min(420px,92vw);}
   .task-block-modal textarea{min-height:90px;resize:vertical;}
@@ -1029,6 +1043,12 @@
     .gantt-scroll{
       max-height:calc(100dvh - 160px);
     }
+    .task-board{
+      height:auto;min-height:0;overflow-y:visible;
+      grid-template-columns:repeat(5,minmax(200px,1fr));padding-bottom:16px;
+    }
+    .task-column{min-height:300px;}
+    .task-column-body{overflow-y:visible;}
     .task-admin-form{grid-template-columns:1fr;}
     .task-admin-form .panel-form-actions{flex-direction:row;}
     .task-admin-item{grid-template-columns:8px minmax(0,1fr) auto;padding:6px;}

@@ -136,11 +136,6 @@ export default function TaskBoard({
     !!currentPersonId &&
     menuTask.status === 'PENDING' &&
     !menuTask.assigneePersonId
-    !!menuTask &&
-    canWrite &&
-    !!currentPersonId &&
-    menuTask.status === 'PENDING' &&
-    !menuTask.assigneePersonId
 
   return (
     <>
@@ -186,7 +181,13 @@ export default function TaskBoard({
                         movable ? ' is-movable' : ''
                       }${contextual ? ' has-menu' : ''}`}
                       draggable={movable && !busy}
-                      title={contextual ? 'Clic derecho para asignar' : undefined}
+                      title={
+                        contextual
+                          ? canManage
+                            ? 'Clic derecho para asignar o sacar del tablero'
+                            : 'Clic derecho para asignar'
+                          : undefined
+                      }
                       onContextMenu={(event) => openMenu(event, task)}
                       onDragStart={(event) => {
                         setDraggingId(task.id)
@@ -239,19 +240,6 @@ export default function TaskBoard({
                             Asignarme
                           </button>
                         )}
-
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="task-retire"
-                          disabled={busy}
-                          onClick={() =>
-                            void perform(() => onRetire?.(task.id))
-                          }
-                        >
-                          Sacar del tablero
-                        </button>
-                      )}
                     </article>
                   )
                 })}
@@ -317,6 +305,22 @@ export default function TaskBoard({
                   ))}
                 </>
               )}
+            </div>
+          )}
+          {canManage && (
+            <div className="task-context-group">
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                disabled={busy}
+                onClick={() => {
+                  setMenu(null)
+                  void perform(() => onRetire?.(menuTask.id))
+                }}
+              >
+                Sacar del tablero
+              </button>
             </div>
           )}
         </div>
