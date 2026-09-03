@@ -132,6 +132,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
               <label htmlFor="task-description">Descripción</label>
               <textarea
                 id="task-description"
+                rows={5}
                 value={form.description}
                 maxLength={4000}
                 disabled={busy}
@@ -189,12 +190,14 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                     >
                       <div className="task-admin-rail" aria-hidden />
                       <div className="task-admin-body">
-                        <span
-                          className="task-admin-title"
-                          title={task.description || task.title}
-                        >
+                        <span className="task-admin-title" title={task.title}>
                           {task.title}
                         </span>
+                        {task.description && (
+                          <span className="task-admin-desc" title={task.description}>
+                            {task.description}
+                          </span>
+                        )}
                         {task.assigneeName && (
                           <span className="task-admin-who">{task.assigneeName}</span>
                         )}

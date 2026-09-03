@@ -914,10 +914,13 @@
     gap:6px 10px;margin:8px 0 6px;padding:9px 10px;
   }
   .task-admin-form .field{margin-bottom:0;}
+  .task-admin-form .field:first-of-type{align-self:start;}
   .task-admin-form .field label{font-size:10px;margin-bottom:3px;}
   .task-admin-form .field input,
   .task-admin-form .field textarea{padding:6px 8px;font-size:12.5px;}
-  .task-admin-form textarea{min-height:31px;height:31px;resize:vertical;}
+  .task-admin-form textarea{
+    min-height:5.6em;height:5.6em;line-height:1.35;resize:vertical;
+  }
   .task-admin-form .panel-form-actions{grid-column:auto;align-self:end;gap:6px;}
   .task-admin-form .panel-form-actions .btn{
     min-width:104px;min-height:31px;padding:5px 10px;font-size:12px;
@@ -944,7 +947,13 @@
     min-width:0;display:flex;align-items:baseline;gap:8px;
   }
   .task-admin-title{
+    flex:none;max-width:38%;
     font-size:12.5px;font-weight:600;line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .task-admin-desc{
+    flex:1;min-width:0;
+    font-size:11px;font-weight:400;line-height:1.3;color:var(--ink-soft);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .task-admin-who{
