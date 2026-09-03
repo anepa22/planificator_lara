@@ -46,7 +46,9 @@ export default function TaskBoard({
 
   function canMoveTask(task) {
     if (!task.assigneeUserId) return false
-    return canManage || (canWrite && task.assigneeUserId === currentUserId)
+    if (canManage) return true
+    if (!canWrite || task.assigneeUserId !== currentUserId) return false
+    return task.status !== 'PENDING'
   }
 
   function canDrop(task, status) {

@@ -105,6 +105,61 @@ class TaskServiceTest {
     }
 
     @Test
+    void personalCannotMoveAssignedTaskFromPending() {
+        login(Permissions.TASKS_WRITE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        UUID taskId = UUID.randomUUID();
+        when(tasks.findById(taskId))
+                .thenReturn(Optional.of(task(taskId, "PENDING", userId)));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null)));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(tasks, never()).move(any(), any(), any());
+    }
+
+    @Test
+    void personalSelfAssignStartsInProgress() {
+        login(Permissions.TASKS_WRITE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        UUID taskId = UUID.randomUUID();
+        Task before = task(taskId, "PENDING", null);
+        Task assigned = task(taskId, "PENDING", userId);
+        Task started = task(taskId, "IN_PROGRESS", userId);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(before));
+        when(tasks.isOnVacation(eq(userId), any())).thenReturn(false);
+        when(tasks.assign(taskId, userId)).thenReturn(Optional.of(assigned));
+        when(tasks.move(taskId, "IN_PROGRESS", null)).thenReturn(Optional.of(started));
+
+        Task result = service.assign(taskId, new AssignTaskRequest(userId));
+
+        assertEquals("IN_PROGRESS", result.status());
+        assertEquals(userId, result.assigneeUserId());
+        verify(tasks).move(taskId, "IN_PROGRESS", null);
+    }
+
+    @Test
+    void movingBackToPendingKeepsAssignee() {
+        login(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(true)));
+        UUID taskId = UUID.randomUUID();
+        UUID assignee = UUID.randomUUID();
+        Task before = task(taskId, "IN_PROGRESS", assignee);
+        Task after = task(taskId, "PENDING", assignee);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(before));
+        when(tasks.move(taskId, "PENDING", null)).thenReturn(Optional.of(after));
+
+        Task result = service.move(taskId, new MoveTaskRequest("PENDING", null));
+
+        assertEquals("PENDING", result.status());
+        assertEquals(assignee, result.assigneeUserId());
+        verify(tasks).move(taskId, "PENDING", null);
+        verify(tasks, never()).unassignToPending(any());
+    }
+
+    @Test
     void managerCanVerifyAnyAssignedTask() {
         login(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE);
         when(auth.findById(userId)).thenReturn(Optional.of(appUser(true)));

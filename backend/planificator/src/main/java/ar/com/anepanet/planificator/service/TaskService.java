@@ -163,6 +163,11 @@ public class TaskService {
 
         Task updated = tasks.assign(id, target.id()).orElseThrow(() -> notFound());
         recordChange(before, updated, "ASSIGN", null);
+        if (!manager) {
+            Task started = tasks.move(id, "IN_PROGRESS", null).orElseThrow(() -> notFound());
+            recordChange(updated, started, "MOVE", null);
+            return started;
+        }
         return updated;
     }
 
@@ -194,6 +199,11 @@ public class TaskService {
         }
 
         if (!isManager()) {
+            if ("PENDING".equals(before.status())) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Solo el supervisor puede cambiar las tareas en Pendientes");
+            }
             if (!user.id().equals(before.assigneeUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede mover sus propias tareas");
@@ -211,13 +221,10 @@ public class TaskService {
                     HttpStatus.BAD_REQUEST, "El motivo de bloqueo es obligatorio");
         }
 
-        Task updated;
         if ("PENDING".equals(destination)) {
             requireManager();
-            updated = tasks.unassignToPending(id).orElseThrow(() -> notFound());
-        } else {
-            updated = tasks.move(id, destination, blockReason).orElseThrow(() -> notFound());
         }
+        Task updated = tasks.move(id, destination, blockReason).orElseThrow(() -> notFound());
         recordChange(before, updated, "MOVE", blockReason);
         return updated;
     }
