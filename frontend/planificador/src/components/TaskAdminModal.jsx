@@ -8,6 +8,7 @@ import {
   updateTask,
 } from '../api/client'
 import ConfirmModal from './ConfirmModal'
+import { workLocations } from '../lib/locations'
 
 const STATUS_LABELS = {
   PENDING: 'Pendientes',
@@ -17,11 +18,11 @@ const STATUS_LABELS = {
   VERIFIED: 'Verificada',
 }
 
-export default function TaskAdminModal({ open, onClose, onChanged }) {
+export default function TaskAdminModal({ open, onClose, onChanged, locations = [] }) {
   const [tasks, setTasks] = useState([])
   const [editing, setEditing] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '' })
+  const [form, setForm] = useState({ title: '', description: '', locationId: '' })
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
@@ -47,7 +48,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
 
   function resetForm() {
     setEditing(null)
-    setForm({ title: '', description: '' })
+    setForm({ title: '', description: '', locationId: '' })
   }
 
   async function run(action) {
@@ -71,6 +72,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
     const payload = {
       title: form.title.trim(),
       description: form.description.trim() || null,
+      locationId: form.locationId || null,
     }
     if (!payload.title) return
     const ok = await run(() =>
@@ -80,6 +82,8 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
   }
 
   if (!open) return null
+
+  const locOptions = workLocations(locations)
 
   return (
     <>
@@ -112,21 +116,44 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
           {error && <div className="m-warn">{error}</div>}
 
           <form className="panel-form task-admin-form" onSubmit={save}>
-            <div className="field">
-              <label htmlFor="task-title">
-                {editing ? 'Título (editando)' : 'Título'}
-              </label>
-              <input
-                id="task-title"
-                type="text"
-                value={form.title}
-                maxLength={160}
-                disabled={busy}
-                required
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, title: event.target.value }))
-                }
-              />
+            <div className="task-admin-fields">
+              <div className="field">
+                <label htmlFor="task-title">
+                  {editing ? 'Título (editando)' : 'Título'}
+                </label>
+                <input
+                  id="task-title"
+                  type="text"
+                  value={form.title}
+                  maxLength={160}
+                  disabled={busy}
+                  required
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, title: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="task-location">Local</label>
+                <select
+                  id="task-location"
+                  value={form.locationId}
+                  disabled={busy}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      locationId: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">Sin local</option>
+                  {locOptions.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="field">
               <label htmlFor="task-description">Descripción</label>
@@ -198,6 +225,11 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                             {task.description}
                           </span>
                         )}
+                        {task.locationName && (
+                          <span className="task-admin-loc" title={task.locationName}>
+                            {task.locationName}
+                          </span>
+                        )}
                         {task.assigneeName && (
                           <span className="task-admin-who">{task.assigneeName}</span>
                         )}
@@ -216,6 +248,7 @@ export default function TaskAdminModal({ open, onClose, onChanged }) {
                             setForm({
                               title: task.title,
                               description: task.description || '',
+                              locationId: task.locationId || '',
                             })
                           }}
                         >

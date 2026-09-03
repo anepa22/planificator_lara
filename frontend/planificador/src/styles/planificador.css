@@ -903,6 +903,11 @@
     align-items:center;justify-content:center;color:#fff;font-size:7.5px;font-weight:800;
   }
   .task-unassigned{color:var(--ink-soft);font-style:italic;}
+  .task-card-location{
+    margin-left:auto;max-width:42%;padding-left:6px;
+    font-size:10px;font-weight:700;color:var(--loc,#5B6675);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
   .task-action,.task-retire{
     width:100%;margin-top:6px;padding:4px 8px;border:1px solid var(--border);
     border-radius:7px;background:#fff;color:var(--accent);
@@ -945,8 +950,10 @@
   }
   .task-admin-form .field{margin-bottom:0;}
   .task-admin-form .field:first-of-type{align-self:start;}
+  .task-admin-fields{display:flex;flex-direction:column;gap:6px;min-width:0;align-self:start;}
   .task-admin-form .field label{font-size:10px;margin-bottom:3px;}
   .task-admin-form .field input,
+  .task-admin-form .field select,
   .task-admin-form .field textarea{padding:6px 8px;font-size:12.5px;}
   .task-admin-form textarea{
     min-height:5.6em;height:5.6em;line-height:1.35;resize:vertical;
@@ -989,6 +996,10 @@
   .task-admin-who{
     flex:none;font-size:11px;color:var(--ink-soft);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;
+  }
+  .task-admin-loc{
+    flex:none;max-width:110px;font-size:11px;font-weight:600;color:var(--accent);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .task-admin-state{
     flex:none;font-size:10px;font-weight:700;letter-spacing:.02em;

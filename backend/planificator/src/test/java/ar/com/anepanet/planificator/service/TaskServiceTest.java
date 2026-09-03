@@ -4,6 +4,7 @@ import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Person;
 import ar.com.anepanet.planificator.domain.Task;
 import ar.com.anepanet.planificator.repository.AuthRepository;
+import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
 import ar.com.anepanet.planificator.security.AuthUser;
@@ -40,6 +41,7 @@ class TaskServiceTest {
 
     @Mock TaskRepository tasks;
     @Mock PersonRepository people;
+    @Mock LocationRepository locations;
     @Mock AuthRepository auth;
     @Mock AuditService audit;
 
@@ -49,7 +51,7 @@ class TaskServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TaskService(tasks, people, auth, audit);
+        service = new TaskService(tasks, people, locations, auth, audit);
         userId = UUID.randomUUID();
         personId = UUID.randomUUID();
     }
@@ -150,7 +152,8 @@ class TaskServiceTest {
 
     private Task task(UUID id, String status, UUID assignee) {
         return new Task(
-                id, "Tarea", "Descripción", status, null, assignee,
+                id, "Tarea", "Descripción", status, null,
+                null, null, null, assignee,
                 assignee == null ? null : "Persona", "#123456", true,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }

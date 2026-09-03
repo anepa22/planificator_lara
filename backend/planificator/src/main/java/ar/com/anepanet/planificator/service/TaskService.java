@@ -1,9 +1,11 @@
 package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.AppUser;
+import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Person;
 import ar.com.anepanet.planificator.domain.Task;
 import ar.com.anepanet.planificator.repository.AuthRepository;
+import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.PersonRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
 import ar.com.anepanet.planificator.security.Permissions;
@@ -35,16 +37,19 @@ public class TaskService {
 
     private final TaskRepository tasks;
     private final PersonRepository people;
+    private final LocationRepository locations;
     private final AuthRepository auth;
     private final AuditService audit;
 
     public TaskService(
             TaskRepository tasks,
             PersonRepository people,
+            LocationRepository locations,
             AuthRepository auth,
             AuditService audit) {
         this.tasks = tasks;
         this.people = people;
+        this.locations = locations;
         this.auth = auth;
         this.audit = audit;
     }
@@ -61,7 +66,9 @@ public class TaskService {
     @Transactional
     public Task create(CreateTaskRequest req) {
         requireManager();
-        Task created = tasks.insert(cleanTitle(req.title()), cleanDescription(req.description()));
+        String locationId = resolveLocationId(req.locationId());
+        Task created = tasks.insert(
+                cleanTitle(req.title()), cleanDescription(req.description()), locationId);
         tasks.addHistory(null, created, currentUser().id(), "CREATE", null);
         audit.record(AuditService.ACTION_CREATE, AuditService.TYPE_TASK,
                 created.id().toString(), created.title());
@@ -73,7 +80,10 @@ public class TaskService {
         requireManager();
         Task before = find(id);
         Task updated = tasks.updateDetails(
-                        id, cleanTitle(req.title()), cleanDescription(req.description()))
+                        id,
+                        cleanTitle(req.title()),
+                        cleanDescription(req.description()),
+                        resolveLocationId(req.locationId()))
                 .orElseThrow(() -> notFound());
         tasks.addHistory(before, updated, currentUser().id(), "UPDATE", null);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
@@ -248,6 +258,22 @@ public class TaskService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estado de tarea inválido");
         }
         return normalized;
+    }
+
+    private String resolveLocationId(String locationId) {
+        if (locationId == null || locationId.isBlank()) {
+            return null;
+        }
+        String id = locationId.trim();
+        Location location = locations.findById(id)
+                .filter(Location::active)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Local inválido o inactivo"));
+        if (Permissions.isAbsenceLocation(location.id())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "La tarea no puede asociarse a vacaciones o franco");
+        }
+        return location.id();
     }
 
     private static String cleanTitle(String title) {

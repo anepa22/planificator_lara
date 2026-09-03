@@ -38,6 +38,18 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS block_reason TEXT;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS location_id TEXT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tasks_location_fk'
+  ) THEN
+    ALTER TABLE tasks
+      ADD CONSTRAINT tasks_location_fk
+      FOREIGN KEY (location_id) REFERENCES locations(id);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS ix_tasks_board_status
   ON tasks(on_board, status, updated_at DESC);

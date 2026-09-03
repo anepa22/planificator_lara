@@ -964,6 +964,7 @@ function App() {
 
       <TaskAdminModal
         open={taskAdminOpen}
+        locations={locations}
         onClose={() => setTaskAdminOpen(false)}
         onChanged={reloadTaskBoard}
       />

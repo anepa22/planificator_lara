@@ -14,11 +14,13 @@ public class TaskRepository {
 
     private static final String SELECT = """
             SELECT t.id, t.title, t.description, t.status, t.block_reason,
+                   t.location_id, l.name AS location_name, l.color AS location_color,
                    t.assignee_person_id, p.name AS assignee_name,
                    p.color AS assignee_color, t.on_board,
                    t.created_at, t.updated_at
             FROM tasks t
             LEFT JOIN people p ON p.id = t.assignee_person_id
+            LEFT JOIN locations l ON l.id = t.location_id
             """;
 
     private final JdbcClient jdbc;
@@ -56,28 +58,31 @@ public class TaskRepository {
                 .optional();
     }
 
-    public Task insert(String title, String description) {
+    public Task insert(String title, String description, String locationId) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
-                INSERT INTO tasks (id, title, description)
-                VALUES (:id, :title, :description)
+                INSERT INTO tasks (id, title, description, location_id)
+                VALUES (:id, :title, :description, :locationId)
                 """)
                 .param("id", id)
                 .param("title", title)
                 .param("description", description)
+                .param("locationId", locationId)
                 .update();
         return findById(id).orElseThrow();
     }
 
-    public Optional<Task> updateDetails(UUID id, String title, String description) {
+    public Optional<Task> updateDetails(UUID id, String title, String description, String locationId) {
         int changed = jdbc.sql("""
                 UPDATE tasks
-                SET title = :title, description = :description, updated_at = NOW()
+                SET title = :title, description = :description,
+                    location_id = :locationId, updated_at = NOW()
                 WHERE id = :id
                 """)
                 .param("id", id)
                 .param("title", title)
                 .param("description", description)
+                .param("locationId", locationId)
                 .update();
         return changed == 0 ? Optional.empty() : findById(id);
     }
@@ -196,6 +201,9 @@ public class TaskRepository {
                 rs.getString("description"),
                 rs.getString("status"),
                 rs.getString("block_reason"),
+                rs.getString("location_id"),
+                rs.getString("location_name"),
+                rs.getString("location_color"),
                 rs.getObject("assignee_person_id", UUID.class),
                 rs.getString("assignee_name"),
                 rs.getString("assignee_color"),

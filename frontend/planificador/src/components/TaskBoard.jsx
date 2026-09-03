@@ -220,6 +220,17 @@ export default function TaskBoard({
                         ) : (
                           <span className="task-unassigned">Sin asignar</span>
                         )}
+                        {task.locationName && (
+                          <span
+                            className="task-card-location"
+                            title={task.locationName}
+                            style={{
+                              '--loc': task.locationColor || '#5B6675',
+                            }}
+                          >
+                            {task.locationName}
+                          </span>
+                        )}
                       </div>
 
                       {column.id === 'PENDING' &&
