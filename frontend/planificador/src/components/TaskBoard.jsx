@@ -41,6 +41,21 @@ export default function TaskBoard({
   const [query, setQuery] = useState('')
   const skipClickRef = useRef(false)
   const menuRef = useRef(null)
+  const filtersRef = useRef(null)
+  const wrapRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const filters = filtersRef.current
+    const wrap = wrapRef.current
+    if (!filters || !wrap) return
+    function sync() {
+      wrap.style.setProperty('--task-filters-h', `${filters.offsetHeight}px`)
+    }
+    sync()
+    const observer = new ResizeObserver(sync)
+    observer.observe(filters)
+    return () => observer.disconnect()
+  }, [])
 
   const people = useMemo(() => {
     const map = new Map()
@@ -204,8 +219,8 @@ export default function TaskBoard({
     assigneeFilter !== 'all' || locationFilter.length > 0 || query.trim().length > 0
 
   return (
-    <div className="task-board-wrap">
-      <div className="task-board-filters">
+    <div className="task-board-wrap" ref={wrapRef}>
+      <div className="task-board-filters" ref={filtersRef}>
         <div className="task-board-filter-row">
           <span className="task-board-filter-label">Asignado</span>
           <div className="legend" role="group" aria-label="Filtrar por asignado">
