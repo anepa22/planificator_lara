@@ -66,6 +66,7 @@ public class AuthCleanup implements ApplicationRunner {
 
             ensurePermission("tasks_write", Permissions.TASKS_WRITE, "Tomar y mover tareas propias");
             ensurePermission("tasks_manage", Permissions.TASKS_MANAGE, "Administrar todas las tareas");
+            ensurePermission("tasks_history", Permissions.TASKS_HISTORY, "Ver historial de movimientos de tareas");
             jdbc.sql("""
                     INSERT INTO roles (id, code, name) VALUES
                         ('personal', 'personal', 'Personal')
@@ -77,8 +78,10 @@ public class AuthCleanup implements ApplicationRunner {
                         ('personal', 'tasks_write'),
                         ('editor', 'tasks_write'),
                         ('editor', 'tasks_manage'),
+                        ('editor', 'tasks_history'),
                         ('admin', 'tasks_write'),
-                        ('admin', 'tasks_manage')
+                        ('admin', 'tasks_manage'),
+                        ('admin', 'tasks_history')
                     ON CONFLICT DO NOTHING
                     """).update();
 

@@ -13,6 +13,7 @@ import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
 import ar.com.anepanet.planificator.web.dto.TaskAssignee;
+import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
 import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -57,9 +58,22 @@ public class TaskService {
         return tasks.findBoard();
     }
 
-    public List<TaskHistory> history(UUID id) {
+    public TaskHistoryResponse history(UUID id) {
         find(id);
-        return tasks.findHistory(id);
+        List<TaskHistory> all = tasks.findHistory(id);
+        List<TaskHistory> moves = all.stream().filter(TaskService::isMovement).toList();
+        TaskHistory lastMove = moves.isEmpty() ? null : moves.get(moves.size() - 1);
+        List<TaskHistory> visible = SecurityUtils.hasAuthority(Permissions.TASKS_HISTORY)
+                ? moves
+                : (lastMove == null ? List.of() : List.of(lastMove));
+        return new TaskHistoryResponse(
+                lastMatching(all, TaskService::wentPending),
+                lastMatching(all, TaskService::isAssign),
+                lastMatching(all, h -> enteredStatus(h, "BLOCKED")),
+                lastMatching(all, h -> enteredStatus(h, "DONE")),
+                lastMatching(all, h -> enteredStatus(h, "VERIFIED")),
+                visible
+        );
     }
 
     public List<Task> listAll() {
@@ -241,6 +255,47 @@ public class TaskService {
         tasks.addHistory(before, after, currentUser().id(), action, blockReason);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
                 after.id().toString(), after.title() + " · " + action);
+    }
+
+    private static TaskHistory lastMatching(
+            List<TaskHistory> all,
+            java.util.function.Predicate<TaskHistory> match) {
+        for (int i = all.size() - 1; i >= 0; i--) {
+            TaskHistory entry = all.get(i);
+            if (match.test(entry)) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isMovement(TaskHistory entry) {
+        String action = entry.action();
+        return "MOVE".equals(action)
+                || "PUBLISH".equals(action)
+                || "UNASSIGN".equals(action)
+                || "RETIRE".equals(action);
+    }
+
+    private static boolean wentPending(TaskHistory entry) {
+        return enteredStatus(entry, "PENDING") || "PUBLISH".equals(entry.action())
+                || "UNASSIGN".equals(entry.action());
+    }
+
+    private static boolean isAssign(TaskHistory entry) {
+        return "ASSIGN".equals(entry.action()) && entry.toAssigneeUserId() != null;
+    }
+
+    private static boolean enteredStatus(TaskHistory entry, String status) {
+        if (!status.equals(entry.toStatus())) {
+            return false;
+        }
+        if (status.equals(entry.fromStatus()) && !"PUBLISH".equals(entry.action())) {
+            return false;
+        }
+        return "MOVE".equals(entry.action())
+                || "PUBLISH".equals(entry.action())
+                || "UNASSIGN".equals(entry.action());
     }
 
     private Task find(UUID id) {

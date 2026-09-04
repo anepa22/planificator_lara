@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getTaskHistory } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
 
 const STATUS_LABELS = {
   PENDING: 'Pendientes',
@@ -10,7 +11,7 @@ const STATUS_LABELS = {
 }
 
 function fmtParts(iso) {
-  if (!iso) return { day: '—', time: '' }
+  if (!iso) return { day: '', time: '' }
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return { day: iso, time: '' }
   return {
@@ -34,30 +35,8 @@ function statusLabel(status) {
   return STATUS_LABELS[status] || status || '—'
 }
 
-function leftVerified(entry) {
-  if (entry.fromStatus !== 'VERIFIED') return false
-  if (entry.action === 'RETIRE') return true
-  return entry.action === 'MOVE' && entry.toStatus !== 'VERIFIED'
-}
-
-function wentPending(entry) {
-  if (entry.action === 'PUBLISH') return true
-  if (entry.action === 'UNASSIGN') return true
-  return (
-    (entry.action === 'MOVE' || entry.action === 'PUBLISH') &&
-    entry.toStatus === 'PENDING' &&
-    entry.fromStatus !== 'PENDING'
-  )
-}
-
-function isAssign(entry) {
-  return entry.action === 'ASSIGN' && entry.toAssigneeUserId
-}
-
 function eventText(entry) {
   const actor = who(entry)
-  if (entry.action === 'CREATE') return `${actor} creó la tarea`
-  if (entry.action === 'UPDATE') return `${actor} modificó la ficha`
   if (entry.action === 'PUBLISH') return `${actor} la pasó a Pendientes`
   if (entry.action === 'ASSIGN') {
     const assigned = entry.toAssigneeName || 'alguien'
@@ -72,24 +51,18 @@ function eventText(entry) {
   if (entry.action === 'MOVE') {
     const from = statusLabel(entry.fromStatus)
     const to = statusLabel(entry.toStatus)
-    if (entry.fromStatus === 'VERIFIED' && entry.toStatus !== 'VERIFIED') {
-      return `${actor} la sacó de Verificada hacia ${to}`
-    }
     if (entry.toStatus === 'BLOCKED' && entry.blockReason) {
       return `${actor} la movió de ${from} a ${to}: ${entry.blockReason}`
     }
     return `${actor} la movió de ${from} a ${to}`
   }
   if (entry.action === 'RETIRE') {
-    if (entry.fromStatus === 'VERIFIED') {
-      return `${actor} la sacó de Verificada (fuera del tablero)`
-    }
     return `${actor} la sacó del tablero`
   }
   return `${actor} · ${entry.action}`
 }
 
-function Fact({ label, entry, fallback, children }) {
+function Fact({ label, entry }) {
   const parts = entry ? fmtParts(entry.occurredAt) : null
   return (
     <div className="task-history-fact">
@@ -99,17 +72,19 @@ function Fact({ label, entry, fallback, children }) {
           <div className="task-history-fact-when">
             {parts.day} · {parts.time}
           </div>
-          <div className="task-history-fact-text">{children}</div>
+          <div className="task-history-fact-text">{eventText(entry)}</div>
         </>
       ) : (
-        <div className="task-history-fact-empty">{fallback}</div>
+        <div className="task-history-fact-empty">&nbsp;</div>
       )}
     </div>
   )
 }
 
 export default function TaskHistoryModal({ task, onClose }) {
-  const [entries, setEntries] = useState([])
+  const { can } = useAuth()
+  const canSeeAllMoves = can('tasks:history')
+  const [data, setData] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -120,7 +95,7 @@ export default function TaskHistoryModal({ task, onClose }) {
     setError('')
     getTaskHistory(task.id)
       .then((rows) => {
-        if (!cancelled) setEntries(rows || [])
+        if (!cancelled) setData(rows)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message)
@@ -133,27 +108,9 @@ export default function TaskHistoryModal({ task, onClose }) {
     }
   }, [task])
 
-  const pending = useMemo(
-    () => [...entries].reverse().find(wentPending) || null,
-    [entries],
-  )
-  const assigned = useMemo(
-    () => [...entries].reverse().find(isAssign) || null,
-    [entries],
-  )
-  const verifiedOut = useMemo(
-    () => [...entries].reverse().find(leftVerified) || null,
-    [entries],
-  )
-  const moves = useMemo(
-    () =>
-      entries.filter(
-        (entry) => entry.action !== 'CREATE' && entry.action !== 'UPDATE',
-      ),
-    [entries],
-  )
-
   if (!task) return null
+
+  const movements = data?.movements || []
 
   return (
     <div
@@ -187,45 +144,32 @@ export default function TaskHistoryModal({ task, onClose }) {
         {error && <div className="m-warn">{error}</div>}
 
         <div className="task-history-facts">
-          <Fact
-            label="Pasó a Pendientes"
-            entry={pending}
-            fallback="Todavía no está en el historial"
-          >
-            {pending ? eventText(pending) : null}
-          </Fact>
-          <Fact
-            label="Asignación"
-            entry={assigned}
-            fallback="Todavía no se asignó"
-          >
-            {assigned ? eventText(assigned) : null}
-          </Fact>
-          <Fact
-            label="Salió de Verificada"
-            entry={verifiedOut}
-            fallback="Todavía no salió de Verificada"
-          >
-            {verifiedOut ? eventText(verifiedOut) : null}
-          </Fact>
+          <Fact label="Pendientes" entry={data?.pending} />
+          <Fact label="Asignación" entry={data?.assigned} />
+          <Fact label="Bloqueada" entry={data?.blocked} />
+          <Fact label="Terminada" entry={data?.done} />
+          <Fact label="Verificada" entry={data?.verified} />
         </div>
 
         <div className="panel-toolbar">
           <div className="panel-count">
-            {busy ? 'Cargando…' : `${moves.length} movimiento${moves.length === 1 ? '' : 's'}`}
+            {busy
+              ? 'Cargando…'
+              : canSeeAllMoves
+                ? `${movements.length} movimiento${movements.length === 1 ? '' : 's'}`
+                : 'Último movimiento'}
           </div>
         </div>
 
         <div className="panel-list">
-          {!busy && !moves.length && (
+          {!busy && !movements.length && (
             <div className="panel-empty">
               <div className="panel-empty-title">Sin movimientos</div>
-              Todavía no hay cambios de columna para esta tarea.
             </div>
           )}
-          {!!moves.length && (
+          {!!movements.length && (
             <ul>
-              {moves.map((entry) => {
+              {movements.map((entry) => {
                 const parts = fmtParts(entry.occurredAt)
                 return (
                   <li className="audit-item action-update" key={entry.id}>

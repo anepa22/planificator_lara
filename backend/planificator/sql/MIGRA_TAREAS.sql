@@ -70,11 +70,12 @@ CREATE TABLE IF NOT EXISTS task_history (
 CREATE INDEX IF NOT EXISTS ix_task_history_task
   ON task_history(task_id, occurred_at DESC);
 
-INSERT INTO permissions (id, code, name) VALUES
-  ('tasks_write', 'tasks:write', 'Tomar y mover tareas propias'),
-  ('tasks_manage', 'tasks:manage', 'Administrar todas las tareas')
-ON CONFLICT (id) DO UPDATE
-SET code = EXCLUDED.code, name = EXCLUDED.name;
+  INSERT INTO permissions (id, code, name) VALUES
+    ('tasks_write', 'tasks:write', 'Tomar y mover tareas propias'),
+    ('tasks_manage', 'tasks:manage', 'Administrar todas las tareas'),
+    ('tasks_history', 'tasks:history', 'Ver historial de movimientos de tareas')
+  ON CONFLICT (id) DO UPDATE
+  SET code = EXCLUDED.code, name = EXCLUDED.name;
 
 INSERT INTO roles (id, code, name) VALUES
   ('personal', 'personal', 'Personal')
@@ -87,8 +88,10 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
   ('personal', 'tasks_write'),
   ('editor', 'tasks_write'),
   ('editor', 'tasks_manage'),
+  ('editor', 'tasks_history'),
   ('admin', 'tasks_write'),
-  ('admin', 'tasks_manage')
+  ('admin', 'tasks_manage'),
+  ('admin', 'tasks_history')
 ON CONFLICT DO NOTHING;
 
 -- Asignación a usuarios con rol Personal (ya no al equipo).
