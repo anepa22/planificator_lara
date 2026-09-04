@@ -653,7 +653,19 @@
     box-shadow:0 1px 2px rgba(22,32,43,0.03);
   }
   .app-menu-view-toggle.cols-2{grid-template-columns:1fr 1fr;}
-  .app-menu-view-period{margin-top:8px;}
+  /* Sub-selector liviano: no compite con el toggle principal de vista. */
+  .app-menu-tabs{display:flex;gap:6px;padding-left:2px;}
+  .app-menu-tab{
+    padding:7px 14px;border:1px solid var(--border);border-radius:999px;
+    background:#fff;color:var(--ink-soft);
+    font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:background .12s ease,color .12s ease,border-color .12s ease;
+  }
+  .app-menu-tab:hover:not(.active){background:var(--accent-soft);color:var(--accent);}
+  .app-menu-tab.active{
+    background:var(--accent-soft);border-color:var(--accent);color:var(--accent);
+  }
   .app-menu-view-btn{
     min-height:48px;border:none;border-radius:0;
     background:transparent;color:var(--ink-soft);
