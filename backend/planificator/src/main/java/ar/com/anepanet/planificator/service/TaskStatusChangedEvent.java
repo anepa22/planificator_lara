@@ -1,7 +1,9 @@
 package ar.com.anepanet.planificator.service;
 
+import java.util.List;
+
 public record TaskStatusChangedEvent(
-        String chatId,
+        List<String> chatIds,
         String title,
         String fromStatus,
         String toStatus,

@@ -34,11 +34,14 @@ public class TaskTelegramNotificationService {
         if (!telegram.isConfigured()) {
             return;
         }
-        try {
-            telegram.sendMessage(event.chatId(), format(event));
-        } catch (Exception ex) {
-            log.warn("No se pudo notificar por Telegram el cambio de estado de '{}': {}",
-                    event.title(), ex.getMessage());
+        String message = format(event);
+        for (String chatId : event.chatIds()) {
+            try {
+                telegram.sendMessage(chatId, message);
+            } catch (Exception ex) {
+                log.warn("No se pudo notificar por Telegram el cambio de estado de '{}': {}",
+                        event.title(), ex.getMessage());
+            }
         }
     }
 

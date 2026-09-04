@@ -271,28 +271,22 @@ public class TaskService {
         if (Objects.equals(before.status(), after.status())) {
             return;
         }
-        UUID recipientId = after.assigneeUserId() != null
-                ? after.assigneeUserId()
-                : before.assigneeUserId();
-        if (recipientId == null) {
+        List<String> chatIds = auth.findTelegramChatIdsWithPermission(Permissions.TASKS_NOTIFY);
+        if (chatIds.isEmpty()) {
             return;
         }
-        auth.findById(recipientId)
-                .filter(AppUser::active)
-                .filter(user -> user.telegramChatId() != null
-                        && !user.telegramChatId().isBlank())
-                .ifPresent(recipient -> events.publishEvent(new TaskStatusChangedEvent(
-                        recipient.telegramChatId(),
-                        after.title(),
-                        before.status(),
-                        after.status(),
-                        after.assigneeName() != null
-                                ? after.assigneeName()
-                                : before.assigneeName(),
-                        after.locationName(),
-                        blockReason,
-                        displayName(actor)
-                )));
+        events.publishEvent(new TaskStatusChangedEvent(
+                chatIds,
+                after.title(),
+                before.status(),
+                after.status(),
+                after.assigneeName() != null
+                        ? after.assigneeName()
+                        : before.assigneeName(),
+                after.locationName(),
+                blockReason,
+                displayName(actor)
+        ));
     }
 
     private static TaskHistory lastMatching(

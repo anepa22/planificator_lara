@@ -275,7 +275,9 @@ export default function UsersModal({ open, onClose, onChanged }) {
                   }
                 />
                 <span className="field-help">
-                  El asistente debe iniciar primero una conversación con el bot.
+                  Recibe los avisos solo si su rol tiene el permiso «Recibir
+                  notificaciones de tareas». Antes hay que iniciar una
+                  conversación con el bot.
                 </span>
               </div>
               <label className={`check-card check-card-compact${form.canLogin ? ' is-on' : ''}`}>

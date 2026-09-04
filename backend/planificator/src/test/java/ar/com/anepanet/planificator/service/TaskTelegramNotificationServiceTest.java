@@ -2,6 +2,8 @@ package ar.com.anepanet.planificator.service;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TaskTelegramNotificationServiceTest {
@@ -9,7 +11,7 @@ class TaskTelegramNotificationServiceTest {
     @Test
     void formatsStatusChangeInSpanishWithRelevantDetails() {
         TaskStatusChangedEvent event = new TaskStatusChangedEvent(
-                "123456789",
+                List.of("123456789"),
                 "Armar vidriera",
                 "IN_PROGRESS",
                 "BLOCKED",
@@ -32,7 +34,7 @@ class TaskTelegramNotificationServiceTest {
     @Test
     void omitsEmptyOptionalDetails() {
         TaskStatusChangedEvent event = new TaskStatusChangedEvent(
-                "123456789",
+                List.of("123456789"),
                 "Controlar stock",
                 "PENDING",
                 "IN_PROGRESS",

@@ -57,6 +57,28 @@ public class AuthRepository {
     }
 
     /**
+     * Chats de Telegram de los usuarios habilitados a recibir avisos: activos,
+     * con el permiso indicado y con el chat ya configurado.
+     */
+    public List<String> findTelegramChatIdsWithPermission(String permissionCode) {
+        return jdbc.sql("""
+                SELECT DISTINCT u.telegram_chat_id
+                FROM app_users u
+                JOIN user_roles ur ON ur.user_id = u.id
+                JOIN role_permissions rp ON rp.role_id = ur.role_id
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE u.is_active
+                  AND p.code = :code
+                  AND u.telegram_chat_id IS NOT NULL
+                  AND btrim(u.telegram_chat_id) <> ''
+                ORDER BY u.telegram_chat_id
+                """)
+                .param("code", permissionCode)
+                .query(String.class)
+                .list();
+    }
+
+    /**
      * Proyección ligera para autenticar requests: evita cargar contraseña,
      * roles y metadatos, y obtiene todos los permisos en una sola consulta.
      */

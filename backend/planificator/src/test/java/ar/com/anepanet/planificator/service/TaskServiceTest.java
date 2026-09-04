@@ -160,10 +160,11 @@ class TaskServiceTest {
     }
 
     @Test
-    void statusChangePublishesTelegramEventForConfiguredAssignee() {
+    void statusChangePublishesTelegramEventForSubscribedUsers() {
         login(Permissions.TASKS_WRITE);
-        AppUser configured = appUser(false, "123456789");
-        when(auth.findById(userId)).thenReturn(Optional.of(configured));
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        when(auth.findTelegramChatIdsWithPermission(Permissions.TASKS_NOTIFY))
+                .thenReturn(List.of("123456789"));
         UUID taskId = UUID.randomUUID();
         Task before = task(taskId, "PENDING", userId);
         Task after = task(taskId, "IN_PROGRESS", userId);
