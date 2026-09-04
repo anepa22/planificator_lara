@@ -51,6 +51,12 @@ export default function AppMenu({
   const hasActions = showPersonalGroup || showConfigGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
+  const [scheduleView, setScheduleView] = useState('week')
+  const inSchedule = view === 'week' || view === 'month'
+
+  useEffect(() => {
+    if (view === 'week' || view === 'month') setScheduleView(view)
+  }, [view])
 
   useEffect(() => {
     if (!open) {
@@ -91,28 +97,17 @@ export default function AppMenu({
 
         <div className="app-menu-section">
           <div className="app-menu-label">Vista</div>
-          <div className="app-menu-view-toggle" role="group" aria-label="Tipo de vista">
+          <div className="app-menu-view-toggle cols-2" role="group" aria-label="Tipo de vista">
             <button
               type="button"
-              className={`app-menu-view-btn${view === 'week' ? ' active' : ''}`}
-              aria-pressed={view === 'week'}
+              className={`app-menu-view-btn${inSchedule ? ' active' : ''}`}
+              aria-pressed={inSchedule}
               onClick={() => {
-                onViewChange('week')
+                onViewChange(scheduleView)
                 onClose()
               }}
             >
-              Semanal
-            </button>
-            <button
-              type="button"
-              className={`app-menu-view-btn${view === 'month' ? ' active' : ''}`}
-              aria-pressed={view === 'month'}
-              onClick={() => {
-                onViewChange('month')
-                onClose()
-              }}
-            >
-              Mensual
+              Horarios
             </button>
             <button
               type="button"
@@ -126,6 +121,36 @@ export default function AppMenu({
               Tareas
             </button>
           </div>
+          {inSchedule && (
+            <div
+              className="app-menu-view-toggle cols-2 app-menu-view-period"
+              role="group"
+              aria-label="Período de horarios"
+            >
+              <button
+                type="button"
+                className={`app-menu-view-btn${view === 'week' ? ' active' : ''}`}
+                aria-pressed={view === 'week'}
+                onClick={() => {
+                  onViewChange('week')
+                  onClose()
+                }}
+              >
+                Semanal
+              </button>
+              <button
+                type="button"
+                className={`app-menu-view-btn${view === 'month' ? ' active' : ''}`}
+                aria-pressed={view === 'month'}
+                onClick={() => {
+                  onViewChange('month')
+                  onClose()
+                }}
+              >
+                Mensual
+              </button>
+            </div>
+          )}
         </div>
 
         {view !== 'tasks' && <div className="app-menu-section">
