@@ -266,6 +266,9 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
               />
             </div>
             <div className="panel-form-actions">
+              <button type="submit" className="btn btn-primary" disabled={busy}>
+                {editing ? 'Guardar cambios' : 'Crear tarea'}
+              </button>
               {editing && (
                 <button
                   type="button"
@@ -276,9 +279,6 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
                   Cancelar edición
                 </button>
               )}
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {editing ? 'Guardar cambios' : 'Crear tarea'}
-              </button>
             </div>
           </form>
 
