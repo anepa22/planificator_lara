@@ -937,16 +937,18 @@
   .task-context-menu button:disabled{opacity:.45;cursor:default;}
   .task-block-modal{max-width:min(420px,92vw);}
   .task-block-modal textarea{min-height:90px;resize:vertical;}
+  /* Alto según contenido: sin la lista de movimientos no queda una ventana vacía. */
   .overlay.panel-overlay .modal.task-history-modal{
-    width:min(560px,94vw);max-height:min(86vh,720px);
+    width:min(520px,94vw);max-width:min(520px,94vw);
+    height:auto;min-height:0;max-height:min(86vh,700px);
   }
   .task-history-desc{
     margin:0 2px 10px;color:var(--ink-soft);font-size:13px;line-height:1.4;
     white-space:pre-wrap;
   }
   .task-history-facts{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;
-    margin:0 2px 10px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px;
+    margin:0 2px 8px;flex:none;
   }
   .task-history-fact{
     padding:8px 9px;border:1px solid var(--border-soft);border-radius:9px;background:#FBFCFD;
@@ -962,7 +964,7 @@
   .task-history-fact-text,.task-history-fact-empty{
     font-size:12px;line-height:1.35;color:var(--ink-soft);
   }
-  .task-history-modal .panel-list{min-height:120px;}
+  .task-history-modal .panel-list{min-height:0;max-height:min(44vh,340px);}
   @media (max-width:720px){
     .task-history-facts{grid-template-columns:1fr;}
   }
@@ -1078,6 +1080,9 @@
       height:min(92vh,100%);max-height:min(92vh,100%);
       border-radius:16px 16px 0 0;overflow:hidden;
       padding:16px 14px max(14px, env(safe-area-inset-bottom));
+    }
+    .overlay.panel-overlay .modal.task-history-modal{
+      width:100%;max-width:100%;height:auto;max-height:min(92vh,100%);
     }
     .modal-actions .btn{min-height:44px;}
     .gantt-scroll{
