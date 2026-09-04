@@ -14,7 +14,7 @@ export default function LunchModal({
       }}
     >
       <div className="modal lunch-modal">
-        <h3>Almuerzo</h3>
+        <h3>Hs de Almuerzo</h3>
         <div className="m-sub">
           Horas a descontar por día trabajado. Se resta de los totales
           semanales (no aplica a vacaciones ni francos).

@@ -45,14 +45,18 @@ export default function AppMenu({
   onChangePassword,
   version,
 }) {
-  const showPersonalGroup = showVacations || showLunch || showVidriera
-  const showOtherActions =
-    showUsers || showTasksAdmin || showTaskRetention || showAudit
-  const hasActions = showPersonalGroup || showOtherActions
+  const showPersonalGroup = showVacations || showVidriera
+  const showConfigGroup = showLunch || showTaskRetention
+  const showOtherActions = showUsers || showTasksAdmin || showAudit
+  const hasActions = showPersonalGroup || showConfigGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
+  const [configOpen, setConfigOpen] = useState(false)
 
   useEffect(() => {
-    if (!open) setPersonalOpen(false)
+    if (!open) {
+      setPersonalOpen(false)
+      setConfigOpen(false)
+    }
   }, [open])
 
   return (
@@ -182,17 +186,6 @@ export default function AppMenu({
                         Vacaciones
                       </MenuItem>
                     )}
-                    {showLunch && (
-                      <MenuItem
-                        nested
-                        onClick={() => {
-                          onLunch()
-                          onClose()
-                        }}
-                      >
-                        Almuerzo
-                      </MenuItem>
-                    )}
                     {showVidriera && (
                       <MenuItem
                         nested
@@ -202,6 +195,51 @@ export default function AppMenu({
                         }}
                       >
                         Vidrieras
+                      </MenuItem>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showConfigGroup && (
+              <div className={`app-menu-list${configOpen ? ' is-expanded' : ''}`}>
+                <button
+                  type="button"
+                  className="app-menu-item app-menu-group-toggle"
+                  aria-expanded={configOpen}
+                  onClick={() => setConfigOpen((v) => !v)}
+                >
+                  <span className="app-menu-item-label">Configuración</span>
+                  <span
+                    className={`app-menu-item-chevron toggle${configOpen ? ' open' : ''}`}
+                    aria-hidden
+                  >
+                    ›
+                  </span>
+                </button>
+                {configOpen && (
+                  <div className="app-menu-sublist">
+                    {showLunch && (
+                      <MenuItem
+                        nested
+                        onClick={() => {
+                          onLunch()
+                          onClose()
+                        }}
+                      >
+                        Hs de Almuerzo
+                      </MenuItem>
+                    )}
+                    {showTaskRetention && (
+                      <MenuItem
+                        nested
+                        onClick={() => {
+                          onTaskRetention()
+                          onClose()
+                        }}
+                      >
+                        Retiro de verificadas
                       </MenuItem>
                     )}
                   </div>
@@ -229,16 +267,6 @@ export default function AppMenu({
                     }}
                   >
                     Administrar tareas
-                  </MenuItem>
-                )}
-                {showTaskRetention && (
-                  <MenuItem
-                    onClick={() => {
-                      onTaskRetention()
-                      onClose()
-                    }}
-                  >
-                    Retiro de verificadas
                   </MenuItem>
                 )}
                 {showAudit && (
