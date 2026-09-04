@@ -298,7 +298,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
             </span>
           </div>
 
-          <div className={`panel-list${busy ? ' is-busy' : ''}`}>
+          <div className={`panel-list task-admin-lists${busy ? ' is-busy' : ''}`}>
             {!busy && loaded && tasks.length === 0 ? (
               <div className="panel-empty">
                 <div className="panel-empty-title">Todavía no hay tareas</div>
@@ -306,11 +306,19 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
               </div>
             ) : (
               <>
-                {active.length > 0 && <ul>{active.map(renderTask)}</ul>}
+                {active.length > 0 && (
+                  <div className="task-admin-group">
+                    <div className="task-admin-scroll">
+                      <ul>{active.map(renderTask)}</ul>
+                    </div>
+                  </div>
+                )}
                 {completed.length > 0 && (
-                  <div className="task-admin-section">
+                  <div className="task-admin-group task-admin-section">
                     <div className="task-admin-section-title">Completadas</div>
-                    <ul>{completed.map(renderTask)}</ul>
+                    <div className="task-admin-scroll">
+                      <ul>{completed.map(renderTask)}</ul>
+                    </div>
                   </div>
                 )}
               </>
