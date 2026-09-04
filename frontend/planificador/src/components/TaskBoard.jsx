@@ -182,7 +182,9 @@ export default function TaskBoard({
                       key={task.id}
                       className={`task-card${own ? ' is-own' : ''}${
                         movable ? ' is-movable' : ''
-                      }${contextual ? ' has-menu' : ''}`}
+                      }${contextual ? ' has-menu' : ''}${
+                        draggingId === task.id ? ' is-dragging' : ''
+                      }`}
                       draggable={movable && !busy}
                       title={
                         contextual
