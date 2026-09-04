@@ -51,7 +51,20 @@ public class AuthCleanup implements ApplicationRunner {
 
             jdbc.sql("""
                     ALTER TABLE app_users
-                    ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT TRUE
+                    ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN
+                    """).update();
+            jdbc.sql("""
+                    UPDATE app_users
+                    SET must_change_password = FALSE
+                    WHERE must_change_password IS NULL
+                    """).update();
+            jdbc.sql("""
+                    ALTER TABLE app_users
+                    ALTER COLUMN must_change_password SET DEFAULT TRUE
+                    """).update();
+            jdbc.sql("""
+                    ALTER TABLE app_users
+                    ALTER COLUMN must_change_password SET NOT NULL
                     """).update();
 
             ensurePermission("lunch_manage", Permissions.LUNCH_MANAGE, "Configurar almuerzo");
