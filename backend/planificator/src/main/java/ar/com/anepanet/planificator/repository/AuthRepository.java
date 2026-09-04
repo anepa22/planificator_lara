@@ -22,7 +22,7 @@ public class AuthRepository {
 
     private static final String USER_COLUMNS = """
             id, username, password_hash, display_name, color,
-            is_active, can_login, created_at, updated_at
+            is_active, can_login, must_change_password, created_at, updated_at
             """;
 
     private final JdbcClient jdbc;
@@ -103,8 +103,12 @@ public class AuthRepository {
             boolean canLogin,
             List<String> roleIds) {
         AppUser created = jdbc.sql("""
-                INSERT INTO app_users (username, password_hash, display_name, color, can_login)
-                VALUES (:username, :passwordHash, :displayName, :color, :canLogin)
+                INSERT INTO app_users (
+                    username, password_hash, display_name, color, can_login, must_change_password
+                )
+                VALUES (
+                    :username, :passwordHash, :displayName, :color, :canLogin, :mustChangePassword
+                )
                 RETURNING %s
                 """.formatted(USER_COLUMNS))
                 .param("username", username.trim())
@@ -112,6 +116,7 @@ public class AuthRepository {
                 .param("displayName", displayName.trim())
                 .param("color", color)
                 .param("canLogin", canLogin)
+                .param("mustChangePassword", canLogin)
                 .query(this::mapUserBase)
                 .single();
         replaceUserRoles(created.id(), roleIds);
@@ -125,6 +130,7 @@ public class AuthRepository {
             String passwordHash,
             String color,
             boolean canLogin,
+            Boolean mustChangePassword,
             List<String> roleIds) {
         Optional<AppUser> existing = findById(id);
         if (existing.isEmpty()) {
@@ -137,6 +143,7 @@ public class AuthRepository {
                     color = :color,
                     can_login = :canLogin,
                     password_hash = COALESCE(:passwordHash, password_hash),
+                    must_change_password = COALESCE(:mustChangePassword, must_change_password),
                     updated_at = NOW()
                 WHERE id = :id
                 """)
@@ -146,6 +153,7 @@ public class AuthRepository {
                 .param("color", color)
                 .param("canLogin", canLogin)
                 .param("passwordHash", passwordHash)
+                .param("mustChangePassword", mustChangePassword)
                 .update();
         if (roleIds != null) {
             replaceUserRoles(id, roleIds);
@@ -156,7 +164,9 @@ public class AuthRepository {
     public boolean updatePasswordHash(UUID id, String passwordHash) {
         return jdbc.sql("""
                 UPDATE app_users
-                SET password_hash = :passwordHash, updated_at = NOW()
+                SET password_hash = :passwordHash,
+                    must_change_password = FALSE,
+                    updated_at = NOW()
                 WHERE id = :id
                 """)
                 .param("id", id)
@@ -289,6 +299,7 @@ public class AuthRepository {
                 base.color(),
                 base.active(),
                 base.canLogin(),
+                base.mustChangePassword(),
                 base.createdAt(),
                 base.updatedAt(),
                 roleIds,
@@ -305,6 +316,7 @@ public class AuthRepository {
                 rs.getString("color"),
                 rs.getBoolean("is_active"),
                 rs.getBoolean("can_login"),
+                rs.getBoolean("must_change_password"),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),
                 List.of(),

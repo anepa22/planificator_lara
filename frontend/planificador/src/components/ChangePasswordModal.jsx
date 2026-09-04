@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { changePassword } from '../api/client'
 
-export default function ChangePasswordModal({ open, onClose }) {
+export default function ChangePasswordModal({
+  open,
+  required = false,
+  onClose,
+  onChanged,
+}) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -31,6 +36,7 @@ export default function ChangePasswordModal({ open, onClose }) {
   if (!open) return null
 
   function close() {
+    if (required && !ok) return
     if (closeTimer.current) clearTimeout(closeTimer.current)
     onClose?.()
   }
@@ -54,6 +60,7 @@ export default function ChangePasswordModal({ open, onClose }) {
     setBusy(true)
     try {
       await changePassword(currentPassword, newPassword)
+      await onChanged?.()
       setOk(true)
       setCurrentPassword('')
       setNewPassword('')
@@ -70,14 +77,18 @@ export default function ChangePasswordModal({ open, onClose }) {
 
   return (
     <div
-      className="overlay open"
+      className={`overlay open${required ? ' password-required' : ''}`}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !busy && !ok) close()
+        if (e.target === e.currentTarget && !busy && !ok && !required) close()
       }}
     >
       <form className="modal login-card" onSubmit={handleSubmit}>
-        <h3>Cambiar contraseña</h3>
-        <div className="m-sub">Ingresá la contraseña actual y la nueva</div>
+        <h3>{required ? 'Elegí tu contraseña' : 'Cambiar contraseña'}</h3>
+        <div className="m-sub">
+          {required
+            ? 'Es tu primer ingreso. Tenés que definir una contraseña propia para continuar.'
+            : 'Ingresá la contraseña actual y la nueva'}
+        </div>
         {error && <div className="m-warn">{error}</div>}
         {ok && (
           <div className="m-ok" role="status">
@@ -128,7 +139,7 @@ export default function ChangePasswordModal({ open, onClose }) {
           </>
         )}
         <div className="modal-actions">
-          {!ok && (
+          {!ok && !required && (
             <button
               type="button"
               className="btn btn-ghost"

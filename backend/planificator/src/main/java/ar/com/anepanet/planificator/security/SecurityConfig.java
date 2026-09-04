@@ -32,12 +32,16 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final MustChangePasswordFilter mustChangePasswordFilter;
 
     @Value("${planificator.cors.allowed-origins:*}")
     private String allowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            MustChangePasswordFilter mustChangePasswordFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.mustChangePasswordFilter = mustChangePasswordFilter;
     }
 
     @Bean
@@ -68,7 +72,8 @@ public class SecurityConfig {
                         .accessDeniedHandler((req, res, e) ->
                                 writeJsonError(res, 403, "Sin permiso"))
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(mustChangePasswordFilter, JwtAuthFilter.class);
         return http.build();
     }
 

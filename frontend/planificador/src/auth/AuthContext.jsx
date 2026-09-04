@@ -43,6 +43,7 @@ export function AuthProvider({ children }) {
       displayName: payload.displayName,
       roles: payload.roles || [],
       permissions: new Set(payload.permissions || []),
+      mustChangePassword: !!payload.mustChangePassword,
     })
   }, [])
 
@@ -174,9 +175,10 @@ export function AuthProvider({ children }) {
       booting,
       login,
       logout,
+      refreshMe,
       can,
     }),
-    [user, booting, login, logout, can],
+    [user, booting, login, logout, refreshMe, can],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

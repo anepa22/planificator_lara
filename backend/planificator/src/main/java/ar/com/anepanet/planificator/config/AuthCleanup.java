@@ -49,6 +49,11 @@ public class AuthCleanup implements ApplicationRunner {
                         roles, perms, userRoles + rolePerms);
             }
 
+            jdbc.sql("""
+                    ALTER TABLE app_users
+                    ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT TRUE
+                    """).update();
+
             ensurePermission("lunch_manage", Permissions.LUNCH_MANAGE, "Configurar almuerzo");
             jdbc.sql("""
                     INSERT INTO role_permissions (role_id, permission_id) VALUES

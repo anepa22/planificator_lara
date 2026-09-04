@@ -12,6 +12,7 @@ public record AppUser(
         String color,
         boolean active,
         boolean canLogin,
+        boolean mustChangePassword,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         List<String> roleIds,

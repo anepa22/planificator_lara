@@ -64,7 +64,8 @@ public class AuthService {
                 user.username(),
                 user.displayName(),
                 user.roleIds(),
-                user.permissions()
+                user.permissions(),
+                user.mustChangePassword()
         );
     }
 
@@ -107,7 +108,8 @@ public class AuthService {
                 user.username(),
                 user.displayName(),
                 user.roleIds(),
-                user.permissions()
+                user.permissions(),
+                user.mustChangePassword()
         );
     }
 

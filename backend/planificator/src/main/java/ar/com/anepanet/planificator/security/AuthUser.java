@@ -11,15 +11,29 @@ public class AuthUser implements UserDetails {
     private final UUID id;
     private final String username;
     private final Collection<? extends GrantedAuthority> authorities;
+    private final boolean mustChangePassword;
 
     public AuthUser(UUID id, String username, Collection<? extends GrantedAuthority> authorities) {
+        this(id, username, authorities, false);
+    }
+
+    public AuthUser(
+            UUID id,
+            String username,
+            Collection<? extends GrantedAuthority> authorities,
+            boolean mustChangePassword) {
         this.id = id;
         this.username = username;
         this.authorities = authorities;
+        this.mustChangePassword = mustChangePassword;
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public boolean mustChangePassword() {
+        return mustChangePassword;
     }
 
     @Override

@@ -170,7 +170,7 @@ class TaskServiceTest {
                 ? List.of(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE)
                 : List.of(Permissions.TASKS_WRITE);
         return new AppUser(
-                userId, "test", "hash", "Test", "#123456", true, true,
+                userId, "test", "hash", "Test", "#123456", true, true, false,
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
     }
 

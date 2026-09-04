@@ -100,7 +100,14 @@ public class UserAdminService {
         }
 
         AppUser user = auth.updateUser(
-                        id, req.displayName(), req.active(), hash, req.color(), canLogin, req.roleIds())
+                        id,
+                        req.displayName(),
+                        req.active(),
+                        hash,
+                        req.color(),
+                        canLogin,
+                        passwordChanged && canLogin ? Boolean.TRUE : null,
+                        req.roleIds())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         audit.record(

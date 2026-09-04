@@ -73,7 +73,7 @@ function activeOnly(list) {
 }
 
 function App() {
-  const { user, booting, can, logout } = useAuth()
+  const { user, booting, can, logout, refreshMe } = useAuth()
   const canWriteShifts = can('shifts:write')
   const canWriteVacations = can('vacations:write')
   const canManageLunch = can('lunch:manage')
@@ -92,7 +92,7 @@ function App() {
   const [taskBoard, setTaskBoard] = useState([])
   const [taskAssignees, setTaskAssignees] = useState([])
   const [holidaysByDate, setHolidaysByDate] = useState({})
-  const [view, setView] = useState('week')
+  const [view, setView] = useState('tasks')
   const [lunchHours, setLunchHours] = useState(() => loadLunchHours())
   const [weekOffset, setWeekOffset] = useState(0)
   const [monthOffset, setMonthOffset] = useState(0)
@@ -125,6 +125,15 @@ function App() {
     document.body.classList.toggle('menu-open', menuOpen)
     return () => document.body.classList.remove('menu-open')
   }, [menuOpen])
+
+  const mustChangePassword = !!user?.mustChangePassword
+
+  useEffect(() => {
+    if (!mustChangePassword) return
+    setChangePasswordOpen(true)
+    setMenuOpen(false)
+    setLoginOpen(false)
+  }, [mustChangePassword])
 
   useEffect(() => {
     const ids = new Set(locations.map((l) => l.id))
@@ -335,7 +344,7 @@ function App() {
   }, [booting, view, monthOffset, reloadMonth])
 
   useEffect(() => {
-    if (booting || view !== 'tasks') return
+    if (booting || view !== 'tasks' || mustChangePassword) return
     let cancelled = false
     ;(async () => {
       setTaskLoading(true)
@@ -354,7 +363,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [booting, view, canManageTasks])
+  }, [booting, view, canManageTasks, mustChangePassword])
 
   useEffect(() => {
     if (booting) return
@@ -1065,6 +1074,8 @@ function App() {
       <LoginScreen open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ChangePasswordModal
         open={changePasswordOpen}
+        required={mustChangePassword}
+        onChanged={refreshMe}
         onClose={() => setChangePasswordOpen(false)}
       />
     </div>
