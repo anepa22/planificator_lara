@@ -117,7 +117,7 @@ export default function MonthGantt({
 
   const rows = staff.length
     ? staff
-    : [{ id: '__empty', name: 'Sin personal', _empty: true }]
+    : [{ id: '__empty', name: 'Sin asistentes', _empty: true }]
 
   const gridStyle = {
     '--gantt-days': nDays,
@@ -137,7 +137,7 @@ export default function MonthGantt({
       <div className="gantt-scroll" ref={scrollRef} style={gridStyle}>
         <div className="gantt-head">
           <div className="gantt-corner">
-            <span className="gantt-corner-title">Personal</span>
+            <span className="gantt-corner-title">Asistentes</span>
             {canAdd && onRangeAssign ? (
               <span className="gantt-corner-hint">Nombre → rango</span>
             ) : null}

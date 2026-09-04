@@ -789,22 +789,25 @@ function App() {
           <span />
         </button>
         {view === 'tasks' ? (
-          <h1 className="task-view-title">Tablero de tareas</h1>
+          <h1 className="task-view-title">Tareas de Asistentes</h1>
         ) : (
-          <WeekNav
-            label={navLabel}
-            onPrev={() =>
-              view === 'month'
-                ? setMonthOffset((o) => o - 1)
-                : setWeekOffset((o) => o - 1)
-            }
-            onNext={() =>
-              view === 'month'
-                ? setMonthOffset((o) => o + 1)
-                : setWeekOffset((o) => o + 1)
-            }
-            onToday={goToday}
-          />
+          <div className="topbar-heading">
+            <h1 className="task-view-title">Horarios de Asistentes</h1>
+            <WeekNav
+              label={navLabel}
+              onPrev={() =>
+                view === 'month'
+                  ? setMonthOffset((o) => o - 1)
+                  : setWeekOffset((o) => o - 1)
+              }
+              onNext={() =>
+                view === 'month'
+                  ? setMonthOffset((o) => o + 1)
+                  : setWeekOffset((o) => o + 1)
+              }
+              onToday={goToday}
+            />
+          </div>
         )}
       </div>
 

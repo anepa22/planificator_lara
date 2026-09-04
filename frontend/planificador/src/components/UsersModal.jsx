@@ -14,7 +14,7 @@ import ConfirmModal from './ConfirmModal'
 const ROLE_LABELS = {
   admin: 'Administrador',
   editor: 'Supervisor',
-  personal: 'Personal',
+  personal: 'Asistente',
 }
 
 const EMPTY_FORM = {
@@ -194,8 +194,8 @@ export default function UsersModal({ open, onClose, onChanged }) {
       <div className="modal users-modal">
         <h3>Usuarios y roles</h3>
         <div className="m-sub">
-          Todo el personal es un usuario. Sin acceso habilitado igual aparece en
-          el planificador.
+          Toda persona del equipo es un usuario. Sin acceso habilitado igual
+          aparece en el planificador.
         </div>
         {error && <div className="m-warn">{error}</div>}
 

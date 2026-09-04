@@ -171,7 +171,7 @@ public class TaskService {
                         HttpStatus.BAD_REQUEST, "Usuario inválido o inactivo"));
         if (target.roleIds() == null || !target.roleIds().contains(PERSONAL_ROLE)) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Solo se puede asignar a usuarios con rol Personal");
+                    HttpStatus.BAD_REQUEST, "Solo se puede asignar a usuarios con rol Asistente");
         }
         LocalDate today = LocalDate.now(BUSINESS_ZONE);
         if (tasks.isOnVacation(target.id(), today)) {
@@ -220,7 +220,7 @@ public class TaskService {
             if (!PERSONAL_DESTINATIONS.contains(destination)) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
-                        "Personal solo puede mover a En proceso, Bloqueada o Terminada");
+                        "Un asistente solo puede mover a En proceso, Bloqueada o Terminada");
             }
         }
 

@@ -152,6 +152,7 @@
   .role-block{border:1px solid var(--border-soft);border-radius:10px;padding:10px;}
   .role-title{font-weight:700;font-size:13px;margin-bottom:8px;}
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+  .topbar-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:1;justify-content:flex-end;min-width:0;}
   .menu-toggle{
     display:flex;
     width:44px;height:44px;flex:none;

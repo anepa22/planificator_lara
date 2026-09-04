@@ -7,7 +7,7 @@ const ENTITY_LABELS = {
   franco: 'Franco',
   vidriera: 'Vidriera',
   task: 'Tarea',
-  staff: 'Personal',
+  staff: 'Asistentes',
   user: 'Usuario',
   role: 'Rol',
   session: 'Sesión',

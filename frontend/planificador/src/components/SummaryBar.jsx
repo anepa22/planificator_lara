@@ -19,7 +19,7 @@ export default function SummaryBar({
         <h3>Horas de la semana</h3>
         <div className="summary-row">
           <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>
-            Todavía no hay personal cargado.
+            Todavía no hay asistentes cargados.
           </span>
         </div>
       </div>

@@ -133,7 +133,7 @@ export default function TaskBoard({
 
   return (
     <>
-      <div className="task-board" aria-label="Tablero de tareas">
+      <div className="task-board" aria-label="Tareas de Asistentes">
         {COLUMNS.map((column) => {
           const columnTasks = byStatus.get(column.id) || []
           const dragged = tasks.find((task) => task.id === draggingId)

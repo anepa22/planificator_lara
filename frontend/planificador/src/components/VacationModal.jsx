@@ -246,10 +246,10 @@ export default function VacationModal({
         </div>
 
         <div className="field">
-          <label>Personal</label>
+          <label>Asistentes</label>
           <div className="pick-list">
             {!staff.length && (
-              <div className="pp-empty">Todavía no hay personal.</div>
+              <div className="pp-empty">Todavía no hay asistentes.</div>
             )}
             {staff.map((e) => {
               const av = paletteFor(e.id, staff).c

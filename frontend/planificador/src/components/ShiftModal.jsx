@@ -643,7 +643,7 @@ export default function ShiftModal({
       <div className="modal">
         <h3>
           {noStaff
-            ? 'Agregá personal primero'
+            ? 'Agregá asistentes primero'
             : ctx.mode === 'edit'
               ? asFranco
                 ? 'Editar · franco'
@@ -656,7 +656,7 @@ export default function ShiftModal({
         </h3>
         <div className="m-sub">
           {noStaff
-            ? 'Cargá usuarios con rol Personal desde el menú (Usuarios).'
+            ? 'Cargá usuarios con rol Asistente desde el menú (Usuarios).'
             : subtitle}
         </div>
         {warn && <div className="m-warn">{warn}</div>}
@@ -752,7 +752,7 @@ export default function ShiftModal({
 
         {showStaffPick && (
           <div className="field">
-            <label>Personal en esta franja</label>
+            <label>Asistentes en esta franja</label>
             <div className="pick-list">
               {staff.map((e) => {
                 const av = paletteFor(e.id, staff).c

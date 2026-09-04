@@ -88,7 +88,7 @@ public class AuthCleanup implements ApplicationRunner {
             ensurePermission("tasks_retention", Permissions.TASKS_RETENTION, "Configurar retiro de tareas verificadas");
             jdbc.sql("""
                     INSERT INTO roles (id, code, name) VALUES
-                        ('personal', 'personal', 'Personal')
+                        ('personal', 'personal', 'Asistente')
                     ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name
                     """).update();
             jdbc.sql("UPDATE roles SET name = 'Supervisor' WHERE id = 'editor'").update();
@@ -107,7 +107,7 @@ public class AuthCleanup implements ApplicationRunner {
                     """).update();
 
             // people:write pasó a staff:write al unificar personal y usuarios
-            ensurePermission("staff_write", Permissions.STAFF_WRITE, "Gestionar personal");
+            ensurePermission("staff_write", Permissions.STAFF_WRITE, "Gestionar asistentes");
             jdbc.sql("""
                     INSERT INTO role_permissions (role_id, permission_id)
                     SELECT rp.role_id, 'staff_write'

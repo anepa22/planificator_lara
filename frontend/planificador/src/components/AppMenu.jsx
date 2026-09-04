@@ -182,7 +182,7 @@ export default function AppMenu({
                   aria-expanded={personalOpen}
                   onClick={() => setPersonalOpen((v) => !v)}
                 >
-                  <span className="app-menu-item-label">Personal</span>
+                  <span className="app-menu-item-label">Asistentes</span>
                   <span
                     className={`app-menu-item-chevron toggle${personalOpen ? ' open' : ''}`}
                     aria-hidden
