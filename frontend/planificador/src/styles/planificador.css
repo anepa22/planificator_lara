@@ -151,8 +151,16 @@
   .roles-panel{display:flex;flex-direction:column;gap:14px;margin-bottom:12px;}
   .role-block{border:1px solid var(--border-soft);border-radius:10px;padding:10px;}
   .role-title{font-weight:700;font-size:13px;margin-bottom:8px;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
-  .topbar-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:1;justify-content:flex-end;min-width:0;}
+  /* Tres celdas: el nombre del tablero queda centrado en la página porque las
+     columnas laterales miden lo mismo. */
+  .topbar{
+    display:grid;grid-template-columns:1fr auto 1fr;
+    grid-template-areas:"menu title nav";
+    align-items:center;gap:16px;margin-bottom:18px;
+  }
+  .topbar > .menu-toggle{grid-area:menu;justify-self:start;}
+  .topbar > .task-view-title{grid-area:title;text-align:center;}
+  .topbar-nav{grid-area:nav;display:flex;align-items:center;justify-content:flex-end;min-width:0;}
   .menu-toggle{
     display:flex;
     width:44px;height:44px;flex:none;
@@ -1140,7 +1148,14 @@
       padding-left:max(12px, env(safe-area-inset-left));
       padding-right:max(12px, env(safe-area-inset-right));
     }
-    .topbar{margin-bottom:12px;gap:10px;}
+    /* En pantallas chicas la navegación de fecha pasa abajo; el hueco de 44px
+       a la derecha mantiene el nombre centrado frente al botón de menú. */
+    .topbar{
+      grid-template-columns:44px 1fr 44px;
+      grid-template-areas:"menu title ." "nav nav nav";
+      margin-bottom:12px;gap:10px;
+    }
+    .topbar-nav{justify-content:center;}
     .day-tabs{gap:5px;margin-bottom:12px;scrollbar-width:none;}
     .day-tabs::-webkit-scrollbar{display:none;}
     .day-tab{min-width:64px;padding:10px 4px;flex:0 0 auto;}

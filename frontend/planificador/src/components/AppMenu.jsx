@@ -81,7 +81,7 @@ export default function AppMenu({
       >
         <div className="app-menu-head">
           <div>
-            <div className="app-menu-title">Planificador Gisela</div>
+            <div className="app-menu-title">Planificator</div>
             {userLabel && <div className="app-menu-user">{userLabel}</div>}
             <div className="app-menu-version">v{version}</div>
           </div>

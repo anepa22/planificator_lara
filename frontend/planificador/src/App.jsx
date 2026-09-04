@@ -788,11 +788,11 @@ function App() {
           <span />
           <span />
         </button>
-        {view === 'tasks' ? (
-          <h1 className="task-view-title">Tareas de Asistentes</h1>
-        ) : (
-          <div className="topbar-heading">
-            <h1 className="task-view-title">Horarios de Asistentes</h1>
+        <h1 className="task-view-title">
+          {view === 'tasks' ? 'Tareas de Asistentes' : 'Horarios de Asistentes'}
+        </h1>
+        <div className="topbar-nav">
+          {view !== 'tasks' && (
             <WeekNav
               label={navLabel}
               onPrev={() =>
@@ -807,8 +807,8 @@ function App() {
               }
               onToday={goToday}
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {error && (
