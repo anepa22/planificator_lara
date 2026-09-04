@@ -62,10 +62,10 @@ function eventText(entry) {
   return `${actor} · ${entry.action}`
 }
 
-function Fact({ label, entry }) {
+function Fact({ label, entry, tone }) {
   const parts = entry ? fmtParts(entry.occurredAt) : null
   return (
-    <div className="task-history-fact">
+    <div className={`task-history-fact${tone ? ` is-${tone}` : ''}`}>
       <div className="task-history-fact-label">{label}</div>
       {entry ? (
         <>
@@ -146,9 +146,9 @@ export default function TaskHistoryModal({ task, onClose }) {
         <div className="task-history-facts">
           <Fact label="Pendientes" entry={data?.pending} />
           <Fact label="Asignación" entry={data?.assigned} />
-          <Fact label="Bloqueada" entry={data?.blocked} />
+          <Fact label="Bloqueada" entry={data?.blocked} tone="blocked" />
           <Fact label="Terminada" entry={data?.done} />
-          <Fact label="Verificada" entry={data?.verified} />
+          <Fact label="Verificada" entry={data?.verified} tone="verified" />
         </div>
 
         {canSeeAllMoves && (
