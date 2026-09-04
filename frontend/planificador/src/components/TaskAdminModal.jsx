@@ -18,6 +18,10 @@ const STATUS_LABELS = {
   VERIFIED: 'Verificada',
 }
 
+function isCompleted(task) {
+  return !task.onBoard && task.status === 'VERIFIED'
+}
+
 export default function TaskAdminModal({ open, onClose, onChanged, locations = [] }) {
   const [tasks, setTasks] = useState([])
   const [editing, setEditing] = useState(null)
@@ -84,6 +88,96 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
   if (!open) return null
 
   const locOptions = workLocations(locations)
+  const completed = tasks.filter(isCompleted)
+  const active = tasks.filter((task) => !isCompleted(task))
+
+  function renderTask(task) {
+    const completedTask = isCompleted(task)
+    const state = completedTask
+      ? 'COMPLETED'
+      : task.onBoard
+        ? task.status
+        : 'OFF_BOARD'
+    return (
+      <li
+        key={task.id}
+        className={`task-admin-item state-${state}${
+          editing?.id === task.id ? ' is-editing' : ''
+        }`}
+      >
+        <div className="task-admin-rail" aria-hidden />
+        <div className="task-admin-body">
+          <span className="task-admin-title" title={task.title}>
+            {task.title}
+          </span>
+          {task.description && (
+            <span className="task-admin-desc" title={task.description}>
+              {task.description}
+            </span>
+          )}
+          {task.locationName && (
+            <span className="task-admin-loc" title={task.locationName}>
+              {task.locationName}
+            </span>
+          )}
+          {task.assigneeName && (
+            <span className="task-admin-who">{task.assigneeName}</span>
+          )}
+        </div>
+        <span className="task-admin-state">
+          {completedTask
+            ? 'Completada'
+            : task.onBoard
+              ? STATUS_LABELS[task.status] || task.status
+              : 'Fuera del tablero'}
+        </span>
+        <div className="task-admin-actions">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setEditing(task)
+              setForm({
+                title: task.title,
+                description: task.description || '',
+                locationId: task.locationId || '',
+              })
+            }}
+          >
+            Editar
+          </button>
+          {!task.onBoard && !completedTask && (
+            <button
+              type="button"
+              disabled={busy}
+              title="Agregar a Pendientes"
+              onClick={() => run(() => publishTask(task.id))}
+            >
+              Publicar
+            </button>
+          )}
+          {task.onBoard && (
+            <button
+              type="button"
+              disabled={busy}
+              title="Sacar del tablero"
+              onClick={() => run(() => retireTask(task.id))}
+            >
+              Quitar
+            </button>
+          )}
+          <button
+            type="button"
+            className="danger"
+            disabled={busy}
+            onClick={() => setPendingDelete(task)}
+          >
+            Baja
+          </button>
+        </div>
+      </li>
+    )
+  }
 
   return (
     <>
@@ -194,7 +288,13 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
                 ? 'Cargando…'
                 : tasks.length === 0
                   ? 'Sin tareas'
-                  : `${tasks.length} tarea${tasks.length === 1 ? '' : 's'}`}
+                  : `${active.length} tarea${active.length === 1 ? '' : 's'}${
+                      completed.length
+                        ? ` · ${completed.length} completada${
+                            completed.length === 1 ? '' : 's'
+                          }`
+                        : ''
+                    }`}
             </span>
           </div>
 
@@ -205,87 +305,15 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
                 <div>Creá la primera con el formulario de arriba.</div>
               </div>
             ) : (
-              <ul>
-                {tasks.map((task) => {
-                  const state = task.onBoard ? task.status : 'OFF_BOARD'
-                  return (
-                    <li
-                      key={task.id}
-                      className={`task-admin-item state-${state}${
-                        editing?.id === task.id ? ' is-editing' : ''
-                      }`}
-                    >
-                      <div className="task-admin-rail" aria-hidden />
-                      <div className="task-admin-body">
-                        <span className="task-admin-title" title={task.title}>
-                          {task.title}
-                        </span>
-                        {task.description && (
-                          <span className="task-admin-desc" title={task.description}>
-                            {task.description}
-                          </span>
-                        )}
-                        {task.locationName && (
-                          <span className="task-admin-loc" title={task.locationName}>
-                            {task.locationName}
-                          </span>
-                        )}
-                        {task.assigneeName && (
-                          <span className="task-admin-who">{task.assigneeName}</span>
-                        )}
-                      </div>
-                      <span className="task-admin-state">
-                        {task.onBoard
-                          ? STATUS_LABELS[task.status] || task.status
-                          : 'Fuera del tablero'}
-                      </span>
-                      <div className="task-admin-actions">
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => {
-                            setEditing(task)
-                            setForm({
-                              title: task.title,
-                              description: task.description || '',
-                              locationId: task.locationId || '',
-                            })
-                          }}
-                        >
-                          Editar
-                        </button>
-                        {!task.onBoard ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            title="Agregar a Pendientes"
-                            onClick={() => run(() => publishTask(task.id))}
-                          >
-                            Publicar
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            title="Sacar del tablero"
-                            onClick={() => run(() => retireTask(task.id))}
-                          >
-                            Quitar
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="danger"
-                          disabled={busy}
-                          onClick={() => setPendingDelete(task)}
-                        >
-                          Baja
-                        </button>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+              <>
+                {active.length > 0 && <ul>{active.map(renderTask)}</ul>}
+                {completed.length > 0 && (
+                  <div className="task-admin-section">
+                    <div className="task-admin-section-title">Completadas</div>
+                    <ul>{completed.map(renderTask)}</ul>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
