@@ -36,7 +36,7 @@ export default function ChangePasswordModal({
   if (!open) return null
 
   function close() {
-    if (required && !ok) return
+    if (busy) return
     if (closeTimer.current) clearTimeout(closeTimer.current)
     onClose?.()
   }
@@ -79,14 +79,14 @@ export default function ChangePasswordModal({
     <div
       className={`overlay open${required ? ' password-required' : ''}`}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !busy && !ok && !required) close()
+        if (e.target === e.currentTarget && !busy && !ok) close()
       }}
     >
       <form className="modal login-card" onSubmit={handleSubmit}>
         <h3>{required ? 'Elegí tu contraseña' : 'Cambiar contraseña'}</h3>
         <div className="m-sub">
           {required
-            ? 'Es tu primer ingreso. Tenés que definir una contraseña propia para continuar.'
+            ? 'Es tu primer ingreso. Podés definir una contraseña propia ahora o más tarde.'
             : 'Ingresá la contraseña actual y la nueva'}
         </div>
         {error && <div className="m-warn">{error}</div>}
@@ -139,7 +139,7 @@ export default function ChangePasswordModal({
           </>
         )}
         <div className="modal-actions">
-          {!ok && !required && (
+          {!ok && (
             <button
               type="button"
               className="btn btn-ghost"

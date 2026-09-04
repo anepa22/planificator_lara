@@ -344,7 +344,7 @@ function App() {
   }, [booting, view, monthOffset, reloadMonth])
 
   useEffect(() => {
-    if (booting || view !== 'tasks' || mustChangePassword) return
+    if (booting || view !== 'tasks') return
     let cancelled = false
     ;(async () => {
       setTaskLoading(true)
@@ -359,7 +359,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [booting, view, mustChangePassword, reloadTaskBoard])
+  }, [booting, view, reloadTaskBoard])
 
   useEffect(() => {
     if (booting) return
