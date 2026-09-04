@@ -8,6 +8,7 @@ public record UserResponse(
         String username,
         String displayName,
         String color,
+        String telegramChatId,
         boolean active,
         boolean canLogin,
         List<String> roles,

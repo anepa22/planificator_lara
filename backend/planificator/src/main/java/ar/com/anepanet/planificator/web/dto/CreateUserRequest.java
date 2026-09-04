@@ -11,6 +11,7 @@ public record CreateUserRequest(
         @Size(max = 100) String password,
         @NotBlank @Size(max = 120) String displayName,
         @Size(max = 20) String color,
+        @Size(max = 32) String telegramChatId,
         Boolean canLogin,
         @NotNull List<String> roleIds
 ) {}

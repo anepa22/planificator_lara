@@ -21,6 +21,7 @@ const EMPTY_FORM = {
   username: '',
   password: '',
   displayName: '',
+  telegramChatId: '',
   canLogin: true,
   active: true,
   roleIds: [],
@@ -88,6 +89,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
       if (editingId) {
         await updateUser(editingId, {
           displayName: form.displayName.trim(),
+          telegramChatId: form.telegramChatId.trim() || null,
           active: form.active,
           password: form.password.trim() || null,
           canLogin: form.canLogin,
@@ -103,6 +105,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
           username,
           password: form.canLogin ? form.password : null,
           displayName: form.displayName.trim(),
+          telegramChatId: form.telegramChatId.trim() || null,
           canLogin: form.canLogin,
           roleIds: form.roleIds,
         })
@@ -148,6 +151,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
       username: user.username,
       password: '',
       displayName: user.displayName,
+      telegramChatId: user.telegramChatId || '',
       canLogin: user.canLogin !== false,
       active: user.active !== false,
       roleIds: user.roles?.length ? [...user.roles] : [],
@@ -257,6 +261,23 @@ export default function UsersModal({ open, onClose, onChanged }) {
                   minLength={2}
                 />
               </div>
+              <div className="field">
+                <label>Chat ID de Telegram (opcional)</label>
+                <input
+                  inputMode="numeric"
+                  value={form.telegramChatId}
+                  disabled={busy}
+                  placeholder="ej. 123456789"
+                  maxLength={32}
+                  pattern="-?[0-9]+"
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, telegramChatId: e.target.value }))
+                  }
+                />
+                <span className="field-help">
+                  El asistente debe iniciar primero una conversación con el bot.
+                </span>
+              </div>
               <label className={`check-card check-card-compact${form.canLogin ? ' is-on' : ''}`}>
                 <input
                   type="checkbox"
@@ -363,6 +384,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
                         {u.username}
                         {!u.active ? ' · inactivo' : ''}
                         {u.canLogin === false ? ' · sin acceso' : ''}
+                        {u.telegramChatId ? ' · Telegram configurado' : ''}
                         {(u.roles || []).length
                           ? ` · ${(u.roles || [])
                               .map((r) => ROLE_LABELS[r] || r)

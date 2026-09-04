@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,13 +42,14 @@ class TaskServiceTest {
     @Mock LocationRepository locations;
     @Mock AuthRepository auth;
     @Mock AuditService audit;
+    @Mock ApplicationEventPublisher events;
 
     private TaskService service;
     private UUID userId;
 
     @BeforeEach
     void setUp() {
-        service = new TaskService(tasks, locations, auth, audit);
+        service = new TaskService(tasks, locations, auth, audit, events);
         userId = UUID.randomUUID();
     }
 
@@ -157,6 +159,22 @@ class TaskServiceTest {
         verify(tasks).addHistory(before, after, userId, "MOVE", null);
     }
 
+    @Test
+    void statusChangePublishesTelegramEventForConfiguredAssignee() {
+        login(Permissions.TASKS_WRITE);
+        AppUser configured = appUser(false, "123456789");
+        when(auth.findById(userId)).thenReturn(Optional.of(configured));
+        UUID taskId = UUID.randomUUID();
+        Task before = task(taskId, "PENDING", userId);
+        Task after = task(taskId, "IN_PROGRESS", userId);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(before));
+        when(tasks.move(taskId, "IN_PROGRESS", null)).thenReturn(Optional.of(after));
+
+        service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null));
+
+        verify(events).publishEvent(any(TaskStatusChangedEvent.class));
+    }
+
     private void login(String... permissions) {
         List<SimpleGrantedAuthority> authorities =
                 java.util.Arrays.stream(permissions).map(SimpleGrantedAuthority::new).toList();
@@ -166,11 +184,15 @@ class TaskServiceTest {
     }
 
     private AppUser appUser(boolean manager) {
+        return appUser(manager, null);
+    }
+
+    private AppUser appUser(boolean manager, String telegramChatId) {
         List<String> permissions = manager
                 ? List.of(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE)
                 : List.of(Permissions.TASKS_WRITE);
         return new AppUser(
-                userId, "test", "hash", "Test", "#123456", true, true, false,
+                userId, "test", "hash", "Test", "#123456", telegramChatId, true, true, false,
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
     }
 

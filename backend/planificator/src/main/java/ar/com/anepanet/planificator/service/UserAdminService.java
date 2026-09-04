@@ -62,6 +62,7 @@ public class UserAdminService {
                     hash,
                     req.displayName(),
                     req.color(),
+                    cleanTelegramChatId(req.telegramChatId()),
                     canLogin,
                     req.roleIds()
             );
@@ -108,6 +109,7 @@ public class UserAdminService {
                         req.active(),
                         hash,
                         req.color(),
+                        cleanTelegramChatId(req.telegramChatId()),
                         canLogin,
                         passwordChanged && canLogin ? Boolean.TRUE : null,
                         req.roleIds())
@@ -213,12 +215,25 @@ public class UserAdminService {
         }
     }
 
+    private static String cleanTelegramChatId(String chatId) {
+        if (chatId == null || chatId.isBlank()) {
+            return null;
+        }
+        String value = chatId.trim();
+        if (!value.matches("-?\\d+")) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "El Chat ID de Telegram debe contener solo números");
+        }
+        return value;
+    }
+
     private UserResponse toResponse(AppUser user) {
         return new UserResponse(
                 user.id(),
                 user.username(),
                 user.displayName(),
                 user.color(),
+                user.telegramChatId(),
                 user.active(),
                 user.canLogin(),
                 user.roleIds(),

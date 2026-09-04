@@ -10,6 +10,7 @@ public record AppUser(
         String passwordHash,
         String displayName,
         String color,
+        String telegramChatId,
         boolean active,
         boolean canLogin,
         boolean mustChangePassword,

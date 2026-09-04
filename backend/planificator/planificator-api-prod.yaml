@@ -72,6 +72,14 @@ spec:
               value: "12"
             - name: CORS_ORIGINS
               value: "*"
+            - name: TELEGRAM_ENABLED
+              value: "true"
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: planificator-api
+                  key: TELEGRAM_BOT_TOKEN
+                  optional: true
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx512m -Duser.timezone=UTC"
             - name: SPRINGDOC_API_DOCS_ENABLED

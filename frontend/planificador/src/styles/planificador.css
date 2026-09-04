@@ -419,6 +419,7 @@
     font-size:13.5px;font-family:inherit;color:var(--ink);background:#fff;
   }
   .field input:disabled,.field select:disabled,.field textarea:disabled{opacity:.65;cursor:not-allowed;}
+  .field-help{display:block;margin-top:4px;font-size:11px;line-height:1.35;color:var(--ink-soft);}
   .pick-list{max-height:168px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px 0;}
   .pick-list label.pp-item{
     display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;font-size:13px;font-weight:600;

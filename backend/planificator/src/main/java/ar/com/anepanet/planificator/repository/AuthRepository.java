@@ -22,7 +22,7 @@ import java.util.UUID;
 public class AuthRepository {
 
     private static final String USER_COLUMNS = """
-            id, username, password_hash, display_name, color,
+            id, username, password_hash, display_name, color, telegram_chat_id,
             is_active, can_login, must_change_password, created_at, updated_at
             """;
 
@@ -161,14 +161,17 @@ public class AuthRepository {
             String passwordHash,
             String displayName,
             String color,
+            String telegramChatId,
             boolean canLogin,
             List<String> roleIds) {
         AppUser created = jdbc.sql("""
                 INSERT INTO app_users (
-                    username, password_hash, display_name, color, can_login, must_change_password
+                    username, password_hash, display_name, color, telegram_chat_id,
+                    can_login, must_change_password
                 )
                 VALUES (
-                    :username, :passwordHash, :displayName, :color, :canLogin, :mustChangePassword
+                    :username, :passwordHash, :displayName, :color, :telegramChatId,
+                    :canLogin, :mustChangePassword
                 )
                 RETURNING %s
                 """.formatted(USER_COLUMNS))
@@ -176,6 +179,7 @@ public class AuthRepository {
                 .param("passwordHash", passwordHash)
                 .param("displayName", displayName.trim())
                 .param("color", color)
+                .param("telegramChatId", telegramChatId)
                 .param("canLogin", canLogin)
                 .param("mustChangePassword", canLogin)
                 .query(this::mapUserBase)
@@ -190,6 +194,7 @@ public class AuthRepository {
             Boolean active,
             String passwordHash,
             String color,
+            String telegramChatId,
             boolean canLogin,
             Boolean mustChangePassword,
             List<String> roleIds) {
@@ -202,6 +207,7 @@ public class AuthRepository {
                 SET display_name = :displayName,
                     is_active = :active,
                     color = :color,
+                    telegram_chat_id = :telegramChatId,
                     can_login = :canLogin,
                     password_hash = COALESCE(:passwordHash, password_hash),
                     must_change_password = COALESCE(:mustChangePassword, must_change_password),
@@ -212,6 +218,7 @@ public class AuthRepository {
                 .param("displayName", displayName.trim())
                 .param("active", active)
                 .param("color", color)
+                .param("telegramChatId", telegramChatId)
                 .param("canLogin", canLogin)
                 .param("passwordHash", passwordHash)
                 .param("mustChangePassword", mustChangePassword)
@@ -404,6 +411,7 @@ public class AuthRepository {
                 base.passwordHash(),
                 base.displayName(),
                 base.color(),
+                base.telegramChatId(),
                 base.active(),
                 base.canLogin(),
                 base.mustChangePassword(),
@@ -421,6 +429,7 @@ public class AuthRepository {
                 rs.getString("password_hash"),
                 rs.getString("display_name"),
                 rs.getString("color"),
+                rs.getString("telegram_chat_id"),
                 rs.getBoolean("is_active"),
                 rs.getBoolean("can_login"),
                 rs.getBoolean("must_change_password"),

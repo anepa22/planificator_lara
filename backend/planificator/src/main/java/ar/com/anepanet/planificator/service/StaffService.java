@@ -56,6 +56,7 @@ public class StaffService {
                     NO_LOGIN_HASH,
                     name,
                     req.color(),
+                    null,
                     false,
                     List.of(PERSONAL_ROLE)
             );

@@ -15,6 +15,7 @@ import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
 import ar.com.anepanet.planificator.web.dto.TaskAssignee;
 import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
 import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,16 +44,19 @@ public class TaskService {
     private final LocationRepository locations;
     private final AuthRepository auth;
     private final AuditService audit;
+    private final ApplicationEventPublisher events;
 
     public TaskService(
             TaskRepository tasks,
             LocationRepository locations,
             AuthRepository auth,
-            AuditService audit) {
+            AuditService audit,
+            ApplicationEventPublisher events) {
         this.tasks = tasks;
         this.locations = locations;
         this.auth = auth;
         this.audit = audit;
+        this.events = events;
     }
 
     public List<Task> board() {
@@ -251,9 +256,43 @@ public class TaskService {
     }
 
     private void recordChange(Task before, Task after, String action, String blockReason) {
-        tasks.addHistory(before, after, currentUser().id(), action, blockReason);
+        AppUser actor = currentUser();
+        tasks.addHistory(before, after, actor.id(), action, blockReason);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
                 after.id().toString(), after.title() + " · " + action);
+        publishStatusChange(before, after, blockReason, actor);
+    }
+
+    private void publishStatusChange(
+            Task before,
+            Task after,
+            String blockReason,
+            AppUser actor) {
+        if (Objects.equals(before.status(), after.status())) {
+            return;
+        }
+        UUID recipientId = after.assigneeUserId() != null
+                ? after.assigneeUserId()
+                : before.assigneeUserId();
+        if (recipientId == null) {
+            return;
+        }
+        auth.findById(recipientId)
+                .filter(AppUser::active)
+                .filter(user -> user.telegramChatId() != null
+                        && !user.telegramChatId().isBlank())
+                .ifPresent(recipient -> events.publishEvent(new TaskStatusChangedEvent(
+                        recipient.telegramChatId(),
+                        after.title(),
+                        before.status(),
+                        after.status(),
+                        after.assigneeName() != null
+                                ? after.assigneeName()
+                                : before.assigneeName(),
+                        after.locationName(),
+                        blockReason,
+                        displayName(actor)
+                )));
     }
 
     private static TaskHistory lastMatching(

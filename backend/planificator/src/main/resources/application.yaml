@@ -22,6 +22,9 @@ planificator:
   holidays:
     base-url: ${HOLIDAYS_API_BASE_URL:https://api.argentinadatos.com/v1/feriados}
     cache-ttl-hours: ${HOLIDAYS_CACHE_TTL_HOURS:24}
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:false}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
 
 # Off por defecto; en AnepaVps el Deployment habilita via SPRINGDOC_*
 springdoc:

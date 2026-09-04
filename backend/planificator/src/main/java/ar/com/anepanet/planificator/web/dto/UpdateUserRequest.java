@@ -11,6 +11,7 @@ public record UpdateUserRequest(
         @NotNull Boolean active,
         @Size(max = 100) String password,
         @Size(max = 20) String color,
+        @Size(max = 32) String telegramChatId,
         Boolean canLogin,
         @NotNull List<String> roleIds
 ) {}
