@@ -30,7 +30,7 @@ public class TaskTelegramNotificationService {
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onTaskStatusChanged(TaskStatusChangedEvent event) {
+    public void onTaskChanged(TaskChangedEvent event) {
         if (!telegram.isConfigured()) {
             return;
         }
@@ -39,26 +39,54 @@ public class TaskTelegramNotificationService {
             try {
                 telegram.sendMessage(chatId, message);
             } catch (Exception ex) {
-                log.warn("No se pudo notificar por Telegram el cambio de estado de '{}': {}",
-                        event.title(), ex.getMessage());
+                log.warn("No se pudo notificar por Telegram la tarea '{}': {}",
+                        event.title(), TelegramClient.sanitize(ex.getMessage(), null));
             }
         }
     }
 
-    static String format(TaskStatusChangedEvent event) {
+    static String format(TaskChangedEvent event) {
         StringBuilder message = new StringBuilder()
-                .append("Tarea actualizada\n")
-                .append(event.title()).append("\n")
-                .append(label(event.fromStatus()))
-                .append(" → ")
-                .append(label(event.toStatus()));
-        append(message, "Responsable", event.assigneeName());
+                .append(header(event)).append("\n")
+                .append(event.title());
+        if (event.statusChanged()) {
+            message.append("\n")
+                    .append(label(event.fromStatus()))
+                    .append(" → ")
+                    .append(label(event.toStatus()));
+        }
+        if (event.assigneeName() != null && !event.assigneeName().isBlank()) {
+            append(message, "Responsable", event.assigneeName());
+            if (event.assigneeChanged()) {
+                append(message, "Antes", event.previousAssigneeName());
+            }
+        } else if (event.assigneeChanged()) {
+            append(message, "Se quitó a", event.previousAssigneeName());
+        }
         append(message, "Local", event.locationName());
         if ("BLOCKED".equals(event.toStatus())) {
             append(message, "Motivo", event.blockReason());
         }
-        append(message, "Movida por", event.changedBy());
+        append(message, actorLabel(event), event.changedBy());
         return message.toString();
+    }
+
+    private static String header(TaskChangedEvent event) {
+        if (event.statusChanged()) {
+            return "Tarea actualizada";
+        }
+        return event.assigneeName() != null && !event.assigneeName().isBlank()
+                ? "Tarea asignada"
+                : "Tarea sin asignar";
+    }
+
+    private static String actorLabel(TaskChangedEvent event) {
+        if (event.statusChanged()) {
+            return "Movida por";
+        }
+        return event.assigneeName() != null && !event.assigneeName().isBlank()
+                ? "Asignada por"
+                : "Por";
     }
 
     private static String label(String status) {

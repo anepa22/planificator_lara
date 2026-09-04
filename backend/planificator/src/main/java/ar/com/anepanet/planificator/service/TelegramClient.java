@@ -5,13 +5,18 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 @EnableConfigurationProperties(TelegramProperties.class)
 public class TelegramClient {
+
+    private static final Pattern BOT_TOKEN_IN_TEXT =
+            Pattern.compile("bot\\d+:[A-Za-z0-9_-]+");
 
     private final TelegramProperties properties;
     private final RestClient restClient;
@@ -34,11 +39,29 @@ public class TelegramClient {
         if (!isConfigured() || chatId == null || chatId.isBlank()) {
             return;
         }
-        restClient.post()
-                .uri("https://api.telegram.org/bot{token}/sendMessage",
-                        properties.getBotToken().trim())
-                .body(Map.of("chat_id", chatId, "text", text))
-                .retrieve()
-                .toBodilessEntity();
+        String token = properties.getBotToken().trim();
+        try {
+            restClient.post()
+                    .uri("https://api.telegram.org/bot{token}/sendMessage", token)
+                    .body(Map.of("chat_id", chatId, "text", text))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            throw new IllegalStateException(
+                    "Telegram HTTP " + ex.getStatusCode().value(), null);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException(sanitize(ex.getMessage(), token), null);
+        }
+    }
+
+    static String sanitize(String message, String token) {
+        if (message == null || message.isBlank()) {
+            return "error de Telegram";
+        }
+        String safe = message;
+        if (token != null && !token.isBlank()) {
+            safe = safe.replace(token.trim(), "***");
+        }
+        return BOT_TOKEN_IN_TEXT.matcher(safe).replaceAll("bot***");
     }
 }

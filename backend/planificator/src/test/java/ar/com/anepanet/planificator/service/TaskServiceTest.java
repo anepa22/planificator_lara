@@ -173,7 +173,26 @@ class TaskServiceTest {
 
         service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null));
 
-        verify(events).publishEvent(any(TaskStatusChangedEvent.class));
+        verify(events).publishEvent(any(TaskChangedEvent.class));
+    }
+
+    @Test
+    void assignmentPublishesTelegramEventEvenWithoutStatusChange() {
+        login(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(true)));
+        when(auth.findTelegramChatIdsWithPermission(Permissions.TASKS_NOTIFY))
+                .thenReturn(List.of("123456789"));
+        UUID taskId = UUID.randomUUID();
+        UUID assignee = UUID.randomUUID();
+        Task before = task(taskId, "PENDING", null);
+        Task after = task(taskId, "PENDING", assignee);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(before));
+        when(auth.findById(assignee)).thenReturn(Optional.of(staffUser(assignee)));
+        when(tasks.assign(taskId, assignee)).thenReturn(Optional.of(after));
+
+        service.assign(taskId, new AssignTaskRequest(assignee));
+
+        verify(events).publishEvent(any(TaskChangedEvent.class));
     }
 
     private void login(String... permissions) {
@@ -186,6 +205,13 @@ class TaskServiceTest {
 
     private AppUser appUser(boolean manager) {
         return appUser(manager, null);
+    }
+
+    private AppUser staffUser(UUID id) {
+        return new AppUser(
+                id, "asistente", "hash", "Brenda", "#123456", null, true, true, false,
+                OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"),
+                List.of(Permissions.TASKS_WRITE));
     }
 
     private AppUser appUser(boolean manager, String telegramChatId) {

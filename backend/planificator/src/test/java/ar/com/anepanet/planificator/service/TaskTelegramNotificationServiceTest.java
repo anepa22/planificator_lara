@@ -10,12 +10,14 @@ class TaskTelegramNotificationServiceTest {
 
     @Test
     void formatsStatusChangeInSpanishWithRelevantDetails() {
-        TaskStatusChangedEvent event = new TaskStatusChangedEvent(
+        TaskChangedEvent event = new TaskChangedEvent(
                 List.of("123456789"),
                 "Armar vidriera",
                 "IN_PROGRESS",
                 "BLOCKED",
                 "Gisela",
+                "Gisela",
+                false,
                 "Lara 3",
                 "Falta mercadería",
                 "Supervisor"
@@ -33,12 +35,14 @@ class TaskTelegramNotificationServiceTest {
 
     @Test
     void omitsEmptyOptionalDetails() {
-        TaskStatusChangedEvent event = new TaskStatusChangedEvent(
+        TaskChangedEvent event = new TaskChangedEvent(
                 List.of("123456789"),
                 "Controlar stock",
                 "PENDING",
                 "IN_PROGRESS",
                 "Ana",
+                "Ana",
+                false,
                 null,
                 null,
                 "Ana"
@@ -50,5 +54,73 @@ class TaskTelegramNotificationServiceTest {
                 Pendiente → En proceso
                 Responsable: Ana
                 Movida por: Ana""", TaskTelegramNotificationService.format(event));
+    }
+
+    @Test
+    void formatsAssignmentWithoutStatusLine() {
+        TaskChangedEvent event = new TaskChangedEvent(
+                List.of("123456789"),
+                "Limpiar estantes",
+                "PENDING",
+                "PENDING",
+                "Brenda",
+                null,
+                true,
+                "Lara 1",
+                null,
+                "Supervisor"
+        );
+
+        assertEquals("""
+                Tarea asignada
+                Limpiar estantes
+                Responsable: Brenda
+                Local: Lara 1
+                Asignada por: Supervisor""", TaskTelegramNotificationService.format(event));
+    }
+
+    @Test
+    void formatsReassignmentShowingPreviousAssignee() {
+        TaskChangedEvent event = new TaskChangedEvent(
+                List.of("123456789"),
+                "Arqueo de caja",
+                "PENDING",
+                "PENDING",
+                "Carolina",
+                "Brenda",
+                true,
+                null,
+                null,
+                "Supervisor"
+        );
+
+        assertEquals("""
+                Tarea asignada
+                Arqueo de caja
+                Responsable: Carolina
+                Antes: Brenda
+                Asignada por: Supervisor""", TaskTelegramNotificationService.format(event));
+    }
+
+    @Test
+    void formatsUnassignment() {
+        TaskChangedEvent event = new TaskChangedEvent(
+                List.of("123456789"),
+                "Ordenar cajones",
+                "PENDING",
+                "PENDING",
+                null,
+                "Brenda",
+                true,
+                null,
+                null,
+                "Supervisor"
+        );
+
+        assertEquals("""
+                Tarea sin asignar
+                Ordenar cajones
+                Se quitó a: Brenda
+                Por: Supervisor""", TaskTelegramNotificationService.format(event));
     }
 }

@@ -260,29 +260,32 @@ public class TaskService {
         tasks.addHistory(before, after, actor.id(), action, blockReason);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
                 after.id().toString(), after.title() + " · " + action);
-        publishStatusChange(before, after, blockReason, actor);
+        publishChange(before, after, blockReason, actor);
     }
 
-    private void publishStatusChange(
+    private void publishChange(
             Task before,
             Task after,
             String blockReason,
             AppUser actor) {
-        if (Objects.equals(before.status(), after.status())) {
+        boolean statusChanged = !Objects.equals(before.status(), after.status());
+        boolean assigneeChanged =
+                !Objects.equals(before.assigneeUserId(), after.assigneeUserId());
+        if (!statusChanged && !assigneeChanged) {
             return;
         }
         List<String> chatIds = auth.findTelegramChatIdsWithPermission(Permissions.TASKS_NOTIFY);
         if (chatIds.isEmpty()) {
             return;
         }
-        events.publishEvent(new TaskStatusChangedEvent(
+        events.publishEvent(new TaskChangedEvent(
                 chatIds,
                 after.title(),
                 before.status(),
                 after.status(),
-                after.assigneeName() != null
-                        ? after.assigneeName()
-                        : before.assigneeName(),
+                after.assigneeName(),
+                before.assigneeName(),
+                assigneeChanged,
                 after.locationName(),
                 blockReason,
                 displayName(actor)
