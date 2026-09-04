@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   createUser,
   deleteUser,
@@ -8,7 +8,7 @@ import {
   updateUser,
   getPermissions,
 } from '../api/client'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 import ConfirmModal from './ConfirmModal'
 
 const ROLE_LABELS = {
@@ -52,17 +52,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
   const [editingId, setEditingId] = useState(null)
   const [usernameTouched, setUsernameTouched] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    setError('')
-    setTab('users')
-    setEditingId(null)
-    setForm(EMPTY_FORM)
-    setUsernameTouched(false)
-    reload()
-  }, [open])
-
-  async function reload() {
+  const reload = useCallback(async () => {
     setBusy(true)
     try {
       const tasks = []
@@ -75,7 +65,17 @@ export default function UsersModal({ open, onClose, onChanged }) {
     } finally {
       setBusy(false)
     }
-  }
+  }, [canManageRoles, canManageUsers])
+
+  useEffect(() => {
+    if (!open) return
+    setError('')
+    setTab('users')
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setUsernameTouched(false)
+    void reload()
+  }, [open, reload])
 
   if (!open) return null
 

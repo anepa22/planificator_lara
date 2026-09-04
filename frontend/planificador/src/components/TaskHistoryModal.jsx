@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getTaskHistory } from '../api/client'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/useAuth'
 
 const STATUS_LABELS = {
   PENDING: 'Pendientes',
@@ -87,16 +87,17 @@ function Fact({ label, entry, tone }) {
 export default function TaskHistoryModal({ task, onClose }) {
   const { can } = useAuth()
   const canSeeAllMoves = can('tasks:history')
+  const taskId = task?.id
   const [data, setData] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!task) return
+    if (!taskId) return
     let cancelled = false
     setBusy(true)
     setError('')
-    getTaskHistory(task.id)
+    getTaskHistory(taskId)
       .then((rows) => {
         if (!cancelled) setData(rows)
       })
@@ -109,7 +110,7 @@ export default function TaskHistoryModal({ task, onClose }) {
     return () => {
       cancelled = true
     }
-  }, [task])
+  }, [taskId])
 
   if (!task) return null
 

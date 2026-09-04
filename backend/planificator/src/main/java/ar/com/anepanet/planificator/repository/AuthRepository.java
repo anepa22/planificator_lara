@@ -4,6 +4,7 @@ import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Permission;
 import ar.com.anepanet.planificator.domain.Role;
 import ar.com.anepanet.planificator.domain.StaffMember;
+import ar.com.anepanet.planificator.domain.UserPrincipal;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -55,6 +56,45 @@ public class AuthRepository {
                 .map(this::withRolesAndPermissions);
     }
 
+    /**
+     * Proyección ligera para autenticar requests: evita cargar contraseña,
+     * roles y metadatos, y obtiene todos los permisos en una sola consulta.
+     */
+    public Optional<UserPrincipal> findPrincipalById(UUID id) {
+        List<PrincipalRow> rows = jdbc.sql("""
+                SELECT u.id, u.username, u.is_active, u.must_change_password, p.code
+                FROM app_users u
+                LEFT JOIN user_roles ur ON ur.user_id = u.id
+                LEFT JOIN role_permissions rp ON rp.role_id = ur.role_id
+                LEFT JOIN permissions p ON p.id = rp.permission_id
+                WHERE u.id = :id
+                ORDER BY p.code
+                """)
+                .param("id", id)
+                .query((rs, n) -> new PrincipalRow(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("username"),
+                        rs.getBoolean("is_active"),
+                        rs.getBoolean("must_change_password"),
+                        rs.getString("code")))
+                .list();
+        if (rows.isEmpty()) {
+            return Optional.empty();
+        }
+        PrincipalRow user = rows.get(0);
+        List<String> permissions = rows.stream()
+                .map(PrincipalRow::permission)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        return Optional.of(new UserPrincipal(
+                user.id(),
+                user.username(),
+                user.active(),
+                user.mustChangePassword(),
+                permissions));
+    }
+
     public List<AppUser> findAllUsers() {
         List<AppUser> base = jdbc.sql("""
                 SELECT %s
@@ -63,7 +103,28 @@ public class AuthRepository {
                 """.formatted(USER_COLUMNS))
                 .query(this::mapUserBase)
                 .list();
-        return base.stream().map(this::withRolesAndPermissions).toList();
+        if (base.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, List<String>> rolesByUser = groupedStrings("""
+                SELECT user_id, role_id AS value
+                FROM user_roles
+                ORDER BY user_id, role_id
+                """);
+        Map<UUID, List<String>> permissionsByUser = groupedStrings("""
+                SELECT DISTINCT ur.user_id, p.code AS value
+                FROM user_roles ur
+                JOIN role_permissions rp ON rp.role_id = ur.role_id
+                JOIN permissions p ON p.id = rp.permission_id
+                ORDER BY ur.user_id, p.code
+                """);
+        return base.stream()
+                .map(user -> withRolesAndPermissions(
+                        user,
+                        rolesByUser.getOrDefault(user.id(), List.of()),
+                        permissionsByUser.getOrDefault(user.id(), List.of())))
+                .toList();
     }
 
     /**
@@ -220,7 +281,33 @@ public class AuthRepository {
     }
 
     public Optional<Role> findRoleById(String id) {
-        return findAllRoles().stream().filter(r -> r.id().equals(id)).findFirst();
+        Optional<Role> role = jdbc.sql("""
+                SELECT id, code, name
+                FROM roles
+                WHERE id = :id
+                """)
+                .param("id", id)
+                .query((rs, n) -> new Role(
+                        rs.getString("id"),
+                        rs.getString("code"),
+                        rs.getString("name"),
+                        List.of()))
+                .optional();
+        if (role.isEmpty()) {
+            return Optional.empty();
+        }
+        List<String> permissions = jdbc.sql("""
+                SELECT p.code
+                FROM role_permissions rp
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE rp.role_id = :id
+                ORDER BY p.code
+                """)
+                .param("id", id)
+                .query(String.class)
+                .list();
+        Role base = role.get();
+        return Optional.of(new Role(base.id(), base.code(), base.name(), permissions));
     }
 
     public void replaceRolePermissions(String roleId, List<String> permissionCodes) {
@@ -291,6 +378,26 @@ public class AuthRepository {
                 .param("userId", base.id())
                 .query(String.class)
                 .list();
+        return withRolesAndPermissions(base, roleIds, permissions);
+    }
+
+    private Map<UUID, List<String>> groupedStrings(String sql) {
+        Map<UUID, List<String>> grouped = new LinkedHashMap<>();
+        jdbc.sql(sql)
+                .query((rs, n) -> Map.entry(
+                        rs.getObject("user_id", UUID.class),
+                        rs.getString("value")))
+                .list()
+                .forEach(row -> grouped
+                        .computeIfAbsent(row.getKey(), ignored -> new ArrayList<>())
+                        .add(row.getValue()));
+        return grouped;
+    }
+
+    private AppUser withRolesAndPermissions(
+            AppUser base,
+            List<String> roleIds,
+            List<String> permissions) {
         return new AppUser(
                 base.id(),
                 base.username(),
@@ -323,4 +430,11 @@ public class AuthRepository {
                 List.of()
         );
     }
+
+    private record PrincipalRow(
+            UUID id,
+            String username,
+            boolean active,
+            boolean mustChangePassword,
+            String permission) {}
 }

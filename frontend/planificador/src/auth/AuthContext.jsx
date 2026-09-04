@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -16,8 +14,7 @@ import {
   setLastActivity,
   setToken,
 } from '../lib/authStorage'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './useAuth'
 
 const ACTIVITY_EVENTS = [
   'mousedown',
@@ -120,9 +117,9 @@ export function AuthProvider({ children }) {
     let lastBump = 0
     const bump = () => {
       const now = Date.now()
-      armTimer()
       if (now - lastBump < 1000) return
       lastBump = now
+      armTimer()
       setLastActivity(now)
     }
 
@@ -182,10 +179,4 @@ export function AuthProvider({ children }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider')
-  return ctx
 }

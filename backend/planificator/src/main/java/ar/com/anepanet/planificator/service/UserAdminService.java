@@ -12,6 +12,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
@@ -45,6 +46,7 @@ public class UserAdminService {
         return auth.findAllUsers().stream().map(this::toResponse).toList();
     }
 
+    @Transactional
     public UserResponse createUser(CreateUserRequest req) {
         validateRoles(req.roleIds());
         String username = requireUsername(req.username());
@@ -77,6 +79,7 @@ public class UserAdminService {
         }
     }
 
+    @Transactional
     public UserResponse updateUser(UUID id, UpdateUserRequest req) {
         validateRoles(req.roleIds());
         AppUser existing = auth.findById(id)
@@ -123,6 +126,7 @@ public class UserAdminService {
         return toResponse(user);
     }
 
+    @Transactional
     public void deleteUser(UUID id) {
         AppUser current = auth.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -152,10 +156,10 @@ public class UserAdminService {
                 .toList();
     }
 
+    @Transactional
     public Role updateRolePermissions(String roleId, UpdateRolePermissionsRequest req) {
-        if (auth.findRoleById(roleId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado");
-        }
+        Role role = auth.findRoleById(roleId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado"));
         Set<String> known = new HashSet<>();
         auth.findAllPermissions().forEach(p -> known.add(p.code()));
         for (String code : req.permissionCodes()) {
@@ -164,7 +168,6 @@ public class UserAdminService {
             }
         }
         auth.replaceRolePermissions(roleId, req.permissionCodes());
-        Role role = auth.findRoleById(roleId).orElseThrow();
         String perms = req.permissionCodes().stream().sorted().collect(Collectors.joining(", "));
         audit.record(
                 AuditService.ACTION_UPDATE,
@@ -172,7 +175,7 @@ public class UserAdminService {
                 roleId,
                 "Permisos del rol " + roleId + ": [" + perms + "]"
         );
-        return role;
+        return new Role(role.id(), role.code(), role.name(), List.copyOf(req.permissionCodes()));
     }
 
     private static String requireUsername(String username) {

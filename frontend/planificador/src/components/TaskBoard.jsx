@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { initials } from '../lib/palette'
 import TaskHistoryModal from './TaskHistoryModal'
 
 const COLUMNS = [
@@ -10,16 +11,6 @@ const COLUMNS = [
 ]
 
 const PERSONAL_DESTINATIONS = new Set(['IN_PROGRESS', 'BLOCKED', 'DONE'])
-
-function initials(name = '') {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase()
-}
 
 export default function TaskBoard({
   tasks = [],

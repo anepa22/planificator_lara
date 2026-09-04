@@ -1,6 +1,6 @@
 package ar.com.anepanet.planificator.security;
 
-import ar.com.anepanet.planificator.domain.AppUser;
+import ar.com.anepanet.planificator.domain.UserPrincipal;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -44,7 +44,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtService.parse(token);
                 UUID userId = UUID.fromString(claims.getSubject());
-                AppUser user = auth.findById(userId).filter(AppUser::active).orElse(null);
+                UserPrincipal user = auth.findPrincipalById(userId)
+                        .filter(UserPrincipal::active)
+                        .orElse(null);
                 if (user != null) {
                     Collection<SimpleGrantedAuthority> authorities = user.permissions().stream()
                             .map(SimpleGrantedAuthority::new)

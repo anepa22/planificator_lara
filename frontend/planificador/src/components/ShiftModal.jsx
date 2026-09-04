@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DAYS,
   absenceDayBounds,
@@ -315,7 +315,7 @@ export default function ShiftModal({
     )
   }
 
-  function dayShiftsForDates(dateKeys) {
+  const dayShiftsForDates = useCallback((dateKeys) => {
     const set = new Set(dateKeys)
     const map = new Map()
     for (const [pid, list] of dayShiftsByUser) {
@@ -325,7 +325,7 @@ export default function ShiftModal({
       if (filtered.length) map.set(pid, filtered)
     }
     return map
-  }
+  }, [dayShiftsByUser])
 
   const conflicts = useMemo(() => {
     if (!ctx || !activeUserIds.length) return []
@@ -379,6 +379,7 @@ export default function ShiftModal({
     effectiveLocationId,
     activeUserIds,
     dayShiftsByUser,
+    dayShiftsForDates,
     staff,
     locations,
     start,

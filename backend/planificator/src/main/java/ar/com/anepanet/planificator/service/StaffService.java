@@ -7,6 +7,7 @@ import ar.com.anepanet.planificator.web.dto.CreateStaffRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
@@ -42,6 +43,7 @@ public class StaffService {
         return auth.findActiveStaff();
     }
 
+    @Transactional
     public StaffMember create(CreateStaffRequest req) {
         String name = req.name() == null ? "" : req.name().trim();
         if (name.isEmpty()) {
@@ -69,6 +71,7 @@ public class StaffService {
         return new StaffMember(created.id(), created.displayName(), created.color());
     }
 
+    @Transactional
     public void deactivate(UUID id) {
         AppUser existing = auth.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Persona no encontrada"));

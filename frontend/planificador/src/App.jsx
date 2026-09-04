@@ -17,7 +17,7 @@ import {
   unassignTask,
   updateShift,
 } from './api/client'
-import { useAuth } from './auth/AuthContext'
+import { useAuth } from './auth/useAuth'
 import AppMenu from './components/AppMenu'
 import AuditModal from './components/AuditModal'
 import DayTabs from './components/DayTabs'
@@ -349,11 +349,7 @@ function App() {
     ;(async () => {
       setTaskLoading(true)
       try {
-        const rows = await getTaskBoard()
-        if (!cancelled) setTaskBoard(rows)
-        if (canManageTasks && !cancelled) {
-          setTaskAssignees(await getTaskAssignees())
-        }
+        await reloadTaskBoard()
       } catch (e) {
         if (!cancelled) setError(e.message)
       } finally {
@@ -363,7 +359,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [booting, view, canManageTasks, mustChangePassword])
+  }, [booting, view, mustChangePassword, reloadTaskBoard])
 
   useEffect(() => {
     if (booting) return
@@ -413,7 +409,6 @@ function App() {
   async function refreshAfterShiftChange() {
     if (view === 'month') {
       await reloadMonth(monthDate)
-      await reloadWeek(weekKey)
     } else {
       await reloadWeek(weekKey)
     }
@@ -928,8 +923,8 @@ function App() {
         />
       )}
 
-      <ShiftModal
-        open={!!shiftModal}
+      {shiftModal && <ShiftModal
+        open
         ctx={shiftModal}
         staff={staff}
         locations={locations}
@@ -950,41 +945,41 @@ function App() {
             endTime: end,
           })
         }}
-      />
+      />}
 
-      <UsersModal
-        open={usersOpen}
+      {usersOpen && <UsersModal
+        open
         onClose={() => setUsersOpen(false)}
         onChanged={async () => {
           await reloadStaff()
           await refreshAfterShiftChange()
         }}
-      />
+      />}
 
-      <TaskAdminModal
-        open={taskAdminOpen}
+      {taskAdminOpen && <TaskAdminModal
+        open
         locations={locations}
         onClose={() => setTaskAdminOpen(false)}
         onChanged={reloadTaskBoard}
-      />
+      />}
 
-      <TaskRetentionModal
-        open={taskRetentionOpen}
+      {taskRetentionOpen && <TaskRetentionModal
+        open
         onClose={() => setTaskRetentionOpen(false)}
         onChanged={reloadTaskBoard}
-      />
+      />}
 
-      <AuditModal open={auditOpen} onClose={() => setAuditOpen(false)} />
+      {auditOpen && <AuditModal open onClose={() => setAuditOpen(false)} />}
 
-      <LunchModal
-        open={lunchOpen}
+      {lunchOpen && <LunchModal
+        open
         lunchHours={lunchHours}
         onChange={handleLunchHoursChange}
         onClose={() => setLunchOpen(false)}
-      />
+      />}
 
-      <VacationModal
-        open={vacationOpen}
+      {vacationOpen && <VacationModal
+        open
         staff={staff}
         locations={locations}
         busy={busy}
@@ -992,10 +987,10 @@ function App() {
         fetchShiftsForRange={fetchShiftsForRange}
         onClose={() => setVacationOpen(false)}
         onSave={handleSaveVacation}
-      />
+      />}
 
-      <VidrieraModal
-        open={vidrieraOpen}
+      {vidrieraOpen && <VidrieraModal
+        open
         locations={locations}
         busy={busy}
         initialDate={
@@ -1009,10 +1004,10 @@ function App() {
         loadVidrieras={getVidrieras}
         onClose={closeVidrieraModal}
         onSave={handleSaveVidriera}
-      />
+      />}
 
-      <VacationRemoveModal
-        open={!!absenceRemove}
+      {absenceRemove && <VacationRemoveModal
+        open
         kind={absenceRemove?.kind || 'vacation'}
         staffName={absenceRemove?.staffName}
         workDate={absenceRemove?.workDate}
@@ -1030,7 +1025,7 @@ function App() {
           setAbsenceRemove(null)
           await handleRemoveAbsenceShifts(ids)
         }}
-      />
+      />}
 
       <AppMenu
         open={menuOpen}
@@ -1071,13 +1066,15 @@ function App() {
         version={appVersionLabel()}
       />
 
-      <LoginScreen open={loginOpen} onClose={() => setLoginOpen(false)} />
-      <ChangePasswordModal
-        open={changePasswordOpen}
+      {loginOpen && (
+        <LoginScreen open onClose={() => setLoginOpen(false)} />
+      )}
+      {changePasswordOpen && <ChangePasswordModal
+        open
         required={mustChangePassword}
         onChanged={refreshMe}
         onClose={() => setChangePasswordOpen(false)}
-      />
+      />}
     </div>
   )
 }
