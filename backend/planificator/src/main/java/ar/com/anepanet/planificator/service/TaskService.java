@@ -3,6 +3,7 @@ package ar.com.anepanet.planificator.service;
 import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Task;
+import ar.com.anepanet.planificator.domain.TaskHistory;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
@@ -54,6 +55,11 @@ public class TaskService {
 
     public List<Task> board() {
         return tasks.findBoard();
+    }
+
+    public List<TaskHistory> history(UUID id) {
+        find(id);
+        return tasks.findHistory(id);
     }
 
     public List<Task> listAll() {

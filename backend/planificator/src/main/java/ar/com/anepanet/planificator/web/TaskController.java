@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.web;
 
 import ar.com.anepanet.planificator.domain.Task;
+import ar.com.anepanet.planificator.domain.TaskHistory;
 import ar.com.anepanet.planificator.service.TaskService;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
@@ -35,6 +36,11 @@ public class TaskController {
     @GetMapping("/board")
     public List<Task> board() {
         return tasks.board();
+    }
+
+    @GetMapping("/{id}/history")
+    public List<TaskHistory> history(@PathVariable UUID id) {
+        return tasks.history(id);
     }
 
     @GetMapping("/assignees")

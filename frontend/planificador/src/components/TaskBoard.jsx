@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import TaskHistoryModal from './TaskHistoryModal'
 
 const COLUMNS = [
   { id: 'PENDING', label: 'Pendientes' },
@@ -36,6 +37,8 @@ export default function TaskBoard({
   const [blockRequest, setBlockRequest] = useState(null)
   const [blockReason, setBlockReason] = useState('')
   const [menu, setMenu] = useState(null)
+  const [historyTask, setHistoryTask] = useState(null)
+  const skipClickRef = useRef(false)
   const menuRef = useRef(null)
 
   const byStatus = useMemo(() => {
@@ -184,12 +187,20 @@ export default function TaskBoard({
                       title={
                         contextual
                           ? canManage
-                            ? 'Clic derecho para asignar o sacar del tablero'
-                            : 'Clic derecho para asignar'
-                          : undefined
+                            ? 'Clic para ver el detalle. Clic derecho para asignar o sacar del tablero'
+                            : 'Clic para ver el detalle. Clic derecho para asignar'
+                          : 'Clic para ver el detalle'
                       }
                       onContextMenu={(event) => openMenu(event, task)}
+                      onClick={() => {
+                        if (skipClickRef.current) {
+                          skipClickRef.current = false
+                          return
+                        }
+                        setHistoryTask(task)
+                      }}
                       onDragStart={(event) => {
+                        skipClickRef.current = true
                         setDraggingId(task.id)
                         event.dataTransfer.effectAllowed = 'move'
                         event.dataTransfer.setData('text/task-id', task.id)
@@ -242,11 +253,12 @@ export default function TaskBoard({
                             type="button"
                             className="task-action"
                             disabled={busy}
-                            onClick={() =>
+                            onClick={(event) => {
+                              event.stopPropagation()
                               void perform(() =>
                                 onAssign?.(task.id, currentUserId),
                               )
-                            }
+                            }}
                           >
                             Asignarme
                           </button>
@@ -335,6 +347,13 @@ export default function TaskBoard({
             </div>
           )}
         </div>
+      )}
+
+      {historyTask && (
+        <TaskHistoryModal
+          task={historyTask}
+          onClose={() => setHistoryTask(null)}
+        />
       )}
 
       {blockRequest && (

@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.repository;
 
 import ar.com.anepanet.planificator.domain.Task;
+import ar.com.anepanet.planificator.domain.TaskHistory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -61,6 +62,28 @@ public class TaskRepository {
                 .param("id", id)
                 .query(this::map)
                 .optional();
+    }
+
+    public List<TaskHistory> findHistory(UUID taskId) {
+        return jdbc.sql("""
+                SELECT h.id, h.task_id, h.actor_user_id,
+                       COALESCE(NULLIF(a.display_name, ''), a.username) AS actor_name,
+                       h.action, h.from_status, h.to_status,
+                       h.from_assignee_user_id,
+                       COALESCE(NULLIF(fa.display_name, ''), fa.username) AS from_assignee_name,
+                       h.to_assignee_user_id,
+                       COALESCE(NULLIF(ta.display_name, ''), ta.username) AS to_assignee_name,
+                       h.block_reason, h.occurred_at
+                FROM task_history h
+                LEFT JOIN app_users a ON a.id = h.actor_user_id
+                LEFT JOIN app_users fa ON fa.id = h.from_assignee_user_id
+                LEFT JOIN app_users ta ON ta.id = h.to_assignee_user_id
+                WHERE h.task_id = :taskId
+                ORDER BY h.occurred_at ASC, h.id ASC
+                """)
+                .param("taskId", taskId)
+                .query(this::mapHistory)
+                .list();
     }
 
     public Task insert(String title, String description, String locationId) {
@@ -197,6 +220,24 @@ public class TaskRepository {
                 .param("toAssignee", after != null ? after.assigneeUserId() : null)
                 .param("blockReason", blockReason)
                 .update();
+    }
+
+    private TaskHistory mapHistory(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new TaskHistory(
+                rs.getLong("id"),
+                rs.getObject("task_id", UUID.class),
+                rs.getObject("actor_user_id", UUID.class),
+                rs.getString("actor_name"),
+                rs.getString("action"),
+                rs.getString("from_status"),
+                rs.getString("to_status"),
+                rs.getObject("from_assignee_user_id", UUID.class),
+                rs.getString("from_assignee_name"),
+                rs.getObject("to_assignee_user_id", UUID.class),
+                rs.getString("to_assignee_name"),
+                rs.getString("block_reason"),
+                rs.getObject("occurred_at", java.time.OffsetDateTime.class)
+        );
     }
 
     private Task map(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
