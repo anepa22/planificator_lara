@@ -62,10 +62,9 @@ public class TaskService {
         find(id);
         List<TaskHistory> all = tasks.findHistory(id);
         List<TaskHistory> moves = all.stream().filter(TaskService::isMovement).toList();
-        TaskHistory lastMove = moves.isEmpty() ? null : moves.get(moves.size() - 1);
         List<TaskHistory> visible = SecurityUtils.hasAuthority(Permissions.TASKS_HISTORY)
                 ? moves
-                : (lastMove == null ? List.of() : List.of(lastMove));
+                : List.of();
         return new TaskHistoryResponse(
                 lastMatching(all, TaskService::wentPending),
                 lastMatching(all, TaskService::isAssign),

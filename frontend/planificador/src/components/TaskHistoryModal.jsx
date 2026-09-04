@@ -151,42 +151,44 @@ export default function TaskHistoryModal({ task, onClose }) {
           <Fact label="Verificada" entry={data?.verified} />
         </div>
 
-        <div className="panel-toolbar">
-          <div className="panel-count">
-            {busy
-              ? 'Cargando…'
-              : canSeeAllMoves
-                ? `${movements.length} movimiento${movements.length === 1 ? '' : 's'}`
-                : 'Último movimiento'}
-          </div>
-        </div>
-
-        <div className="panel-list">
-          {!busy && !movements.length && (
-            <div className="panel-empty">
-              <div className="panel-empty-title">Sin movimientos</div>
+        {canSeeAllMoves && (
+          <>
+            <div className="panel-toolbar">
+              <div className="panel-count">
+                {busy
+                  ? 'Cargando…'
+                  : `${movements.length} movimiento${movements.length === 1 ? '' : 's'}`}
+              </div>
             </div>
-          )}
-          {!!movements.length && (
-            <ul>
-              {movements.map((entry) => {
-                const parts = fmtParts(entry.occurredAt)
-                return (
-                  <li className="audit-item action-update" key={entry.id}>
-                    <span className="audit-rail" aria-hidden />
-                    <div className="audit-when-col">
-                      <span className="audit-day">{parts.day}</span>
-                      <span className="audit-time">{parts.time}</span>
-                    </div>
-                    <div className="audit-body">
-                      <div className="audit-summary">{eventText(entry)}</div>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+
+            <div className="panel-list">
+              {!busy && !movements.length && (
+                <div className="panel-empty">
+                  <div className="panel-empty-title">Sin movimientos</div>
+                </div>
+              )}
+              {!!movements.length && (
+                <ul>
+                  {movements.map((entry) => {
+                    const parts = fmtParts(entry.occurredAt)
+                    return (
+                      <li className="audit-item action-update" key={entry.id}>
+                        <span className="audit-rail" aria-hidden />
+                        <div className="audit-when-col">
+                          <span className="audit-day">{parts.day}</span>
+                          <span className="audit-time">{parts.time}</span>
+                        </div>
+                        <div className="audit-body">
+                          <div className="audit-summary">{eventText(entry)}</div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
