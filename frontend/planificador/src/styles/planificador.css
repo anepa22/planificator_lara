@@ -941,6 +941,12 @@
   .task-context-menu button:disabled{opacity:.45;cursor:default;}
   .task-block-modal{max-width:min(420px,92vw);}
   .task-block-modal textarea{min-height:90px;resize:vertical;}
+  .task-retention-modal{max-width:min(420px,92vw);}
+  .task-retention-modal .field{margin:14px 0 4px;}
+  .task-retention-modal input{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;
+    font:inherit;font-size:13px;color:var(--ink);background:#fff;
+  }
   /* Alto según contenido: sin la lista de movimientos no queda una ventana vacía. */
   .overlay.panel-overlay .modal.task-history-modal{
     width:min(520px,94vw);max-width:min(520px,94vw);

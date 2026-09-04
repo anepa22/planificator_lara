@@ -273,7 +273,8 @@ public class TaskService {
         return "MOVE".equals(action)
                 || "PUBLISH".equals(action)
                 || "UNASSIGN".equals(action)
-                || "RETIRE".equals(action);
+                || "RETIRE".equals(action)
+                || "RETIRE_AUTO".equals(action);
     }
 
     private static boolean wentPending(TaskHistory entry) {

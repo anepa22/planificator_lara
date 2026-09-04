@@ -30,6 +30,7 @@ import ShiftModal from './components/ShiftModal'
 import SummaryBar from './components/SummaryBar'
 import TaskAdminModal from './components/TaskAdminModal'
 import TaskBoard from './components/TaskBoard'
+import TaskRetentionModal from './components/TaskRetentionModal'
 import UsersModal from './components/UsersModal'
 import VacationModal from './components/VacationModal'
 import VacationRemoveModal from './components/VacationRemoveModal'
@@ -80,6 +81,7 @@ function App() {
   const canReadAudit = can('audit:read')
   const canWriteTasks = can('tasks:write')
   const canManageTasks = can('tasks:manage')
+  const canManageTaskRetention = can('tasks:retention')
 
   const [locations, setLocations] = useState([])
   const [staff, setStaff] = useState([])
@@ -113,6 +115,7 @@ function App() {
   const [vidrieraOpen, setVidrieraOpen] = useState(false)
   const [vidrieraModalDate, setVidrieraModalDate] = useState(null)
   const [taskAdminOpen, setTaskAdminOpen] = useState(false)
+  const [taskRetentionOpen, setTaskRetentionOpen] = useState(false)
   const [absenceRemove, setAbsenceRemove] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
@@ -956,6 +959,12 @@ function App() {
         onChanged={reloadTaskBoard}
       />
 
+      <TaskRetentionModal
+        open={taskRetentionOpen}
+        onClose={() => setTaskRetentionOpen(false)}
+        onChanged={reloadTaskBoard}
+      />
+
       <AuditModal open={auditOpen} onClose={() => setAuditOpen(false)} />
 
       <LunchModal
@@ -1036,6 +1045,7 @@ function App() {
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}
         showTasksAdmin={canManageTasks}
+        showTaskRetention={canManageTaskRetention}
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
@@ -1044,6 +1054,7 @@ function App() {
         onLunch={() => setLunchOpen(true)}
         onVidriera={() => openVidrieraModal()}
         onTasksAdmin={() => setTaskAdminOpen(true)}
+        onTaskRetention={() => setTaskRetentionOpen(true)}
         onAudit={() => setAuditOpen(true)}
         onLogin={() => setLoginOpen(true)}
         onLogout={logout}

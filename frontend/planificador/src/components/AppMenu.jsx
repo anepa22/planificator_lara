@@ -29,6 +29,7 @@ export default function AppMenu({
   showLunch = false,
   showVidriera = false,
   showTasksAdmin = false,
+  showTaskRetention = false,
   showAudit = false,
   userLabel,
   loggedIn = false,
@@ -37,6 +38,7 @@ export default function AppMenu({
   onLunch,
   onVidriera,
   onTasksAdmin,
+  onTaskRetention,
   onAudit,
   onLogin,
   onLogout,
@@ -44,7 +46,8 @@ export default function AppMenu({
   version,
 }) {
   const showPersonalGroup = showVacations || showLunch || showVidriera
-  const showOtherActions = showUsers || showTasksAdmin || showAudit
+  const showOtherActions =
+    showUsers || showTasksAdmin || showTaskRetention || showAudit
   const hasActions = showPersonalGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
 
@@ -226,6 +229,16 @@ export default function AppMenu({
                     }}
                   >
                     Administrar tareas
+                  </MenuItem>
+                )}
+                {showTaskRetention && (
+                  <MenuItem
+                    onClick={() => {
+                      onTaskRetention()
+                      onClose()
+                    }}
+                  >
+                    Retiro de verificadas
                   </MenuItem>
                 )}
                 {showAudit && (

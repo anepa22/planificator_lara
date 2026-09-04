@@ -181,6 +181,67 @@ public class TaskRepository {
         return changed == 0 ? Optional.empty() : findById(id);
     }
 
+    public int verifiedRetentionDays() {
+        Integer days = jdbc.sql("""
+                SELECT verified_retention_days
+                FROM task_settings
+                WHERE id = 1
+                """)
+                .query(Integer.class)
+                .optional()
+                .orElse(7);
+        return days;
+    }
+
+    public int updateVerifiedRetentionDays(int days) {
+        return jdbc.sql("""
+                INSERT INTO task_settings (id, verified_retention_days, updated_at)
+                VALUES (1, :days, NOW())
+                ON CONFLICT (id) DO UPDATE
+                SET verified_retention_days = EXCLUDED.verified_retention_days,
+                    updated_at = NOW()
+                """)
+                .param("days", days)
+                .update();
+    }
+
+    public int retireExpiredVerified(int days) {
+        return jdbc.sql("""
+                WITH eligible AS (
+                    SELECT t.id, t.assignee_user_id
+                    FROM tasks t
+                    WHERE t.on_board = TRUE
+                      AND t.status = 'VERIFIED'
+                      AND COALESCE((
+                          SELECT MAX(h.occurred_at)
+                          FROM task_history h
+                          WHERE h.task_id = t.id
+                            AND h.to_status = 'VERIFIED'
+                      ), t.updated_at) < NOW() - (:days * INTERVAL '1 day')
+                ),
+                retired AS (
+                    UPDATE tasks t
+                    SET on_board = FALSE,
+                        assignee_user_id = NULL,
+                        updated_at = NOW()
+                    FROM eligible e
+                    WHERE t.id = e.id
+                      AND t.on_board = TRUE
+                      AND t.status = 'VERIFIED'
+                    RETURNING t.id, e.assignee_user_id
+                )
+                INSERT INTO task_history (
+                    task_id, actor_user_id, action, from_status, to_status,
+                    from_assignee_user_id, to_assignee_user_id, occurred_at
+                )
+                SELECT id, NULL, 'RETIRE_AUTO', 'VERIFIED', 'VERIFIED',
+                       assignee_user_id, NULL, NOW()
+                FROM retired
+                """)
+                .param("days", days)
+                .update();
+    }
+
     public boolean isOnVacation(UUID userId, LocalDate date) {
         Integer count = jdbc.sql("""
                 SELECT COUNT(*)

@@ -12,6 +12,7 @@ public final class Permissions {
     public static final String TASKS_WRITE = "tasks:write";
     public static final String TASKS_MANAGE = "tasks:manage";
     public static final String TASKS_HISTORY = "tasks:history";
+    public static final String TASKS_RETENTION = "tasks:retention";
 
     public static final String VACATION_LOCATION_ID = "vacaciones";
     public static final String FRANCO_LOCATION_ID = "franco";

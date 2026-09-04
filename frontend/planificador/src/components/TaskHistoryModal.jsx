@@ -59,6 +59,9 @@ function eventText(entry) {
   if (entry.action === 'RETIRE') {
     return `${actor} la sacó del tablero`
   }
+  if (entry.action === 'RETIRE_AUTO') {
+    return 'Salió automáticamente del tablero'
+  }
   return `${actor} · ${entry.action}`
 }
 

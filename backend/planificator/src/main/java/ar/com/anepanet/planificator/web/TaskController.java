@@ -1,12 +1,14 @@
 package ar.com.anepanet.planificator.web;
 
 import ar.com.anepanet.planificator.domain.Task;
-import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
 import ar.com.anepanet.planificator.service.TaskService;
+import ar.com.anepanet.planificator.service.TaskRetentionService;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
 import ar.com.anepanet.planificator.web.dto.TaskAssignee;
+import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
+import ar.com.anepanet.planificator.web.dto.TaskRetentionSettings;
 import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,9 +30,11 @@ import java.util.UUID;
 public class TaskController {
 
     private final TaskService tasks;
+    private final TaskRetentionService retention;
 
-    public TaskController(TaskService tasks) {
+    public TaskController(TaskService tasks, TaskRetentionService retention) {
         this.tasks = tasks;
+        this.retention = retention;
     }
 
     @GetMapping("/board")
@@ -41,6 +45,17 @@ public class TaskController {
     @GetMapping("/{id}/history")
     public TaskHistoryResponse history(@PathVariable UUID id) {
         return tasks.history(id);
+    }
+
+    @GetMapping("/settings/retention")
+    public TaskRetentionSettings retentionSettings() {
+        return retention.settings();
+    }
+
+    @PutMapping("/settings/retention")
+    public TaskRetentionSettings updateRetentionSettings(
+            @Valid @RequestBody TaskRetentionSettings request) {
+        return retention.update(request);
     }
 
     @GetMapping("/assignees")

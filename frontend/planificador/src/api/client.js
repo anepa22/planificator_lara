@@ -78,6 +78,13 @@ export const deleteShift = (id) =>
 
 export const getTaskBoard = () => api('/api/tasks/board')
 export const getTaskHistory = (id) => api(`/api/tasks/${id}/history`)
+export const getTaskRetentionSettings = () =>
+  api('/api/tasks/settings/retention')
+export const updateTaskRetentionSettings = (verifiedRetentionDays) =>
+  api('/api/tasks/settings/retention', {
+    method: 'PUT',
+    body: JSON.stringify({ verifiedRetentionDays }),
+  })
 export const getTasks = () => api('/api/tasks')
 export const createTask = (body) =>
   api('/api/tasks', { method: 'POST', body: JSON.stringify(body) })
