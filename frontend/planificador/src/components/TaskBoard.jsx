@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { initials } from '../lib/palette'
+import { initials, paletteFor } from '../lib/palette'
 import TaskHistoryModal from './TaskHistoryModal'
 
 const COLUMNS = [
@@ -11,10 +11,17 @@ const COLUMNS = [
 ]
 
 const PERSONAL_DESTINATIONS = new Set(['IN_PROGRESS', 'BLOCKED', 'DONE'])
+const UNASSIGNED = '__none__'
+const NO_LOCATION = '__none__'
+
+function assigneeLabel(person) {
+  return person.displayName || person.name || person.username || 'Sin nombre'
+}
 
 export default function TaskBoard({
   tasks = [],
   assignees = [],
+  locations = [],
   currentUserId = null,
   canWrite = false,
   canManage = false,
@@ -29,14 +36,73 @@ export default function TaskBoard({
   const [blockReason, setBlockReason] = useState('')
   const [menu, setMenu] = useState(null)
   const [historyTask, setHistoryTask] = useState(null)
+  const [assigneeFilter, setAssigneeFilter] = useState('all')
+  const [locationFilter, setLocationFilter] = useState([])
+  const [query, setQuery] = useState('')
   const skipClickRef = useRef(false)
   const menuRef = useRef(null)
 
+  const people = useMemo(() => {
+    const map = new Map()
+    for (const person of assignees) {
+      map.set(String(person.id), {
+        id: person.id,
+        name: assigneeLabel(person),
+      })
+    }
+    for (const task of tasks) {
+      if (!task.assigneeUserId) continue
+      const id = String(task.assigneeUserId)
+      if (!map.has(id)) {
+        map.set(id, { id: task.assigneeUserId, name: task.assigneeName || 'Sin nombre' })
+      }
+    }
+    return [...map.values()].sort((a, b) =>
+      a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
+    )
+  }, [assignees, tasks])
+
+  const visibleTasks = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const locSet = locationFilter.length ? new Set(locationFilter) : null
+    return tasks.filter((task) => {
+      if (assigneeFilter === 'mine') {
+        if (String(task.assigneeUserId || '') !== String(currentUserId || '')) {
+          return false
+        }
+      } else if (assigneeFilter === UNASSIGNED) {
+        if (task.assigneeUserId) return false
+      } else if (assigneeFilter !== 'all') {
+        if (String(task.assigneeUserId || '') !== String(assigneeFilter)) {
+          return false
+        }
+      }
+      if (locSet) {
+        const loc = task.locationId || NO_LOCATION
+        if (!locSet.has(loc)) return false
+      }
+      if (q && !String(task.title || '').toLowerCase().includes(q)) {
+        return false
+      }
+      return true
+    })
+  }, [tasks, assigneeFilter, locationFilter, query, currentUserId])
+
   const byStatus = useMemo(() => {
     const map = new Map(COLUMNS.map((column) => [column.id, []]))
-    for (const task of tasks) map.get(task.status)?.push(task)
+    for (const task of visibleTasks) map.get(task.status)?.push(task)
     return map
-  }, [tasks])
+  }, [visibleTasks])
+
+  function selectAssignee(next) {
+    setAssigneeFilter((prev) => (prev === next ? 'all' : next))
+  }
+
+  function toggleLocation(id) {
+    setLocationFilter((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    )
+  }
 
   function canMoveTask(task) {
     if (!task.assigneeUserId) return false
@@ -131,8 +197,136 @@ export default function TaskBoard({
     menuTask.status === 'PENDING' &&
     !menuTask.assigneeUserId
 
+  const otherPeople = currentUserId
+    ? people.filter((person) => String(person.id) !== String(currentUserId))
+    : people
+  const filtering =
+    assigneeFilter !== 'all' || locationFilter.length > 0 || query.trim().length > 0
+
   return (
-    <>
+    <div className="task-board-wrap">
+      <div className="task-board-filters">
+        <div className="task-board-filter-row">
+          <span className="task-board-filter-label">Asignado</span>
+          <div className="legend" role="group" aria-label="Filtrar por asignado">
+            <button
+              type="button"
+              className={`chip${assigneeFilter === 'all' ? ' is-on' : ''}${
+                assigneeFilter !== 'all' ? ' is-dim' : ''
+              }`}
+              aria-pressed={assigneeFilter === 'all'}
+              onClick={() => setAssigneeFilter('all')}
+            >
+              Todas
+            </button>
+            {currentUserId && (
+              <button
+                type="button"
+                className={`chip${assigneeFilter === 'mine' ? ' is-on' : ''}${
+                  assigneeFilter !== 'all' && assigneeFilter !== 'mine' ? ' is-dim' : ''
+                }`}
+                aria-pressed={assigneeFilter === 'mine'}
+                onClick={() => selectAssignee('mine')}
+              >
+                Mías
+              </button>
+            )}
+            <button
+              type="button"
+              className={`chip${assigneeFilter === UNASSIGNED ? ' is-on' : ''}${
+                assigneeFilter !== 'all' && assigneeFilter !== UNASSIGNED ? ' is-dim' : ''
+              }`}
+              aria-pressed={assigneeFilter === UNASSIGNED}
+              onClick={() => selectAssignee(UNASSIGNED)}
+            >
+              Sin asignar
+            </button>
+            {otherPeople.map((person) => {
+              const on = String(assigneeFilter) === String(person.id)
+              const dim = assigneeFilter !== 'all' && !on
+              return (
+                <button
+                  type="button"
+                  className={`chip${on ? ' is-on' : ''}${dim ? ' is-dim' : ''}`}
+                  key={person.id}
+                  aria-pressed={on}
+                  title={on ? `Quitar filtro ${person.name}` : `Mostrar solo ${person.name}`}
+                  onClick={() => selectAssignee(String(person.id))}
+                >
+                  <span
+                    className="dot"
+                    style={{ background: paletteFor(person.id, people).c }}
+                  />
+                  {person.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="task-board-filter-row">
+          <span className="task-board-filter-label">Local</span>
+          <div className="legend" role="group" aria-label="Filtrar por local">
+            {locationFilter.length > 0 && (
+              <button
+                type="button"
+                className="chip chip-clear"
+                onClick={() => setLocationFilter([])}
+              >
+                Todos
+              </button>
+            )}
+            {locations.map((location) => {
+              const on = locationFilter.includes(location.id)
+              const dim = locationFilter.length > 0 && !on
+              return (
+                <button
+                  type="button"
+                  className={`chip${on ? ' is-on' : ''}${dim ? ' is-dim' : ''}`}
+                  key={location.id}
+                  aria-pressed={on}
+                  title={
+                    on
+                      ? `Quitar filtro ${location.name}`
+                      : `Mostrar solo ${location.name}`
+                  }
+                  onClick={() => toggleLocation(location.id)}
+                >
+                  <span className="dot" style={{ background: location.color }} />
+                  {location.name}
+                </button>
+              )
+            })}
+            <button
+              type="button"
+              className={`chip${locationFilter.includes(NO_LOCATION) ? ' is-on' : ''}${
+                locationFilter.length > 0 && !locationFilter.includes(NO_LOCATION)
+                  ? ' is-dim'
+                  : ''
+              }`}
+              aria-pressed={locationFilter.includes(NO_LOCATION)}
+              title="Tareas sin local"
+              onClick={() => toggleLocation(NO_LOCATION)}
+            >
+              Sin local
+            </button>
+          </div>
+          <input
+            className="task-board-search"
+            type="search"
+            value={query}
+            placeholder="Buscar título…"
+            aria-label="Buscar por título"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {filtering && (
+            <span className="task-filter-count">
+              {visibleTasks.length} de {tasks.length}
+            </span>
+          )}
+        </div>
+      </div>
+
       <div className="task-board" aria-label="Tareas de Asistentes">
         {COLUMNS.map((column) => {
           const columnTasks = byStatus.get(column.id) || []
@@ -402,6 +596,6 @@ export default function TaskBoard({
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }

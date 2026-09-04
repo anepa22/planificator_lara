@@ -869,6 +869,7 @@ function App() {
         <TaskBoard
           tasks={taskBoard}
           assignees={taskAssignees}
+          locations={workLocations(locations)}
           currentUserId={user?.id || null}
           canWrite={canWriteTasks}
           canManage={canManageTasks}

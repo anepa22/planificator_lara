@@ -860,13 +860,35 @@
 
   /* Task board */
   .task-view-title{margin:0;font-size:17px;font-weight:800;color:var(--ink);}
+  .task-board-wrap{
+    display:flex;flex-direction:column;gap:10px;
+    height:calc(100dvh - 148px);min-height:320px;
+  }
+  .task-board-filters{display:flex;flex-direction:column;gap:6px;flex:none;}
+  .task-board-filter-row{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  }
+  .task-board-filter-label{
+    flex:none;min-width:4.6em;padding:2px 0;
+    font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .task-board-search{
+    margin-left:auto;width:180px;min-width:140px;
+    border:1px solid var(--border);border-radius:999px;background:var(--card);
+    padding:5px 12px;font:inherit;font-size:12.5px;color:var(--ink);
+  }
+  .task-board-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .task-filter-count{
+    font-size:11.5px;font-weight:700;color:var(--ink-soft);white-space:nowrap;
+  }
   /* El tablero ocupa el alto disponible: cada columna scrollea por dentro,
      así las 5 entran en pantalla sin scroll de página (17" y más chicos). */
   /* Mismo marco que la grilla semanal: un contenedor con borde --grid-line y
      líneas internas entre columnas, en vez de 5 cajas sueltas. */
   .task-board{
     display:grid;grid-template-columns:repeat(5,minmax(180px,1fr));gap:0;
-    height:calc(100dvh - 140px);min-height:320px;
+    flex:1;min-height:0;height:auto;
     background:var(--card);border:1px solid var(--grid-line);border-radius:14px;
     box-shadow:var(--shadow);
     overflow-x:auto;overflow-y:hidden;align-items:stretch;
@@ -1186,10 +1208,12 @@
     .gantt-scroll{
       max-height:calc(100dvh - 160px);
     }
+    .task-board-wrap{height:auto;min-height:0;}
     .task-board{
       height:auto;min-height:0;overflow-y:visible;
       grid-template-columns:repeat(5,minmax(200px,1fr));
     }
+    .task-board-search{margin-left:0;width:100%;max-width:none;}
     .task-column{min-height:300px;}
     .task-column-body{overflow-y:visible;}
     .task-admin-form{grid-template-columns:1fr;}
