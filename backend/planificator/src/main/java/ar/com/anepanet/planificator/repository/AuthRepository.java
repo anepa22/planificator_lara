@@ -5,6 +5,7 @@ import ar.com.anepanet.planificator.domain.Permission;
 import ar.com.anepanet.planificator.domain.Role;
 import ar.com.anepanet.planificator.domain.StaffMember;
 import ar.com.anepanet.planificator.domain.UserPrincipal;
+import ar.com.anepanet.planificator.security.Permissions;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -150,18 +151,21 @@ public class AuthRepository {
     }
 
     /**
-     * Personal visible en el planificador: usuarios activos con rol Personal,
-     * tengan habilitado el ingreso o no. Las cuentas administrativas quedan
-     * afuera de la grilla.
+     * Personal visible en Horarios: usuarios activos con el permiso de
+     * aparecer en el planificador, tengan habilitado el ingreso o no.
      */
     public List<StaffMember> findActiveStaff() {
         return jdbc.sql("""
-                SELECT u.id, u.display_name, u.color
+                SELECT DISTINCT u.id, u.display_name, u.color
                 FROM app_users u
-                JOIN user_roles ur ON ur.user_id = u.id AND ur.role_id = 'personal'
+                JOIN user_roles ur ON ur.user_id = u.id
+                JOIN role_permissions rp ON rp.role_id = ur.role_id
+                JOIN permissions p ON p.id = rp.permission_id
                 WHERE u.is_active = TRUE
+                  AND p.code = :code
                 ORDER BY u.display_name
                 """)
+                .param("code", Permissions.SCHEDULE_APPEAR)
                 .query((rs, n) -> new StaffMember(
                         rs.getObject("id", UUID.class),
                         rs.getString("display_name"),

@@ -107,6 +107,13 @@ public class AuthCleanup implements ApplicationRunner {
                     """).update();
 
             // people:write pasó a staff:write al unificar personal y usuarios
+            ensurePermission("schedule_appear", Permissions.SCHEDULE_APPEAR, "Aparecer en horarios");
+            jdbc.sql("""
+                    INSERT INTO role_permissions (role_id, permission_id) VALUES
+                        ('personal', 'schedule_appear')
+                    ON CONFLICT DO NOTHING
+                    """).update();
+
             ensurePermission("staff_write", Permissions.STAFF_WRITE, "Gestionar asistentes");
             jdbc.sql("""
                     INSERT INTO role_permissions (role_id, permission_id)

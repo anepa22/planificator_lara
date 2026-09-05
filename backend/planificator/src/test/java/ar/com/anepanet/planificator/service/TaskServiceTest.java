@@ -9,6 +9,7 @@ import ar.com.anepanet.planificator.security.AuthUser;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
+import ar.com.anepanet.planificator.web.dto.TaskAssignee;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +72,44 @@ class TaskServiceTest {
                 () -> service.assign(taskId, new AssignTaskRequest(other)));
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(tasks, never()).assign(any(), any());
+    }
+
+    @Test
+    void assigneesAreListedByPermissionRegardlessOfLoginAndRole() {
+        login(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE);
+        UUID withoutLogin = UUID.randomUUID();
+        UUID supervisor = UUID.randomUUID();
+        UUID withoutPermission = UUID.randomUUID();
+        when(auth.findAllUsers()).thenReturn(List.of(
+                user(withoutLogin, "brenda.cappa", "Brenda", false,
+                        List.of("personal"), List.of(Permissions.TASKS_WRITE)),
+                user(supervisor, "gicemon", "Gisela", true,
+                        List.of("editor"), List.of(Permissions.TASKS_WRITE)),
+                user(withoutPermission, "solo.horarios", "Sin permiso", true,
+                        List.of("editor"), List.of(Permissions.SHIFTS_WRITE))));
+
+        List<UUID> listed = service.assignees().stream().map(TaskAssignee::id).toList();
+
+        assertEquals(List.of(withoutLogin, supervisor), listed);
+    }
+
+    @Test
+    void assignmentIsRejectedWhenTargetLacksTaskPermission() {
+        login(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(true)));
+        UUID target = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "PENDING", null)));
+        when(auth.findById(target)).thenReturn(Optional.of(user(
+                target, "solo.horarios", "Sin permiso", true,
+                List.of("editor"), List.of(Permissions.SHIFTS_WRITE))));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> service.assign(taskId, new AssignTaskRequest(target)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         verify(tasks, never()).assign(any(), any());
     }
 
@@ -208,10 +247,20 @@ class TaskServiceTest {
     }
 
     private AppUser staffUser(UUID id) {
+        return user(id, "asistente", "Brenda", true,
+                List.of("personal"), List.of(Permissions.TASKS_WRITE));
+    }
+
+    private AppUser user(
+            UUID id,
+            String username,
+            String displayName,
+            boolean canLogin,
+            List<String> roleIds,
+            List<String> permissions) {
         return new AppUser(
-                id, "asistente", "hash", "Brenda", "#123456", null, true, true, false,
-                OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"),
-                List.of(Permissions.TASKS_WRITE));
+                id, username, "hash", displayName, "#123456", null, true, canLogin, false,
+                OffsetDateTime.now(), OffsetDateTime.now(), roleIds, permissions);
     }
 
     private AppUser appUser(boolean manager, String telegramChatId) {

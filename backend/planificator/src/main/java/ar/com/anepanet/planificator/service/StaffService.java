@@ -26,7 +26,7 @@ public class StaffService {
     /** Hash imposible de matchear; igual can_login = FALSE ya bloquea el ingreso. */
     private static final String NO_LOGIN_HASH = "!";
 
-    /** El rol Personal es lo que hace que el usuario aparezca en el planificador. */
+    /** Alta rápida: el rol Asistente ya trae el permiso de aparecer en Horarios. */
     private static final String PERSONAL_ROLE = "personal";
 
     private static final int USERNAME_MAX = 60;

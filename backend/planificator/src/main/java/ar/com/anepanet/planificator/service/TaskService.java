@@ -38,8 +38,6 @@ public class TaskService {
     private static final ZoneId BUSINESS_ZONE =
             ZoneId.of("America/Argentina/Buenos_Aires");
 
-    private static final String PERSONAL_ROLE = "personal";
-
     private final TaskRepository tasks;
     private final LocationRepository locations;
     private final AuthRepository auth;
@@ -89,8 +87,7 @@ public class TaskService {
         requireManager();
         return auth.findAllUsers().stream()
                 .filter(AppUser::active)
-                .filter(AppUser::canLogin)
-                .filter(user -> user.roleIds() != null && user.roleIds().contains(PERSONAL_ROLE))
+                .filter(TaskService::canOwnTasks)
                 .map(user -> new TaskAssignee(
                         user.id(),
                         user.username(),
@@ -174,9 +171,10 @@ public class TaskService {
                 .filter(AppUser::active)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Usuario inválido o inactivo"));
-        if (target.roleIds() == null || !target.roleIds().contains(PERSONAL_ROLE)) {
+        if (!canOwnTasks(target)) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Solo se puede asignar a usuarios con rol Asistente");
+                    HttpStatus.BAD_REQUEST,
+                    displayName(target) + " no tiene el permiso para tomar y mover tareas propias");
         }
         LocalDate today = LocalDate.now(BUSINESS_ZONE);
         if (tasks.isOnVacation(target.id(), today)) {
@@ -351,6 +349,11 @@ public class TaskService {
 
     private boolean isManager() {
         return SecurityUtils.hasAuthority(Permissions.TASKS_MANAGE);
+    }
+
+    private static boolean canOwnTasks(AppUser user) {
+        return user.permissions() != null
+                && user.permissions().contains(Permissions.TASKS_WRITE);
     }
 
     private void requireManager() {
