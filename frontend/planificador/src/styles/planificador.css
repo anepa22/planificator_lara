@@ -501,6 +501,22 @@
   .summary-item .av{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;}
   .summary-item .sname{font-size:12.5px;font-weight:700;}
   .summary-item .shrs{font-size:11.5px;color:var(--ink-soft);margin-left:2px;}
+  .vidriera-month-days{display:flex;flex-direction:column;gap:6px;}
+  .vidriera-month-day{
+    display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;
+    padding:7px 10px;background:var(--bg);border:1px solid var(--border-soft);border-radius:10px;
+  }
+  .vidriera-month-date{
+    flex:none;min-width:4.5rem;font-size:12.5px;font-weight:800;color:var(--ink);
+    text-transform:capitalize;padding-top:2px;
+  }
+  .vidriera-month-locs{display:flex;flex-wrap:wrap;gap:6px;}
+  .vidriera-month-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#fff;border:1px solid var(--border-soft);border-radius:999px;
+    padding:3px 10px 3px 6px;font-size:12px;font-weight:700;
+  }
+  .vidriera-month-chip .dot{width:8px;height:8px;border-radius:50%;flex:none;}
 
   .overlay{position:fixed;inset:0;background:rgba(16,22,30,0.42);display:flex;align-items:center;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .15s;}
   .overlay.open{opacity:1;pointer-events:auto;}

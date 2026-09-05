@@ -35,6 +35,7 @@ import UsersModal from './components/UsersModal'
 import VacationModal from './components/VacationModal'
 import VacationRemoveModal from './components/VacationRemoveModal'
 import VidrieraModal from './components/VidrieraModal'
+import VidrieraMonthSummary from './components/VidrieraMonthSummary'
 import WeekNav from './components/WeekNav'
 import {
   addDays,
@@ -880,6 +881,7 @@ function App() {
           onRetire={handleRetireTask}
         />
       ) : view === 'month' ? (
+        <>
         <MonthGantt
           monthDate={monthDate}
           staff={visibleMonthStaff}
@@ -897,6 +899,12 @@ function App() {
           onRangeAssign={openRangeAssignMonth}
           onAbsence={openAbsenceRemove}
         />
+        <VidrieraMonthSummary
+          monthDate={monthDate}
+          vidrieras={visibleMonthVidrieras}
+          locations={locations}
+        />
+        </>
       ) : (
         <ScheduleGrid
           locations={workLocations(locations)}
