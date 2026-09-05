@@ -211,6 +211,9 @@ export default function TaskBoard({
     !!currentUserId &&
     menuTask.status === 'PENDING' &&
     !menuTask.assigneeUserId
+  const assignChoices = canSelfAssign
+    ? assignees.filter((person) => String(person.id) !== String(currentUserId))
+    : assignees
 
   const otherPeople = currentUserId
     ? people.filter((person) => String(person.id) !== String(currentUserId))
@@ -511,13 +514,7 @@ export default function TaskBoard({
                   >
                     Sin asignar
                   </button>
-                  {assignees
-                    .filter(
-                      (assignee) =>
-                        !canSelfAssign ||
-                        String(assignee.id) !== String(currentUserId),
-                    )
-                    .map((assignee) => (
+                  {assignChoices.map((assignee) => (
                     <button
                       type="button"
                       role="menuitem"

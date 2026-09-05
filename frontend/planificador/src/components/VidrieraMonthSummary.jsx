@@ -1,14 +1,5 @@
 import { useMemo } from 'react'
-import { fmtMonthLabel, parseDateKey } from '../lib/dates'
-
-function dateLabel(dateKey) {
-  const d = parseDateKey(dateKey)
-  const raw = d.toLocaleDateString('es-AR', {
-    weekday: 'short',
-    day: 'numeric',
-  })
-  return raw.replace('.', '').replace(/^./, (c) => c.toUpperCase())
-}
+import { fmtMonthLabel, fmtVidrieraDay, parseDateKey, workDateKey } from '../lib/dates'
 
 export default function VidrieraMonthSummary({
   monthDate,
@@ -26,22 +17,26 @@ export default function VidrieraMonthSummary({
     const m = monthDate.getMonth()
     const byDate = new Map()
     for (const row of vidrieras) {
-      const key = String(row.workDate).slice(0, 10)
+      const key = workDateKey(row.workDate)
+      if (!key) continue
       const d = parseDateKey(key)
       if (d.getFullYear() !== y || d.getMonth() !== m) continue
-      if (!byDate.has(key)) byDate.set(key, [])
-      const loc = locById.get(row.locationId)
-      byDate.get(key).push({
-        id: row.locationId,
-        name: row.locationName || loc?.name || row.locationId,
-        color: loc?.color || '#E3B505',
-      })
+      const locs = byDate.get(key) || []
+      if (!locs.some((loc) => loc.id === row.locationId)) {
+        const loc = locById.get(row.locationId)
+        locs.push({
+          id: row.locationId,
+          name: row.locationName || loc?.name || row.locationId,
+          color: loc?.color || '#E3B505',
+        })
+        byDate.set(key, locs)
+      }
     }
     return [...byDate.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([dateKey, locs]) => ({
         dateKey,
-        label: dateLabel(dateKey),
+        label: fmtVidrieraDay(dateKey),
         locations: locs.sort((a, b) => a.name.localeCompare(b.name, 'es')),
       }))
   }, [vidrieras, monthDate, locById])

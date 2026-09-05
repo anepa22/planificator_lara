@@ -87,7 +87,7 @@ public class TaskService {
         requireManager();
         return auth.findAllUsers().stream()
                 .filter(AppUser::active)
-                .filter(TaskService::canOwnTasks)
+                .filter(TaskService::canAppearOnTasks)
                 .map(user -> new TaskAssignee(
                         user.id(),
                         user.username(),
@@ -171,7 +171,7 @@ public class TaskService {
                 .filter(AppUser::active)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Usuario inválido o inactivo"));
-        if (!canOwnTasks(target)) {
+        if (!canAppearOnTasks(target)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     displayName(target) + " no tiene el permiso para aparecer en tareas");
@@ -351,7 +351,7 @@ public class TaskService {
         return SecurityUtils.hasAuthority(Permissions.TASKS_MANAGE);
     }
 
-    private static boolean canOwnTasks(AppUser user) {
+    private static boolean canAppearOnTasks(AppUser user) {
         return user.permissions() != null
                 && user.permissions().contains(Permissions.TASKS_APPEAR);
     }

@@ -1,17 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DAYS, parseDateKey, toDateKey } from '../lib/dates'
-
-function dateKeyOf(value) {
-  if (!value) return ''
-  return String(value).slice(0, 10)
-}
-
-function fmtVidrieraDay(key) {
-  const d = parseDateKey(key)
-  if (Number.isNaN(d.getTime())) return key
-  const dow = DAYS[(d.getDay() + 6) % 7]
-  return `${dow} ${d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`
-}
+import { fmtVidrieraDay, toDateKey, workDateKey } from '../lib/dates'
 
 export default function VidrieraModal({
   open,
@@ -43,7 +31,7 @@ export default function VidrieraModal({
   const existingByDate = useMemo(() => {
     const map = new Map()
     for (const v of existing || []) {
-      const date = dateKeyOf(v.workDate)
+      const date = workDateKey(v.workDate)
       if (!date) continue
       const name = v.locationName || locNameById.get(v.locationId) || v.locationId
       const names = map.get(date) || []

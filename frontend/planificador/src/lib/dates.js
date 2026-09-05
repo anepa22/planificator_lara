@@ -146,6 +146,19 @@ export function parseDateKey(key) {
   return date
 }
 
+/** YYYY-MM-DD desde un LocalDate o ISO que llega de la API. */
+export function workDateKey(value) {
+  if (!value) return ''
+  return String(value).slice(0, 10)
+}
+
+export function fmtVidrieraDay(key) {
+  const d = parseDateKey(key)
+  if (Number.isNaN(d.getTime())) return key
+  const dow = DAYS[(d.getDay() + 6) % 7]
+  return `${dow} ${d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`
+}
+
 /** Lista inclusiva de YYYY-MM-DD entre fromKey y toKey. */
 export function eachDateKey(fromKey, toKey) {
   let d = parseDateKey(fromKey)
