@@ -174,7 +174,7 @@ public class TaskService {
         if (!canOwnTasks(target)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    displayName(target) + " no tiene el permiso para tomar y mover tareas propias");
+                    displayName(target) + " no tiene el permiso para aparecer en tareas");
         }
         LocalDate today = LocalDate.now(BUSINESS_ZONE);
         if (tasks.isOnVacation(target.id(), today)) {
@@ -353,7 +353,7 @@ public class TaskService {
 
     private static boolean canOwnTasks(AppUser user) {
         return user.permissions() != null
-                && user.permissions().contains(Permissions.TASKS_WRITE);
+                && user.permissions().contains(Permissions.TASKS_APPEAR);
     }
 
     private void requireManager() {

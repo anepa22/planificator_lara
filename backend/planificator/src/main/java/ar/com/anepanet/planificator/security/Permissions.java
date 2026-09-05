@@ -11,6 +11,7 @@ public final class Permissions {
     public static final String ROLES_MANAGE = "roles:manage";
     public static final String AUDIT_READ = "audit:read";
     public static final String TASKS_WRITE = "tasks:write";
+    public static final String TASKS_APPEAR = "tasks:appear";
     public static final String TASKS_MANAGE = "tasks:manage";
     public static final String TASKS_HISTORY = "tasks:history";
     public static final String TASKS_RETENTION = "tasks:retention";

@@ -82,6 +82,14 @@ public class AuthCleanup implements ApplicationRunner {
                     ON CONFLICT DO NOTHING
                     """).update();
 
+            ensurePermission("tasks_appear", Permissions.TASKS_APPEAR, "Aparecer en tareas");
+            jdbc.sql("""
+                    INSERT INTO role_permissions (role_id, permission_id) VALUES
+                        ('personal', 'tasks_appear'),
+                        ('editor', 'tasks_appear')
+                    ON CONFLICT DO NOTHING
+                    """).update();
+
             ensurePermission("tasks_write", Permissions.TASKS_WRITE, "Tomar y mover tareas propias");
             ensurePermission("tasks_manage", Permissions.TASKS_MANAGE, "Administrar todas las tareas");
             ensurePermission("tasks_history", Permissions.TASKS_HISTORY, "Ver historial de movimientos de tareas");

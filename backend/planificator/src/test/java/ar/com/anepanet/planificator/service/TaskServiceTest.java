@@ -83,11 +83,11 @@ class TaskServiceTest {
         UUID withoutPermission = UUID.randomUUID();
         when(auth.findAllUsers()).thenReturn(List.of(
                 user(withoutLogin, "brenda.cappa", "Brenda", false,
-                        List.of("personal"), List.of(Permissions.TASKS_WRITE)),
+                        List.of("personal"), List.of(Permissions.TASKS_APPEAR)),
                 user(supervisor, "gicemon", "Gisela", true,
-                        List.of("editor"), List.of(Permissions.TASKS_WRITE)),
-                user(withoutPermission, "solo.horarios", "Sin permiso", true,
-                        List.of("editor"), List.of(Permissions.SHIFTS_WRITE))));
+                        List.of("editor"), List.of(Permissions.TASKS_APPEAR)),
+                user(withoutPermission, "admin", "Administrador", true,
+                        List.of("admin"), List.of(Permissions.TASKS_WRITE))));
 
         List<UUID> listed = service.assignees().stream().map(TaskAssignee::id).toList();
 
@@ -248,7 +248,7 @@ class TaskServiceTest {
 
     private AppUser staffUser(UUID id) {
         return user(id, "asistente", "Brenda", true,
-                List.of("personal"), List.of(Permissions.TASKS_WRITE));
+                List.of("personal"), List.of(Permissions.TASKS_WRITE, Permissions.TASKS_APPEAR));
     }
 
     private AppUser user(
@@ -266,7 +266,7 @@ class TaskServiceTest {
     private AppUser appUser(boolean manager, String telegramChatId) {
         List<String> permissions = manager
                 ? List.of(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE)
-                : List.of(Permissions.TASKS_WRITE);
+                : List.of(Permissions.TASKS_WRITE, Permissions.TASKS_APPEAR);
         return new AppUser(
                 userId, "test", "hash", "Test", "#123456", telegramChatId, true, true, false,
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
