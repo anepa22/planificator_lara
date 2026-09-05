@@ -511,7 +511,13 @@ export default function TaskBoard({
                   >
                     Sin asignar
                   </button>
-                  {assignees.map((assignee) => (
+                  {assignees
+                    .filter(
+                      (assignee) =>
+                        !canSelfAssign ||
+                        String(assignee.id) !== String(currentUserId),
+                    )
+                    .map((assignee) => (
                     <button
                       type="button"
                       role="menuitem"
