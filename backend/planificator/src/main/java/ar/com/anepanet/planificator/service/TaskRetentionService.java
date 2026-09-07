@@ -51,12 +51,8 @@ public class TaskRetentionService {
         }
     }
 
-    private int retireExpired() {
-        return tasks.retireExpiredVerified(tasks.verifiedRetentionDays());
-    }
-
     private int retireExpiredAndPublish() {
-        int retired = retireExpired();
+        int retired = tasks.retireExpiredVerified(tasks.verifiedRetentionDays());
         if (retired > 0) {
             events.publishEvent(new PlanificatorChangedEvent(PlanificatorChangedEvent.TASKS));
         }

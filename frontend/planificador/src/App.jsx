@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createShift,
   assignTask,
@@ -8,7 +8,6 @@ import {
   getLocations,
   getShifts,
   getStaff,
-  getSyncWebSocketUrl,
   getTaskAssignees,
   getTaskBoard,
   getVidrieras,
@@ -19,6 +18,7 @@ import {
   updateShift,
 } from './api/client'
 import { useAuth } from './auth/useAuth'
+import { usePlanificatorSync } from './hooks/usePlanificatorSync'
 import AppMenu from './components/AppMenu'
 import AuditModal from './components/AuditModal'
 import DayTabs from './components/DayTabs'
@@ -74,8 +74,6 @@ function activeOnly(list) {
   return list.filter((x) => x.active !== false)
 }
 
-const SYNC_INTERVAL_MS = 10_000
-
 function App() {
   const { user, booting, can, logout, refreshMe } = useAuth()
   const canWriteShifts = can('shifts:write')
@@ -125,11 +123,6 @@ function App() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [taskBoardInteracting, setTaskBoardInteracting] = useState(false)
-  const syncInFlightRef = useRef(false)
-  const syncStateRef = useRef(null)
-  const syncRequestRef = useRef(null)
-  const pendingSyncRef = useRef(new Set())
-  const webSocketConnectedRef = useRef(false)
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', menuOpen)
@@ -373,7 +366,6 @@ function App() {
   const syncPaused =
     loading ||
     taskLoading ||
-    busy ||
     taskBoardInteracting ||
     !!shiftModal ||
     usersOpen ||
@@ -388,136 +380,30 @@ function App() {
     changePasswordOpen ||
     mustChangePassword
 
-  syncStateRef.current = {
-    busy,
-    monthOffset,
-    paused: syncPaused,
+  const syncVisibleView = useCallback(async () => {
+    if (view === 'week') {
+      await reloadWeek(weekKey)
+    } else if (view === 'month') {
+      await reloadMonth(monthStartForOffset(monthOffset))
+    } else if (view === 'tasks') {
+      await reloadTaskBoard()
+    }
+  }, [
     view,
     weekKey,
-  }
+    monthOffset,
+    reloadWeek,
+    reloadMonth,
+    reloadTaskBoard,
+  ])
 
-  syncRequestRef.current = async (scope = 'all') => {
-    const state = syncStateRef.current
-    if (!state) return
-
-    const affectsVisibleView =
-      scope === 'all' ||
-      (scope === 'tasks' && state.view === 'tasks') ||
-      ((scope === 'schedule' || scope === 'vidrieras') &&
-        (state.view === 'week' || state.view === 'month'))
-    if (!affectsVisibleView || state.busy) return
-
-    if (
-      state.paused ||
-      document.visibilityState !== 'visible' ||
-      syncInFlightRef.current
-    ) {
-      pendingSyncRef.current.add(scope)
-      return
-    }
-
-    syncInFlightRef.current = true
-    try {
-      if (state.view === 'week') {
-        await reloadWeek(state.weekKey)
-      } else if (state.view === 'month') {
-        await reloadMonth(monthStartForOffset(state.monthOffset))
-      } else if (state.view === 'tasks') {
-        await reloadTaskBoard()
-      }
-    } catch {
-      // La sincronización automática no debe interrumpir el uso de la vista.
-    } finally {
-      syncInFlightRef.current = false
-      const latest = syncStateRef.current
-      if (
-        pendingSyncRef.current.size > 0 &&
-        latest &&
-        !latest.paused &&
-        document.visibilityState === 'visible'
-      ) {
-        pendingSyncRef.current.clear()
-        window.setTimeout(() => void syncRequestRef.current?.('all'), 0)
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (booting || syncPaused || pendingSyncRef.current.size === 0) return
-    pendingSyncRef.current.clear()
-    void syncRequestRef.current?.('all')
-  }, [booting, syncPaused])
-
-  useEffect(() => {
-    if (booting) return
-
-    let stopped = false
-    let socket = null
-    let reconnectTimer = null
-    let reconnectDelay = 1_000
-
-    function connect() {
-      if (stopped) return
-      socket = new WebSocket(getSyncWebSocketUrl())
-
-      socket.addEventListener('open', () => {
-        webSocketConnectedRef.current = true
-        reconnectDelay = 1_000
-        void syncRequestRef.current?.('all')
-      })
-      socket.addEventListener('message', (event) => {
-        try {
-          const message = JSON.parse(event.data)
-          if (message.type === 'sync' && typeof message.scope === 'string') {
-            void syncRequestRef.current?.(message.scope)
-          }
-        } catch {
-          // Ignorar mensajes que no pertenezcan al protocolo de sincronización.
-        }
-      })
-      socket.addEventListener('close', () => {
-        webSocketConnectedRef.current = false
-        if (stopped) return
-        reconnectTimer = window.setTimeout(connect, reconnectDelay)
-        reconnectDelay = Math.min(reconnectDelay * 2, 15_000)
-      })
-      socket.addEventListener('error', () => socket?.close())
-    }
-
-    connect()
-    return () => {
-      stopped = true
-      webSocketConnectedRef.current = false
-      if (reconnectTimer) window.clearTimeout(reconnectTimer)
-      socket?.close()
-    }
-  }, [booting])
-
-  useEffect(() => {
-    if (booting) return
-
-    function pollWhenDisconnected() {
-      if (!webSocketConnectedRef.current) {
-        void syncRequestRef.current?.('all')
-      }
-    }
-
-    function syncWhenVisible() {
-      if (document.visibilityState === 'visible') {
-        void syncRequestRef.current?.('all')
-      }
-    }
-
-    const intervalId = window.setInterval(
-      pollWhenDisconnected,
-      SYNC_INTERVAL_MS,
-    )
-    document.addEventListener('visibilitychange', syncWhenVisible)
-    return () => {
-      window.clearInterval(intervalId)
-      document.removeEventListener('visibilitychange', syncWhenVisible)
-    }
-  }, [booting])
+  usePlanificatorSync({
+    booting,
+    busy,
+    paused: syncPaused,
+    view,
+    onSync: syncVisibleView,
+  })
 
   useEffect(() => {
     if (booting) return
