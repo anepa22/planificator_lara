@@ -119,6 +119,17 @@ export default function UsersModal({ open, onClose, onChanged }) {
     [permissions],
   )
 
+  /** Códigos que ya otorgan los roles marcados: no se editan como individuales. */
+  const inheritedPermissionCodes = useMemo(
+    () =>
+      new Set(
+        roles
+          .filter((role) => form.roleIds.includes(role.id))
+          .flatMap((role) => role.permissionCodes),
+      ),
+    [roles, form.roleIds],
+  )
+
   const visibleUsers = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('es')
     if (!needle) return users
@@ -232,21 +243,14 @@ export default function UsersModal({ open, onClose, onChanged }) {
     })
   }
 
-  function inheritedPermissionCodes() {
-    return new Set(
-      roles
-        .filter((role) => form.roleIds.includes(role.id))
-        .flatMap((role) => role.permissionCodes),
+  function individualPermissionsToSave() {
+    return form.individualPermissionCodes.filter(
+      (code) => !inheritedPermissionCodes.has(code),
     )
   }
 
-  function individualPermissionsToSave() {
-    const inherited = inheritedPermissionCodes()
-    return form.individualPermissionCodes.filter((code) => !inherited.has(code))
-  }
-
   function toggleIndividualPermission(code) {
-    if (inheritedPermissionCodes().has(code)) return
+    if (inheritedPermissionCodes.has(code)) return
     setForm((prev) => {
       const individualPermissionCodes = prev.individualPermissionCodes.includes(code)
         ? prev.individualPermissionCodes.filter((item) => item !== code)
@@ -276,6 +280,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
   const editingUser = editingId
     ? users.find((user) => user.id === editingId)
     : null
+  const extraPermissionCount = individualPermissionsToSave().length
 
   return (
     <>
@@ -479,8 +484,17 @@ export default function UsersModal({ open, onClose, onChanged }) {
                       })}
                     </div>
                   </div>
-                  <div className="field field-wide user-permissions-field">
-                    <label>Permisos individuales</label>
+                  <details className="field field-wide user-permissions-field">
+                    <summary className="user-permissions-summary">
+                      <span className="user-permissions-title">
+                        Permisos individuales
+                      </span>
+                      <span className="user-permissions-count">
+                        {inheritedPermissionCodes.size} por rol ·{' '}
+                        {extraPermissionCount} individual
+                        {extraPermissionCount === 1 ? '' : 'es'}
+                      </span>
+                    </summary>
                     <span className="field-help">
                       Se suman a los permisos de sus roles. Los marcados «Por rol»
                       se administran desde la pestaña Roles.
@@ -490,7 +504,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
                         <div className="role-group-title">{group.title}</div>
                         <div className="role-perms">
                           {group.items.map((permission) => {
-                            const inherited = inheritedPermissionCodes().has(
+                            const inherited = inheritedPermissionCodes.has(
                               permission.code,
                             )
                             const individual =
@@ -526,7 +540,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </details>
                   <div className="users-form-checks field-wide">
                     <label
                       className={`check-card check-card-compact${

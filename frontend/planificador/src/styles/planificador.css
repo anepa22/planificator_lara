@@ -176,10 +176,28 @@
   .users-form-close:hover:not(:disabled){background:var(--accent-soft);color:var(--accent);}
   .users-form-checks{display:flex;flex-wrap:wrap;gap:10px;}
   .users-form-checks .check-card{flex:1 1 240px;margin:0;}
+  /* Cerrada, el formulario mantiene su alto; abierta, scrollea sin tapar Guardar. */
   .user-permissions-field{
-    padding:10px 12px;border:1px solid var(--border-soft);border-radius:10px;background:#FCFDFE;
+    padding:0;border:1px solid var(--border-soft);border-radius:10px;background:#FCFDFE;
   }
-  .user-permissions-field > .field-help{display:block;margin:2px 0 9px;}
+  .user-permissions-summary{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 12px;cursor:pointer;list-style:none;
+  }
+  .user-permissions-summary::-webkit-details-marker{display:none;}
+  .user-permissions-title{
+    font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .user-permissions-count{font-size:10.5px;font-weight:700;color:var(--ink-soft);}
+  .user-permissions-field[open]{
+    padding-bottom:10px;max-height:min(38vh,320px);overflow:auto;
+  }
+  .user-permissions-field[open] .user-permissions-summary{
+    border-bottom:1px solid var(--border-soft);
+  }
+  .user-permissions-field > .field-help{display:block;margin:8px 12px 9px;}
+  .user-permissions-field .role-group{margin:0 12px;}
   .role-pills{display:flex;flex-wrap:wrap;gap:6px;}
   .role-pill{
     position:relative;display:inline-flex;align-items:center;gap:0;margin:0;
