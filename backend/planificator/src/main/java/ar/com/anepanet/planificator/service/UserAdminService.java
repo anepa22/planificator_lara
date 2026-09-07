@@ -49,6 +49,7 @@ public class UserAdminService {
     @Transactional
     public UserResponse createUser(CreateUserRequest req) {
         validateRoles(req.roleIds());
+        validatePermissions(req.individualPermissionCodes());
         String username = requireUsername(req.username());
         boolean canLogin = req.canLogin() == null || req.canLogin();
         String hash = NO_LOGIN_HASH;
@@ -64,7 +65,8 @@ public class UserAdminService {
                     req.color(),
                     cleanTelegramChatId(req.telegramChatId()),
                     canLogin,
-                    req.roleIds()
+                    req.roleIds(),
+                    req.individualPermissionCodes()
             );
             audit.record(
                     AuditService.ACTION_CREATE,
@@ -72,6 +74,8 @@ public class UserAdminService {
                     user.id().toString(),
                     user.username()
                             + " (" + String.join(", ", req.roleIds()) + ")"
+                            + " · permisos individuales=["
+                            + String.join(", ", req.individualPermissionCodes()) + "]"
                             + (canLogin ? "" : " · sin login")
             );
             return toResponse(user);
@@ -83,6 +87,7 @@ public class UserAdminService {
     @Transactional
     public UserResponse updateUser(UUID id, UpdateUserRequest req) {
         validateRoles(req.roleIds());
+        validatePermissions(req.individualPermissionCodes());
         AppUser existing = auth.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         boolean canLogin = req.canLogin() == null ? existing.canLogin() : req.canLogin();
@@ -112,7 +117,8 @@ public class UserAdminService {
                         cleanTelegramChatId(req.telegramChatId()),
                         canLogin,
                         passwordChanged && canLogin ? Boolean.TRUE : null,
-                        req.roleIds())
+                        req.roleIds(),
+                        req.individualPermissionCodes())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         audit.record(
@@ -121,6 +127,8 @@ public class UserAdminService {
                 user.id().toString(),
                 user.username()
                         + " · roles=[" + String.join(", ", req.roleIds()) + "]"
+                        + " · permisos individuales=["
+                        + String.join(", ", req.individualPermissionCodes()) + "]"
                         + " · activo=" + req.active()
                         + " · login=" + canLogin
                         + (passwordChanged ? " · contraseña cambiada" : "")
@@ -162,13 +170,7 @@ public class UserAdminService {
     public Role updateRolePermissions(String roleId, UpdateRolePermissionsRequest req) {
         Role role = auth.findRoleById(roleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no encontrado"));
-        Set<String> known = new HashSet<>();
-        auth.findAllPermissions().forEach(p -> known.add(p.code()));
-        for (String code : req.permissionCodes()) {
-            if (!known.contains(code)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permiso desconocido: " + code);
-            }
-        }
+        validatePermissions(req.permissionCodes());
         auth.replaceRolePermissions(roleId, req.permissionCodes());
         String perms = req.permissionCodes().stream().sorted().collect(Collectors.joining(", "));
         audit.record(
@@ -178,6 +180,19 @@ public class UserAdminService {
                 "Permisos del rol " + roleId + ": [" + perms + "]"
         );
         return new Role(role.id(), role.code(), role.name(), List.copyOf(req.permissionCodes()));
+    }
+
+    private void validatePermissions(List<String> permissionCodes) {
+        if (permissionCodes == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permisos inválidos");
+        }
+        Set<String> known = new HashSet<>();
+        auth.findAllPermissions().forEach(p -> known.add(p.code()));
+        for (String code : permissionCodes) {
+            if (!known.contains(code)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Permiso desconocido: " + code);
+            }
+        }
     }
 
     private static String requireUsername(String username) {
@@ -237,6 +252,7 @@ public class UserAdminService {
                 user.active(),
                 user.canLogin(),
                 user.roleIds(),
+                user.individualPermissions(),
                 user.permissions()
         );
     }

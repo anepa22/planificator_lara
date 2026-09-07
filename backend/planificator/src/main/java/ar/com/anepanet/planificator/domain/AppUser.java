@@ -17,5 +17,6 @@ public record AppUser(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         List<String> roleIds,
+        List<String> individualPermissions,
         List<String> permissions
 ) {}

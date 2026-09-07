@@ -59,7 +59,7 @@ public class UserAdminController {
     }
 
     @GetMapping("/permissions")
-    @PreAuthorize("hasAuthority('" + Permissions.ROLES_MANAGE + "')")
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "') or hasAuthority('" + Permissions.ROLES_MANAGE + "')")
     public List<Permission> listPermissions() {
         return users.listPermissions();
     }

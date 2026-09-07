@@ -300,7 +300,7 @@ class TaskServiceTest {
             List<String> permissions) {
         return new AppUser(
                 id, username, "hash", displayName, "#123456", null, true, canLogin, false,
-                OffsetDateTime.now(), OffsetDateTime.now(), roleIds, permissions);
+                OffsetDateTime.now(), OffsetDateTime.now(), roleIds, List.of(), permissions);
     }
 
     private AppUser appUser(boolean manager, String telegramChatId) {
@@ -309,7 +309,7 @@ class TaskServiceTest {
                 : List.of(Permissions.TASKS_WRITE, Permissions.TASKS_APPEAR);
         return new AppUser(
                 userId, "test", "hash", "Test", "#123456", telegramChatId, true, true, false,
-                OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), permissions);
+                OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), List.of(), permissions);
     }
 
     private Task task(UUID id, String status, UUID assignee) {

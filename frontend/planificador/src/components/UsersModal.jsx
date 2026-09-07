@@ -38,6 +38,7 @@ const EMPTY_FORM = {
   canLogin: true,
   active: true,
   roleIds: [],
+  individualPermissionCodes: [],
 }
 
 function usernameFromName(name) {
@@ -91,7 +92,9 @@ export default function UsersModal({ open, onClose, onChanged }) {
       const pending = []
       if (canManageUsers || canManageRoles) pending.push(getRoles().then(setRoles))
       if (canManageUsers) pending.push(getUsers().then(setUsers))
-      if (canManageRoles) pending.push(getPermissions().then(setPermissions))
+      if (canManageUsers || canManageRoles) {
+        pending.push(getPermissions().then(setPermissions))
+      }
       await Promise.all(pending)
     } catch (e) {
       setError(e.message)
@@ -154,6 +157,9 @@ export default function UsersModal({ open, onClose, onChanged }) {
       canLogin: user.canLogin !== false,
       active: user.active !== false,
       roleIds: user.roles?.length ? [...user.roles] : [],
+      individualPermissionCodes: user.individualPermissions?.length
+        ? [...user.individualPermissions]
+        : [],
     })
   }
 
@@ -171,6 +177,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
           password: form.password.trim() || null,
           canLogin: form.canLogin,
           roleIds: form.roleIds,
+          individualPermissionCodes: individualPermissionsToSave(),
         })
       } else {
         const username = form.username.trim() || usernameFromName(form.displayName)
@@ -185,6 +192,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
           telegramChatId: form.telegramChatId.trim() || null,
           canLogin: form.canLogin,
           roleIds: form.roleIds,
+          individualPermissionCodes: individualPermissionsToSave(),
         })
       }
       closeForm()
@@ -221,6 +229,29 @@ export default function UsersModal({ open, onClose, onChanged }) {
         ? prev.roleIds.filter((r) => r !== roleId)
         : [...prev.roleIds, roleId]
       return { ...prev, roleIds }
+    })
+  }
+
+  function inheritedPermissionCodes() {
+    return new Set(
+      roles
+        .filter((role) => form.roleIds.includes(role.id))
+        .flatMap((role) => role.permissionCodes),
+    )
+  }
+
+  function individualPermissionsToSave() {
+    const inherited = inheritedPermissionCodes()
+    return form.individualPermissionCodes.filter((code) => !inherited.has(code))
+  }
+
+  function toggleIndividualPermission(code) {
+    if (inheritedPermissionCodes().has(code)) return
+    setForm((prev) => {
+      const individualPermissionCodes = prev.individualPermissionCodes.includes(code)
+        ? prev.individualPermissionCodes.filter((item) => item !== code)
+        : [...prev.individualPermissionCodes, code]
+      return { ...prev, individualPermissionCodes }
     })
   }
 
@@ -422,8 +453,8 @@ export default function UsersModal({ open, onClose, onChanged }) {
                       }
                     />
                     <span className="field-help">
-                      Recibe avisos si su rol tiene «Recibir notificaciones de
-                      tareas» y ya inició el bot.
+                      Recibe avisos si tiene «Recibir notificaciones de tareas»
+                      por rol o como permiso individual, y ya inició el bot.
                     </span>
                   </div>
                   <div className="field field-wide">
@@ -447,6 +478,54 @@ export default function UsersModal({ open, onClose, onChanged }) {
                         )
                       })}
                     </div>
+                  </div>
+                  <div className="field field-wide user-permissions-field">
+                    <label>Permisos individuales</label>
+                    <span className="field-help">
+                      Se suman a los permisos de sus roles. Los marcados «Por rol»
+                      se administran desde la pestaña Roles.
+                    </span>
+                    {groupedPermissions.map((group) => (
+                      <div className="role-group" key={group.id}>
+                        <div className="role-group-title">{group.title}</div>
+                        <div className="role-perms">
+                          {group.items.map((permission) => {
+                            const inherited = inheritedPermissionCodes().has(
+                              permission.code,
+                            )
+                            const individual =
+                              form.individualPermissionCodes.includes(permission.code)
+                            const on = inherited || individual
+                            return (
+                              <label
+                                key={permission.id}
+                                className={`perm-toggle${on ? ' is-on' : ''}${
+                                  inherited ? ' is-inherited' : ''
+                                }`}
+                                title={
+                                  inherited
+                                    ? `${permission.code} · otorgado por un rol`
+                                    : permission.code
+                                }
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  disabled={busy || inherited}
+                                  onChange={() =>
+                                    toggleIndividualPermission(permission.code)
+                                  }
+                                />
+                                <span className="perm-name">{permission.name}</span>
+                                {inherited && (
+                                  <span className="perm-source">Por rol</span>
+                                )}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   <div className="users-form-checks field-wide">
                     <label
@@ -551,6 +630,13 @@ export default function UsersModal({ open, onClose, onChanged }) {
                             )}
                             {user.telegramChatId && (
                               <span className="user-badge ok">Telegram</span>
+                            )}
+                            {(user.individualPermissions || []).length > 0 && (
+                              <span className="user-badge soft">
+                                {user.individualPermissions.length}{' '}
+                                permiso
+                                {user.individualPermissions.length === 1 ? '' : 's'} extra
+                              </span>
                             )}
                           </span>
                         </div>

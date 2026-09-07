@@ -12,5 +12,6 @@ public record UserResponse(
         boolean active,
         boolean canLogin,
         List<String> roles,
+        List<String> individualPermissions,
         List<String> permissions
 ) {}

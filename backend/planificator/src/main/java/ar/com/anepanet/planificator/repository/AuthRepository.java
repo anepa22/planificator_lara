@@ -65,11 +65,22 @@ public class AuthRepository {
         return jdbc.sql("""
                 SELECT DISTINCT u.telegram_chat_id
                 FROM app_users u
-                JOIN user_roles ur ON ur.user_id = u.id
-                JOIN role_permissions rp ON rp.role_id = ur.role_id
-                JOIN permissions p ON p.id = rp.permission_id
                 WHERE u.is_active
-                  AND p.code = :code
+                  AND (
+                      EXISTS (
+                          SELECT 1
+                          FROM user_roles ur
+                          JOIN role_permissions rp ON rp.role_id = ur.role_id
+                          JOIN permissions p ON p.id = rp.permission_id
+                          WHERE ur.user_id = u.id AND p.code = :code
+                      )
+                      OR EXISTS (
+                          SELECT 1
+                          FROM user_permissions up
+                          JOIN permissions p ON p.id = up.permission_id
+                          WHERE up.user_id = u.id AND p.code = :code
+                      )
+                  )
                   AND u.telegram_chat_id IS NOT NULL
                   AND btrim(u.telegram_chat_id) <> ''
                 ORDER BY u.telegram_chat_id
@@ -87,9 +98,15 @@ public class AuthRepository {
         List<PrincipalRow> rows = jdbc.sql("""
                 SELECT u.id, u.username, u.is_active, u.must_change_password, p.code
                 FROM app_users u
-                LEFT JOIN user_roles ur ON ur.user_id = u.id
-                LEFT JOIN role_permissions rp ON rp.role_id = ur.role_id
-                LEFT JOIN permissions p ON p.id = rp.permission_id
+                LEFT JOIN (
+                    SELECT ur.user_id, rp.permission_id
+                    FROM user_roles ur
+                    JOIN role_permissions rp ON rp.role_id = ur.role_id
+                    UNION
+                    SELECT user_id, permission_id
+                    FROM user_permissions
+                ) effective ON effective.user_id = u.id
+                LEFT JOIN permissions p ON p.id = effective.permission_id
                 WHERE u.id = :id
                 ORDER BY p.code
                 """)
@@ -136,16 +153,29 @@ public class AuthRepository {
                 ORDER BY user_id, role_id
                 """);
         Map<UUID, List<String>> permissionsByUser = groupedStrings("""
-                SELECT DISTINCT ur.user_id, p.code AS value
-                FROM user_roles ur
-                JOIN role_permissions rp ON rp.role_id = ur.role_id
-                JOIN permissions p ON p.id = rp.permission_id
-                ORDER BY ur.user_id, p.code
+                SELECT effective.user_id, p.code AS value
+                FROM (
+                    SELECT ur.user_id, rp.permission_id
+                    FROM user_roles ur
+                    JOIN role_permissions rp ON rp.role_id = ur.role_id
+                    UNION
+                    SELECT user_id, permission_id
+                    FROM user_permissions
+                ) effective
+                JOIN permissions p ON p.id = effective.permission_id
+                ORDER BY effective.user_id, p.code
+                """);
+        Map<UUID, List<String>> individualPermissionsByUser = groupedStrings("""
+                SELECT up.user_id, p.code AS value
+                FROM user_permissions up
+                JOIN permissions p ON p.id = up.permission_id
+                ORDER BY up.user_id, p.code
                 """);
         return base.stream()
                 .map(user -> withRolesAndPermissions(
                         user,
                         rolesByUser.getOrDefault(user.id(), List.of()),
+                        individualPermissionsByUser.getOrDefault(user.id(), List.of()),
                         permissionsByUser.getOrDefault(user.id(), List.of())))
                 .toList();
     }
@@ -158,11 +188,22 @@ public class AuthRepository {
         return jdbc.sql("""
                 SELECT DISTINCT u.id, u.display_name, u.color
                 FROM app_users u
-                JOIN user_roles ur ON ur.user_id = u.id
-                JOIN role_permissions rp ON rp.role_id = ur.role_id
-                JOIN permissions p ON p.id = rp.permission_id
                 WHERE u.is_active = TRUE
-                  AND p.code = :code
+                  AND (
+                      EXISTS (
+                          SELECT 1
+                          FROM user_roles ur
+                          JOIN role_permissions rp ON rp.role_id = ur.role_id
+                          JOIN permissions p ON p.id = rp.permission_id
+                          WHERE ur.user_id = u.id AND p.code = :code
+                      )
+                      OR EXISTS (
+                          SELECT 1
+                          FROM user_permissions up
+                          JOIN permissions p ON p.id = up.permission_id
+                          WHERE up.user_id = u.id AND p.code = :code
+                      )
+                  )
                 ORDER BY u.display_name
                 """)
                 .param("code", Permissions.SCHEDULE_APPEAR)
@@ -189,7 +230,8 @@ public class AuthRepository {
             String color,
             String telegramChatId,
             boolean canLogin,
-            List<String> roleIds) {
+            List<String> roleIds,
+            List<String> individualPermissionCodes) {
         AppUser created = jdbc.sql("""
                 INSERT INTO app_users (
                     username, password_hash, display_name, color, telegram_chat_id,
@@ -211,6 +253,7 @@ public class AuthRepository {
                 .query(this::mapUserBase)
                 .single();
         replaceUserRoles(created.id(), roleIds);
+        replaceUserPermissions(created.id(), individualPermissionCodes);
         return withRolesAndPermissions(created);
     }
 
@@ -223,7 +266,8 @@ public class AuthRepository {
             String telegramChatId,
             boolean canLogin,
             Boolean mustChangePassword,
-            List<String> roleIds) {
+            List<String> roleIds,
+            List<String> individualPermissionCodes) {
         Optional<AppUser> existing = findById(id);
         if (existing.isEmpty()) {
             return Optional.empty();
@@ -251,6 +295,9 @@ public class AuthRepository {
                 .update();
         if (roleIds != null) {
             replaceUserRoles(id, roleIds);
+        }
+        if (individualPermissionCodes != null) {
+            replaceUserPermissions(id, individualPermissionCodes);
         }
         return findById(id);
     }
@@ -393,6 +440,22 @@ public class AuthRepository {
         }
     }
 
+    private void replaceUserPermissions(UUID userId, List<String> permissionCodes) {
+        jdbc.sql("DELETE FROM user_permissions WHERE user_id = :userId")
+                .param("userId", userId)
+                .update();
+        for (String code : permissionCodes) {
+            jdbc.sql("""
+                    INSERT INTO user_permissions (user_id, permission_id)
+                    SELECT :userId, id FROM permissions WHERE code = :code
+                    ON CONFLICT DO NOTHING
+                    """)
+                    .param("userId", userId)
+                    .param("code", code)
+                    .update();
+        }
+    }
+
     private AppUser withRolesAndPermissions(AppUser base) {
         List<String> roleIds = jdbc.sql("""
                 SELECT role_id FROM user_roles WHERE user_id = :userId ORDER BY role_id
@@ -400,18 +463,35 @@ public class AuthRepository {
                 .param("userId", base.id())
                 .query(String.class)
                 .list();
-        List<String> permissions = jdbc.sql("""
-                SELECT DISTINCT p.code
-                FROM user_roles ur
-                JOIN role_permissions rp ON rp.role_id = ur.role_id
-                JOIN permissions p ON p.id = rp.permission_id
-                WHERE ur.user_id = :userId
+        List<String> individualPermissions = jdbc.sql("""
+                SELECT p.code
+                FROM user_permissions up
+                JOIN permissions p ON p.id = up.permission_id
+                WHERE up.user_id = :userId
                 ORDER BY p.code
                 """)
                 .param("userId", base.id())
                 .query(String.class)
                 .list();
-        return withRolesAndPermissions(base, roleIds, permissions);
+        List<String> permissions = jdbc.sql("""
+                SELECT p.code
+                FROM (
+                    SELECT rp.permission_id
+                    FROM user_roles ur
+                    JOIN role_permissions rp ON rp.role_id = ur.role_id
+                    WHERE ur.user_id = :userId
+                    UNION
+                    SELECT permission_id
+                    FROM user_permissions
+                    WHERE user_id = :userId
+                ) effective
+                JOIN permissions p ON p.id = effective.permission_id
+                ORDER BY p.code
+                """)
+                .param("userId", base.id())
+                .query(String.class)
+                .list();
+        return withRolesAndPermissions(base, roleIds, individualPermissions, permissions);
     }
 
     private Map<UUID, List<String>> groupedStrings(String sql) {
@@ -430,6 +510,7 @@ public class AuthRepository {
     private AppUser withRolesAndPermissions(
             AppUser base,
             List<String> roleIds,
+            List<String> individualPermissions,
             List<String> permissions) {
         return new AppUser(
                 base.id(),
@@ -444,6 +525,7 @@ public class AuthRepository {
                 base.createdAt(),
                 base.updatedAt(),
                 roleIds,
+                individualPermissions,
                 permissions
         );
     }
@@ -461,6 +543,7 @@ public class AuthRepository {
                 rs.getBoolean("must_change_password"),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),
+                List.of(),
                 List.of(),
                 List.of()
         );

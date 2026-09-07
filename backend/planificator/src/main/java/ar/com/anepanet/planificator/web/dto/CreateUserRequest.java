@@ -13,5 +13,6 @@ public record CreateUserRequest(
         @Size(max = 20) String color,
         @Size(max = 32) String telegramChatId,
         Boolean canLogin,
-        @NotNull List<String> roleIds
+        @NotNull List<String> roleIds,
+        @NotNull List<String> individualPermissionCodes
 ) {}

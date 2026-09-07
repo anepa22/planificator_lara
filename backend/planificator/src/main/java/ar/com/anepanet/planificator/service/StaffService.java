@@ -58,7 +58,8 @@ public class StaffService {
                     req.color(),
                     null,
                     false,
-                    List.of(PERSONAL_ROLE)
+                    List.of(PERSONAL_ROLE),
+                    List.of()
             );
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una persona con ese nombre");

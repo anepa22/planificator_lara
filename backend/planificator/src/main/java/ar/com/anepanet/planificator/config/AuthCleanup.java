@@ -27,6 +27,18 @@ public class AuthCleanup implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         try {
             jdbc.sql("""
+                    CREATE TABLE IF NOT EXISTS user_permissions (
+                        user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+                        permission_id VARCHAR(50) NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+                        PRIMARY KEY (user_id, permission_id)
+                    )
+                    """).update();
+            jdbc.sql("""
+                    CREATE INDEX IF NOT EXISTS ix_user_permissions_permission
+                    ON user_permissions(permission_id)
+                    """).update();
+
+            jdbc.sql("""
                     INSERT INTO user_roles (user_id, role_id)
                     SELECT ur.user_id, 'editor'
                     FROM user_roles ur
