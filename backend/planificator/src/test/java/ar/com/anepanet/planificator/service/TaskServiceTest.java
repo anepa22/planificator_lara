@@ -10,6 +10,8 @@ import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
 import ar.com.anepanet.planificator.web.dto.TaskAssignee;
+import ar.com.anepanet.planificator.domain.TaskHistory;
+import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -234,6 +238,42 @@ class TaskServiceTest {
         verify(events).publishEvent(any(TaskChangedEvent.class));
     }
 
+    @Test
+    void historyHidesLaterMilestonesWhenTaskMovesBack() {
+        login(Permissions.TASKS_HISTORY);
+        UUID taskId = UUID.randomUUID();
+        when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "IN_PROGRESS", userId)));
+        TaskHistory published = history(1, taskId, "PUBLISH", null, "PENDING");
+        TaskHistory assigned = history(2, taskId, "ASSIGN", "PENDING", "PENDING");
+        TaskHistory done = history(3, taskId, "MOVE", "IN_PROGRESS", "DONE");
+        TaskHistory back = history(4, taskId, "MOVE", "DONE", "IN_PROGRESS");
+        when(tasks.findHistory(taskId)).thenReturn(List.of(published, assigned, done, back));
+
+        TaskHistoryResponse result = service.history(taskId);
+
+        assertNotNull(result.pending());
+        assertNotNull(result.assigned());
+        assertNull(result.blocked());
+        assertNull(result.done());
+        assertNull(result.verified());
+        assertEquals(3, result.movements().size());
+    }
+
+    @Test
+    void historyKeepsDoneMilestoneWhileVerified() {
+        login(Permissions.TASKS_HISTORY);
+        UUID taskId = UUID.randomUUID();
+        when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "VERIFIED", userId)));
+        TaskHistory done = history(1, taskId, "MOVE", "IN_PROGRESS", "DONE");
+        TaskHistory verified = history(2, taskId, "MOVE", "DONE", "VERIFIED");
+        when(tasks.findHistory(taskId)).thenReturn(List.of(done, verified));
+
+        TaskHistoryResponse result = service.history(taskId);
+
+        assertNotNull(result.done());
+        assertNotNull(result.verified());
+    }
+
     private void login(String... permissions) {
         List<SimpleGrantedAuthority> authorities =
                 java.util.Arrays.stream(permissions).map(SimpleGrantedAuthority::new).toList();
@@ -278,5 +318,18 @@ class TaskServiceTest {
                 null, null, null, assignee,
                 assignee == null ? null : "Test", "#123456", true,
                 OffsetDateTime.now(), OffsetDateTime.now());
+    }
+
+    private TaskHistory history(
+            long id,
+            UUID taskId,
+            String action,
+            String fromStatus,
+            String toStatus) {
+        UUID assignee = "ASSIGN".equals(action) ? userId : null;
+        return new TaskHistory(
+                id, taskId, userId, "Test", action, fromStatus, toStatus,
+                null, null, assignee, assignee == null ? null : "Test",
+                null, OffsetDateTime.now());
     }
 }

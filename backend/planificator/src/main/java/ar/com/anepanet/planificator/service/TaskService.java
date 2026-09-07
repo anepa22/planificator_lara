@@ -62,18 +62,25 @@ public class TaskService {
     }
 
     public TaskHistoryResponse history(UUID id) {
-        find(id);
+        Task task = find(id);
         List<TaskHistory> all = tasks.findHistory(id);
         List<TaskHistory> moves = all.stream().filter(TaskService::isMovement).toList();
         List<TaskHistory> visible = SecurityUtils.hasAuthority(Permissions.TASKS_HISTORY)
                 ? moves
                 : List.of();
+        String status = task.status();
         return new TaskHistoryResponse(
                 lastMatching(all, TaskService::wentPending),
                 lastMatching(all, TaskService::isAssign),
-                lastMatching(all, h -> enteredStatus(h, "BLOCKED")),
-                lastMatching(all, h -> enteredStatus(h, "DONE")),
-                lastMatching(all, h -> enteredStatus(h, "VERIFIED")),
+                "BLOCKED".equals(status)
+                        ? lastMatching(all, h -> enteredStatus(h, "BLOCKED"))
+                        : null,
+                showsDoneMilestone(status)
+                        ? lastMatching(all, h -> enteredStatus(h, "DONE"))
+                        : null,
+                "VERIFIED".equals(status)
+                        ? lastMatching(all, h -> enteredStatus(h, "VERIFIED"))
+                        : null,
                 visible
         );
     }
@@ -288,6 +295,10 @@ public class TaskService {
                 blockReason,
                 displayName(actor)
         ));
+    }
+
+    private static boolean showsDoneMilestone(String status) {
+        return "DONE".equals(status) || "VERIFIED".equals(status);
     }
 
     private static TaskHistory lastMatching(
