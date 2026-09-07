@@ -2,6 +2,13 @@ import { clearToken, getToken } from '../lib/authStorage'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
+export function getSyncWebSocketUrl() {
+  const base = BASE.replace(/\/$/, '')
+  const url = new URL(`${base}/api/ws/sync`, window.location.href)
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  return url.toString()
+}
+
 class ApiError extends Error {
   constructor(message, status) {
     super(message)

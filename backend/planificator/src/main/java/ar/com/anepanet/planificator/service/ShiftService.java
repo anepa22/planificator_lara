@@ -8,13 +8,16 @@ import ar.com.anepanet.planificator.domain.ShiftWeekView;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.ShiftRepository;
+import ar.com.anepanet.planificator.realtime.PlanificatorChangedEvent;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.CreateShiftRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateShiftRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DayOfWeek;
@@ -34,16 +37,19 @@ public class ShiftService {
     private final AuthRepository users;
     private final LocationRepository locations;
     private final AuditService audit;
+    private final ApplicationEventPublisher events;
 
     public ShiftService(
             ShiftRepository shifts,
             AuthRepository users,
             LocationRepository locations,
-            AuditService audit) {
+            AuditService audit,
+            ApplicationEventPublisher events) {
         this.shifts = shifts;
         this.users = users;
         this.locations = locations;
         this.audit = audit;
+        this.events = events;
     }
 
     public List<ShiftWeekView> byWeek(LocalDate weekStart) {
@@ -54,6 +60,7 @@ public class ShiftService {
         return shifts.hoursByWeek(normalizeWeekStart(weekStart));
     }
 
+    @Transactional
     public Shift create(CreateShiftRequest req) {
         SecurityUtils.requireLocationWrite(req.locationId());
         validateRange(req.startTime(), req.endTime());
@@ -77,12 +84,14 @@ public class ShiftService {
                             + " · " + created.workDate()
                             + " " + fmtTime(created.startTime()) + "–" + fmtTime(created.endTime())
             );
+            publishRealtimeScheduleChange();
             return created;
         } catch (DataIntegrityViolationException ex) {
             throw conflict(ex);
         }
     }
 
+    @Transactional
     public Shift update(UUID id, UpdateShiftRequest req) {
         Shift existing = shifts.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turno no encontrado"));
@@ -104,12 +113,14 @@ public class ShiftService {
                             + " · " + updated.workDate()
                             + " " + fmtTime(updated.startTime()) + "–" + fmtTime(updated.endTime())
             );
+            publishRealtimeScheduleChange();
             return updated;
         } catch (DataIntegrityViolationException ex) {
             throw conflict(ex);
         }
     }
 
+    @Transactional
     public void delete(UUID id) {
         Shift existing = shifts.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Turno no encontrado"));
@@ -128,6 +139,11 @@ public class ShiftService {
                         + " · " + existing.workDate()
                         + " " + fmtTime(existing.startTime()) + "–" + fmtTime(existing.endTime())
         );
+        publishRealtimeScheduleChange();
+    }
+
+    private void publishRealtimeScheduleChange() {
+        events.publishEvent(new PlanificatorChangedEvent(PlanificatorChangedEvent.SCHEDULE));
     }
 
     private static String auditEntityType(String locationId) {

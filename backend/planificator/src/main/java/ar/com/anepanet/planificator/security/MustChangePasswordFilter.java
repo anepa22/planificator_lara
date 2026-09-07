@@ -66,6 +66,7 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                 || "/api/staff".equals(path)
                 || "/api/shifts".equals(path)
                 || "/api/shifts/summary".equals(path)
+                || "/api/ws/sync".equals(path)
                 || "/api/holidays".equals(path)
                 || "/api/vidrieras".equals(path)
                 || "/api/tasks/board".equals(path)

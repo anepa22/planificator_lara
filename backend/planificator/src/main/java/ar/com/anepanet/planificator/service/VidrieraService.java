@@ -4,11 +4,14 @@ import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Vidriera;
 import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.VidrieraRepository;
+import ar.com.anepanet.planificator.realtime.PlanificatorChangedEvent;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.UpsertVidrieraRequest;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -20,14 +23,17 @@ public class VidrieraService {
     private final VidrieraRepository vidrieras;
     private final LocationRepository locations;
     private final AuditService audit;
+    private final ApplicationEventPublisher events;
 
     public VidrieraService(
             VidrieraRepository vidrieras,
             LocationRepository locations,
-            AuditService audit) {
+            AuditService audit,
+            ApplicationEventPublisher events) {
         this.vidrieras = vidrieras;
         this.locations = locations;
         this.audit = audit;
+        this.events = events;
     }
 
     public List<Vidriera> byRange(LocalDate from, LocalDate to) {
@@ -40,6 +46,7 @@ public class VidrieraService {
         return vidrieras.findByDateRange(from, to);
     }
 
+    @Transactional
     public Vidriera upsert(UpsertVidrieraRequest req) {
         SecurityUtils.requireAuthority(Permissions.SHIFTS_WRITE);
         Location location = ensureVidrieraLocation(req.locationId());
@@ -53,10 +60,12 @@ public class VidrieraService {
                     entityId(row),
                     location.name() + " · " + row.workDate()
             );
+            publishRealtimeVidrieraChange();
         }
         return row;
     }
 
+    @Transactional
     public void delete(String locationId, LocalDate workDate) {
         SecurityUtils.requireAuthority(Permissions.SHIFTS_WRITE);
         if (locationId == null || locationId.isBlank() || workDate == null) {
@@ -72,7 +81,12 @@ public class VidrieraService {
                     locationId + "|" + workDate,
                     name + " · " + workDate
             );
+            publishRealtimeVidrieraChange();
         }
+    }
+
+    private void publishRealtimeVidrieraChange() {
+        events.publishEvent(new PlanificatorChangedEvent(PlanificatorChangedEvent.VIDRIERAS));
     }
 
     private Location ensureVidrieraLocation(String id) {

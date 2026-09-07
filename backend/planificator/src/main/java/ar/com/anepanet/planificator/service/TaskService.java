@@ -7,6 +7,7 @@ import ar.com.anepanet.planificator.domain.TaskHistory;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.TaskRepository;
+import ar.com.anepanet.planificator.realtime.PlanificatorChangedEvent;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
@@ -111,6 +112,7 @@ public class TaskService {
         tasks.addHistory(null, created, currentUser().id(), "CREATE", null);
         audit.record(AuditService.ACTION_CREATE, AuditService.TYPE_TASK,
                 created.id().toString(), created.title());
+        publishRealtimeTaskChange();
         return created;
     }
 
@@ -127,6 +129,7 @@ public class TaskService {
         tasks.addHistory(before, updated, currentUser().id(), "UPDATE", null);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
                 updated.id().toString(), updated.title());
+        publishRealtimeTaskChange();
         return updated;
     }
 
@@ -139,6 +142,7 @@ public class TaskService {
         }
         audit.record(AuditService.ACTION_DELETE, AuditService.TYPE_TASK,
                 id.toString(), task.title());
+        publishRealtimeTaskChange();
     }
 
     @Transactional
@@ -265,7 +269,12 @@ public class TaskService {
         tasks.addHistory(before, after, actor.id(), action, blockReason);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
                 after.id().toString(), after.title() + " · " + action);
+        publishRealtimeTaskChange();
         publishChange(before, after, blockReason, actor);
+    }
+
+    private void publishRealtimeTaskChange() {
+        events.publishEvent(new PlanificatorChangedEvent(PlanificatorChangedEvent.TASKS));
     }
 
     private void publishChange(

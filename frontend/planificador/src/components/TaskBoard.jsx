@@ -30,6 +30,7 @@ export default function TaskBoard({
   onUnassign,
   onMove,
   onRetire,
+  onSyncPauseChange,
 }) {
   const [draggingId, setDraggingId] = useState(null)
   const [blockRequest, setBlockRequest] = useState(null)
@@ -43,6 +44,12 @@ export default function TaskBoard({
   const menuRef = useRef(null)
   const filtersRef = useRef(null)
   const wrapRef = useRef(null)
+  const syncPaused = !!(draggingId || blockRequest || menu || historyTask)
+
+  useEffect(() => {
+    onSyncPauseChange?.(syncPaused)
+    return () => onSyncPauseChange?.(false)
+  }, [syncPaused, onSyncPauseChange])
 
   useLayoutEffect(() => {
     const filters = filtersRef.current
