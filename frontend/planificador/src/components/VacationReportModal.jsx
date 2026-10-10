@@ -25,19 +25,22 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
   const [to, setTo] = useState(yearRange(currentYear).to)
   const [report, setReport] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [printing, setPrinting] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const requestId = useRef(0)
+  const reportMatchesFilters = report?.from === from && report?.to === to
 
   async function printPdf() {
-    setBusy(true)
+    if (!reportMatchesFilters) return
+    setPrinting(true)
     setError('')
     try {
-      await downloadVacationReportPdf(from, to)
+      await downloadVacationReportPdf(report.from, report.to)
     } catch (e) {
       setError(e.message)
     } finally {
-      setBusy(false)
+      setPrinting(false)
     }
   }
 
@@ -75,6 +78,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
 
   if (!open) return null
 
+  const locked = busy || printing
   const people = report?.people || []
   const years = [currentYear - 1, currentYear, currentYear + 1]
   const selectedYear = selectedFullYear(from, to, years)
@@ -83,7 +87,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
     <div
       className="overlay open panel-overlay"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !busy) onClose()
+        if (e.target === e.currentTarget && !locked) onClose()
       }}
     >
       <div
@@ -97,7 +101,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
           <button
             type="button"
             className="panel-close"
-            disabled={busy}
+            disabled={locked}
             onClick={onClose}
             aria-label="Cerrar"
           >
@@ -117,7 +121,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
             <select
               id="vacation-report-year"
               value={selectedYear}
-              disabled={busy}
+              disabled={locked}
               onChange={(e) => {
                 if (!e.target.value) return
                 const range = yearRange(Number(e.target.value))
@@ -140,7 +144,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               id="vacation-report-from"
               type="date"
               value={from}
-              disabled={busy}
+              disabled={locked}
               required
               onChange={(e) => setFrom(e.target.value)}
             />
@@ -151,13 +155,13 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               id="vacation-report-to"
               type="date"
               value={to}
-              disabled={busy}
+              disabled={locked}
               required
               onChange={(e) => setTo(e.target.value)}
             />
           </div>
           <div className="panel-form-actions">
-            <button type="submit" className="btn btn-primary" disabled={busy}>
+            <button type="submit" className="btn btn-primary" disabled={locked}>
               {busy ? 'Buscando…' : 'Buscar'}
             </button>
           </div>
@@ -170,10 +174,10 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
             <button
               type="button"
               className="btn btn-primary"
-              disabled={busy || !from || !to}
+              disabled={locked || !reportMatchesFilters}
               onClick={() => void printPdf()}
             >
-              Imprimir PDF
+              {printing ? 'Generando…' : 'Imprimir PDF'}
             </button>
           )}
           <span className="panel-count">

@@ -25,38 +25,51 @@ final class VacationReportPdf {
     private static final Font TEXT = FontFactory.getFont(FontFactory.HELVETICA, 10);
     private static final Font TOTAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
     private static final Font HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
+    private static final Color HEADER_BACKGROUND = new Color(47, 84, 120);
     private static final Color TOTAL_BACKGROUND = new Color(232, 238, 244);
+    private static final float[] COLUMN_WIDTHS = {2.2f, 1.2f, 1.2f, 0.7f};
 
     private VacationReportPdf() {}
 
     static byte[] render(VacationReport report) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 40, 40, 40, 40);
-        PdfWriter.getInstance(document, out);
-        document.open();
-        document.add(new Paragraph("Reporte de vacaciones", TITLE));
-        document.add(new Paragraph(
-                "Del " + DATE.format(report.from()) + " al " + DATE.format(report.to()),
-                TEXT));
-        document.add(new Paragraph(
-                report.totalDays() + " días · " + report.people().size() + " personas",
-                TEXT));
-        document.add(new Paragraph(" "));
-        document.add(table(report));
-        document.close();
+        try {
+            PdfWriter.getInstance(document, out);
+            document.open();
+            document.add(new Paragraph("Reporte de vacaciones", TITLE));
+            document.add(new Paragraph(
+                    "Del " + DATE.format(report.from()) + " al " + DATE.format(report.to()),
+                    TEXT));
+            document.add(new Paragraph(
+                    count(report.totalDays(), "día", "días")
+                            + " · "
+                            + count(report.people().size(), "persona", "personas"),
+                    TEXT));
+            document.add(table(report));
+        } finally {
+            if (document.isOpen()) {
+                document.close();
+            }
+        }
         return out.toByteArray();
     }
 
+    private static String count(int value, String singular, String plural) {
+        return value + " " + (value == 1 ? singular : plural);
+    }
+
     private static PdfPTable table(VacationReport report) {
-        PdfPTable table = new PdfPTable(new float[] {2.2f, 1.2f, 1.2f, 0.7f});
+        PdfPTable table = new PdfPTable(COLUMN_WIDTHS);
         table.setWidthPercentage(100);
+        table.setSpacingBefore(12);
         header(table, "Persona");
         header(table, "Desde");
         header(table, "Hasta");
         header(table, "Días");
         if (report.people().isEmpty()) {
             PdfPCell empty = cell("Sin vacaciones en el período", TEXT);
-            empty.setColspan(4);
+            empty.setColspan(COLUMN_WIDTHS.length);
             table.addCell(empty);
             return table;
         }
@@ -68,7 +81,7 @@ final class VacationReportPdf {
                 table.addCell(cell(String.valueOf(range.days()), TEXT));
             }
             PdfPCell label = cell("Total " + person.userName(), TOTAL);
-            label.setColspan(3);
+            label.setColspan(COLUMN_WIDTHS.length - 1);
             label.setBackgroundColor(TOTAL_BACKGROUND);
             table.addCell(label);
             PdfPCell days = cell(String.valueOf(person.days()), TOTAL);
@@ -80,7 +93,7 @@ final class VacationReportPdf {
 
     private static void header(PdfPTable table, String text) {
         PdfPCell cell = cell(text, HEADER);
-        cell.setBackgroundColor(new Color(47, 84, 120));
+        cell.setBackgroundColor(HEADER_BACKGROUND);
         table.addCell(cell);
     }
 

@@ -17,30 +17,34 @@ class ApiError extends Error {
   }
 }
 
-async function api(path, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  }
+function authHeaders(extra = {}) {
+  const headers = { ...extra }
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
 
+function rejectIfUnauthorized(res) {
+  if (res.status !== 401) return
+  clearToken()
+  window.dispatchEvent(new CustomEvent('planificator:unauthorized'))
+}
+
+async function errorMessage(res) {
+  const err = await res.json().catch(() => ({}))
+  return [err.message, err.detail].filter(Boolean).join(': ') || `Error ${res.status}`
+}
+
+async function api(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     ...options,
-    headers,
+    headers: authHeaders({
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    }),
   })
-
-  if (res.status === 401) {
-    clearToken()
-    window.dispatchEvent(new CustomEvent('planificator:unauthorized'))
-  }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    const msg = [err.message, err.detail].filter(Boolean).join(': ')
-    throw new ApiError(msg || `Error ${res.status}`, res.status)
-  }
-
+  rejectIfUnauthorized(res)
+  if (!res.ok) throw new ApiError(await errorMessage(res), res.status)
   if (res.status === 204) return null
   return res.json()
 }
@@ -79,29 +83,21 @@ export const getShifts = (weekStart) =>
 export const getVacationReport = (from, to) =>
   api(`/api/shifts/vacation-report?from=${from}&to=${to}`)
 export async function downloadVacationReportPdf(from, to) {
-  const headers = {}
-  const token = getToken()
-  if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(
-    `${BASE}/api/shifts/vacation-report.pdf?from=${from}&to=${to}`,
-    { headers },
-  )
-  if (res.status === 401) {
-    clearToken()
-    window.dispatchEvent(new CustomEvent('planificator:unauthorized'))
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    const msg = [err.message, err.detail].filter(Boolean).join(': ')
-    throw new ApiError(msg || `Error ${res.status}`, res.status)
-  }
+  const params = new URLSearchParams({ from, to })
+  const res = await fetch(`${BASE}/api/shifts/vacation-report.pdf?${params}`, {
+    headers: authHeaders(),
+  })
+  rejectIfUnauthorized(res)
+  if (!res.ok) throw new ApiError(await errorMessage(res), res.status)
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
   link.download = `vacaciones-${from}-${to}.pdf`
+  document.body.appendChild(link)
   link.click()
-  URL.revokeObjectURL(url)
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 export const createShift = (body) =>
   api('/api/shifts', { method: 'POST', body: JSON.stringify(body) })
