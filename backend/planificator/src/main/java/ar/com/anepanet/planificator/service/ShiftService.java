@@ -31,13 +31,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class ShiftService {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final long MAX_REPORT_RANGE_DAYS = 800;
 
     private final ShiftRepository shifts;
     private final AuthRepository users;
@@ -67,14 +71,27 @@ public class ShiftService {
     }
 
     public VacationReport vacationReport(LocalDate from, LocalDate to) {
+        SecurityUtils.requireAuthority(Permissions.VACATIONS_REPORT);
+        return loadVacationReport(from, to);
+    }
+
+    public byte[] vacationReportPdf(LocalDate from, LocalDate to) {
+        SecurityUtils.requireAuthority(Permissions.VACATIONS_PRINT);
+        return VacationReportPdf.render(loadVacationReport(from, to));
+    }
+
+    private VacationReport loadVacationReport(LocalDate from, LocalDate to) {
         if (from == null || to == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indicá desde y hasta");
         }
         if (to.isBefore(from)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hasta no puede ser anterior a desde");
         }
-        if (ChronoUnit.DAYS.between(from, to) > 800) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El período no puede superar 800 días");
+        long periodDays = ChronoUnit.DAYS.between(from, to) + 1;
+        if (periodDays > MAX_REPORT_RANGE_DAYS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El período no puede superar " + MAX_REPORT_RANGE_DAYS + " días");
         }
         List<VacationPersonReport> people = groupVacationDays(shifts.findVacationDays(from, to));
         int totalDays = people.stream().mapToInt(VacationPersonReport::days).sum();
@@ -82,20 +99,27 @@ public class ShiftService {
     }
 
     static List<VacationPersonReport> groupVacationDays(List<VacationDay> days) {
+        Map<UUID, List<VacationDay>> byUser = new LinkedHashMap<>();
+        for (VacationDay day : days) {
+            byUser.computeIfAbsent(day.userId(), ignored -> new ArrayList<>()).add(day);
+        }
+
         List<VacationPersonReport> people = new ArrayList<>();
-        UUID currentId = null;
-        String currentName = null;
+        byUser.forEach((userId, userDays) -> {
+            userDays.sort(Comparator.comparing(VacationDay::workDate));
+            people.add(person(
+                    userId,
+                    userDays.get(0).userName(),
+                    contiguousRanges(userDays)));
+        });
+        return List.copyOf(people);
+    }
+
+    private static List<VacationRange> contiguousRanges(List<VacationDay> days) {
         List<VacationRange> ranges = new ArrayList<>();
         LocalDate runFrom = null;
         LocalDate runTo = null;
         for (VacationDay day : days) {
-            if (currentId != null && !currentId.equals(day.userId())) {
-                ranges.add(range(runFrom, runTo));
-                people.add(person(currentId, currentName, ranges));
-                ranges = new ArrayList<>();
-                runFrom = null;
-                runTo = null;
-            }
             if (runFrom == null) {
                 runFrom = day.workDate();
                 runTo = day.workDate();
@@ -106,14 +130,11 @@ public class ShiftService {
                 runFrom = day.workDate();
                 runTo = day.workDate();
             }
-            currentId = day.userId();
-            currentName = day.userName();
         }
-        if (currentId != null) {
+        if (runFrom != null) {
             ranges.add(range(runFrom, runTo));
-            people.add(person(currentId, currentName, ranges));
         }
-        return people;
+        return List.copyOf(ranges);
     }
 
     private static VacationRange range(LocalDate from, LocalDate to) {

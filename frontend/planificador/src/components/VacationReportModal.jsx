@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useState } from 'react'
-import { getVacationReport } from '../api/client'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { downloadVacationReportPdf, getVacationReport } from '../api/client'
 import { fmtVacationRangeLabel } from '../lib/vacations'
+
+function dayCount(days) {
+  return `${days} día${days === 1 ? '' : 's'}`
+}
 
 function yearRange(year) {
   return { from: `${year}-01-01`, to: `${year}-12-31` }
 }
 
-export default function VacationReportModal({ open, onClose }) {
+function selectedFullYear(from, to, validYears) {
+  const year = Number(from.slice(0, 4))
+  return validYears.includes(year) &&
+    from === `${year}-01-01` &&
+    to === `${year}-12-31`
+    ? String(year)
+    : ''
+}
+
+export default function VacationReportModal({ open, canPrint = false, onClose }) {
   const currentYear = new Date().getFullYear()
   const [from, setFrom] = useState(yearRange(currentYear).from)
   const [to, setTo] = useState(yearRange(currentYear).to)
@@ -14,18 +27,37 @@ export default function VacationReportModal({ open, onClose }) {
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
+  const requestId = useRef(0)
 
-  const load = useCallback(async (range) => {
+  async function printPdf() {
     setBusy(true)
     setError('')
     try {
-      setReport(await getVacationReport(range.from, range.to))
+      await downloadVacationReportPdf(from, to)
     } catch (e) {
-      setReport(null)
       setError(e.message)
     } finally {
       setBusy(false)
-      setLoaded(true)
+    }
+  }
+
+  const load = useCallback(async (range) => {
+    const currentRequest = ++requestId.current
+    setBusy(true)
+    setError('')
+    try {
+      const nextReport = await getVacationReport(range.from, range.to)
+      if (currentRequest === requestId.current) setReport(nextReport)
+    } catch (e) {
+      if (currentRequest === requestId.current) {
+        setReport(null)
+        setError(e.message)
+      }
+    } finally {
+      if (currentRequest === requestId.current) {
+        setBusy(false)
+        setLoaded(true)
+      }
     }
   }, [])
 
@@ -36,12 +68,16 @@ export default function VacationReportModal({ open, onClose }) {
     setTo(range.to)
     setLoaded(false)
     void load(range)
+    return () => {
+      requestId.current += 1
+    }
   }, [open, load])
 
   if (!open) return null
 
   const people = report?.people || []
   const years = [currentYear - 1, currentYear, currentYear + 1]
+  const selectedYear = selectedFullYear(from, to, years)
 
   return (
     <div
@@ -70,7 +106,7 @@ export default function VacationReportModal({ open, onClose }) {
         </div>
 
         <form
-          className="panel-form audit-filters vacation-report-filters"
+          className="panel-form vacation-report-filters"
           onSubmit={(e) => {
             e.preventDefault()
             void load({ from, to })
@@ -80,9 +116,7 @@ export default function VacationReportModal({ open, onClose }) {
             <label htmlFor="vacation-report-year">Año</label>
             <select
               id="vacation-report-year"
-              value={years.includes(Number(from.slice(0, 4))) && from.endsWith('-01-01') && to.endsWith('-12-31')
-                ? from.slice(0, 4)
-                : ''}
+              value={selectedYear}
               disabled={busy}
               onChange={(e) => {
                 if (!e.target.value) return
@@ -132,17 +166,27 @@ export default function VacationReportModal({ open, onClose }) {
         {error && <div className="m-warn">{error}</div>}
 
         <div className="panel-toolbar">
+          {canPrint && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={busy || !from || !to}
+              onClick={() => void printPdf()}
+            >
+              Imprimir PDF
+            </button>
+          )}
           <span className="panel-count">
             {!loaded || busy
               ? 'Cargando…'
               : people.length === 0
                 ? 'Sin vacaciones en el período'
-                : `${report.totalDays} día${report.totalDays === 1 ? '' : 's'} · ${people.length} persona${people.length === 1 ? '' : 's'}`}
+                : `${dayCount(report.totalDays)} · ${people.length} persona${people.length === 1 ? '' : 's'}`}
           </span>
         </div>
 
         <div className={`panel-list${busy ? ' is-busy' : ''}`}>
-          {loaded && !busy && people.length === 0 ? (
+          {loaded && !busy && !error && people.length === 0 ? (
             <div className="panel-empty">
               <div className="panel-empty-title">No hay vacaciones cargadas</div>
               <div>Probá con otro período.</div>
@@ -153,16 +197,14 @@ export default function VacationReportModal({ open, onClose }) {
                 <li key={person.userId} className="vacation-report-person">
                   <div className="vacation-report-person-head">
                     <span className="vacation-report-name">{person.userName}</span>
-                    <span className="vacation-report-days">
-                      {person.days} día{person.days === 1 ? '' : 's'}
-                    </span>
+                    <span className="vacation-report-days">{dayCount(person.days)}</span>
                   </div>
                   <ul className="vacation-report-ranges">
                     {person.ranges.map((range) => (
                       <li key={`${range.dateFrom}-${range.dateTo}`}>
                         <span>{fmtVacationRangeLabel(range.dateFrom, range.dateTo)}</span>
                         <span className="vacation-report-range-days">
-                          {range.days} día{range.days === 1 ? '' : 's'}
+                          {dayCount(range.days)}
                         </span>
                       </li>
                     ))}

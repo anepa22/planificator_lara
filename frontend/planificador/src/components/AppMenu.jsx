@@ -15,6 +15,27 @@ function MenuItem({ children, onClick, danger = false, nested = false }) {
   )
 }
 
+function MenuGroupToggle({ children, open, onToggle, nested = false }) {
+  return (
+    <button
+      type="button"
+      className={`app-menu-item app-menu-group-toggle${nested ? ' nested' : ''}${
+        nested && open ? ' is-open' : ''
+      }`}
+      aria-expanded={open}
+      onClick={onToggle}
+    >
+      <span className="app-menu-item-label">{children}</span>
+      <span
+        className={`app-menu-item-chevron toggle${open ? ' open' : ''}`}
+        aria-hidden
+      >
+        ›
+      </span>
+    </button>
+  )
+}
+
 export default function AppMenu({
   open,
   onClose,
@@ -25,6 +46,7 @@ export default function AppMenu({
   onNextPeriod,
   onToday,
   showVacations = true,
+  showVacationReport = false,
   showUsers = false,
   showLunch = false,
   showVidriera = false,
@@ -46,11 +68,13 @@ export default function AppMenu({
   onChangePassword,
   version,
 }) {
-  const showPersonalGroup = showVacations || showVidriera
+  const showVacationGroup = showVacations || showVacationReport
+  const showPersonalGroup = showVacationGroup || showVidriera
   const showConfigGroup = showLunch || showTaskRetention
   const showOtherActions = showUsers || showTasksAdmin || showAudit
   const hasActions = showPersonalGroup || showConfigGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
+  const [vacationsOpen, setVacationsOpen] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
   const [scheduleView, setScheduleView] = useState('week')
   const inSchedule = view === 'week' || view === 'month'
@@ -62,6 +86,7 @@ export default function AppMenu({
   useEffect(() => {
     if (!open) {
       setPersonalOpen(false)
+      setVacationsOpen(false)
       setConfigOpen(false)
     }
   }, [open])
@@ -177,43 +202,50 @@ export default function AppMenu({
 
             {showPersonalGroup && (
               <div className={`app-menu-list${personalOpen ? ' is-expanded' : ''}`}>
-                <button
-                  type="button"
-                  className="app-menu-item app-menu-group-toggle"
-                  aria-expanded={personalOpen}
-                  onClick={() => setPersonalOpen((v) => !v)}
+                <MenuGroupToggle
+                  open={personalOpen}
+                  onToggle={() => setPersonalOpen((value) => !value)}
                 >
-                  <span className="app-menu-item-label">Asistentes</span>
-                  <span
-                    className={`app-menu-item-chevron toggle${personalOpen ? ' open' : ''}`}
-                    aria-hidden
-                  >
-                    ›
-                  </span>
-                </button>
+                  Asistentes
+                </MenuGroupToggle>
                 {personalOpen && (
                   <div className="app-menu-sublist">
-                    {showVacations && (
-                      <MenuItem
-                        nested
-                        onClick={() => {
-                          onVacations()
-                          onClose()
-                        }}
-                      >
-                        Vacaciones
-                      </MenuItem>
-                    )}
-                    {showVacations && (
-                      <MenuItem
-                        nested
-                        onClick={() => {
-                          onVacationReport()
-                          onClose()
-                        }}
-                      >
-                        Reporte de vacaciones
-                      </MenuItem>
+                    {showVacationGroup && (
+                      <>
+                        <MenuGroupToggle
+                          nested
+                          open={vacationsOpen}
+                          onToggle={() => setVacationsOpen((value) => !value)}
+                        >
+                          Vacaciones
+                        </MenuGroupToggle>
+                        {vacationsOpen && (
+                          <div className="app-menu-sublist app-menu-sublist-deep">
+                            {showVacations && (
+                              <MenuItem
+                                nested
+                                onClick={() => {
+                                  onVacations()
+                                  onClose()
+                                }}
+                              >
+                                Cargar
+                              </MenuItem>
+                            )}
+                            {showVacationReport && (
+                              <MenuItem
+                                nested
+                                onClick={() => {
+                                  onVacationReport()
+                                  onClose()
+                                }}
+                              >
+                                Reporte
+                              </MenuItem>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                     {showVidriera && (
                       <MenuItem
@@ -233,20 +265,12 @@ export default function AppMenu({
 
             {showConfigGroup && (
               <div className={`app-menu-list${configOpen ? ' is-expanded' : ''}`}>
-                <button
-                  type="button"
-                  className="app-menu-item app-menu-group-toggle"
-                  aria-expanded={configOpen}
-                  onClick={() => setConfigOpen((v) => !v)}
+                <MenuGroupToggle
+                  open={configOpen}
+                  onToggle={() => setConfigOpen((value) => !value)}
                 >
-                  <span className="app-menu-item-label">Configuración</span>
-                  <span
-                    className={`app-menu-item-chevron toggle${configOpen ? ' open' : ''}`}
-                    aria-hidden
-                  >
-                    ›
-                  </span>
-                </button>
+                  Configuración
+                </MenuGroupToggle>
                 {configOpen && (
                   <div className="app-menu-sublist">
                     {showLunch && (

@@ -79,6 +79,8 @@ function App() {
   const { user, booting, can, logout, refreshMe } = useAuth()
   const canWriteShifts = can('shifts:write')
   const canWriteVacations = can('vacations:write')
+  const canReportVacations = can('vacations:report')
+  const canPrintVacationReport = can('vacations:print')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
   const canReadAudit = can('audit:read')
@@ -1039,6 +1041,7 @@ function App() {
 
       {vacationReportOpen && <VacationReportModal
         open
+        canPrint={canPrintVacationReport}
         onClose={() => setVacationReportOpen(false)}
       />}
 
@@ -1109,6 +1112,7 @@ function App() {
         }
         onToday={goToday}
         showVacations={canWriteVacations}
+        showVacationReport={canReportVacations}
         showUsers={canManageUsers}
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}

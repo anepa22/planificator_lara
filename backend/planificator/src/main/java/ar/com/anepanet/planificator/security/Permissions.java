@@ -4,6 +4,8 @@ public final class Permissions {
 
     public static final String SHIFTS_WRITE = "shifts:write";
     public static final String VACATIONS_WRITE = "vacations:write";
+    public static final String VACATIONS_REPORT = "vacations:report";
+    public static final String VACATIONS_PRINT = "vacations:print";
     public static final String STAFF_WRITE = "staff:write";
     public static final String SCHEDULE_APPEAR = "schedule:appear";
     public static final String LUNCH_MANAGE = "lunch:manage";

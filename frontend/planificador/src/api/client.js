@@ -78,6 +78,31 @@ export const getShifts = (weekStart) =>
   api(`/api/shifts?weekStart=${weekStart}`)
 export const getVacationReport = (from, to) =>
   api(`/api/shifts/vacation-report?from=${from}&to=${to}`)
+export async function downloadVacationReportPdf(from, to) {
+  const headers = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(
+    `${BASE}/api/shifts/vacation-report.pdf?from=${from}&to=${to}`,
+    { headers },
+  )
+  if (res.status === 401) {
+    clearToken()
+    window.dispatchEvent(new CustomEvent('planificator:unauthorized'))
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    const msg = [err.message, err.detail].filter(Boolean).join(': ')
+    throw new ApiError(msg || `Error ${res.status}`, res.status)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `vacaciones-${from}-${to}.pdf`
+  link.click()
+  URL.revokeObjectURL(url)
+}
 export const createShift = (body) =>
   api('/api/shifts', { method: 'POST', body: JSON.stringify(body) })
 export const updateShift = (id, body) =>

@@ -79,6 +79,17 @@ public class AuthCleanup implements ApplicationRunner {
                     ALTER COLUMN must_change_password SET NOT NULL
                     """).update();
 
+            ensurePermission("vacations_report", Permissions.VACATIONS_REPORT, "Ver reporte de vacaciones");
+            ensurePermission("vacations_print", Permissions.VACATIONS_PRINT, "Imprimir reporte de vacaciones");
+            jdbc.sql("""
+                    INSERT INTO role_permissions (role_id, permission_id) VALUES
+                        ('admin', 'vacations_report'),
+                        ('editor', 'vacations_report'),
+                        ('admin', 'vacations_print'),
+                        ('editor', 'vacations_print')
+                    ON CONFLICT DO NOTHING
+                    """).update();
+
             ensurePermission("lunch_manage", Permissions.LUNCH_MANAGE, "Configurar almuerzo");
             jdbc.sql("""
                     INSERT INTO role_permissions (role_id, permission_id) VALUES

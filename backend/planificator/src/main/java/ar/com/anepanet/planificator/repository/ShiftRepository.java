@@ -63,7 +63,7 @@ public class ShiftRepository {
                 WHERE s.location_id = :locationId
                   AND s.work_date BETWEEN :from AND :to
                 GROUP BY s.user_id, u.display_name, s.work_date
-                ORDER BY u.display_name, s.work_date
+                ORDER BY u.display_name, s.user_id, s.work_date
                 """)
                 .param("locationId", Permissions.VACATION_LOCATION_ID)
                 .param("from", from)
