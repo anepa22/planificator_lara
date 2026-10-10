@@ -23,7 +23,9 @@ final class VacationReportPdf {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Font TITLE = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
     private static final Font TEXT = FontFactory.getFont(FontFactory.HELVETICA, 10);
+    private static final Font TOTAL = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
     private static final Font HEADER = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
+    private static final Color TOTAL_BACKGROUND = new Color(232, 238, 244);
 
     private VacationReportPdf() {}
 
@@ -65,6 +67,13 @@ final class VacationReportPdf {
                 table.addCell(cell(DATE.format(range.dateTo()), TEXT));
                 table.addCell(cell(String.valueOf(range.days()), TEXT));
             }
+            PdfPCell label = cell("Total " + person.userName(), TOTAL);
+            label.setColspan(3);
+            label.setBackgroundColor(TOTAL_BACKGROUND);
+            table.addCell(label);
+            PdfPCell days = cell(String.valueOf(person.days()), TOTAL);
+            days.setBackgroundColor(TOTAL_BACKGROUND);
+            table.addCell(days);
         }
         return table;
     }

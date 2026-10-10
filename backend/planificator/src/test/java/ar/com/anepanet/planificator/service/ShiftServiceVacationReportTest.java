@@ -2,7 +2,10 @@ package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.VacationDay;
 import ar.com.anepanet.planificator.domain.VacationPersonReport;
+import ar.com.anepanet.planificator.domain.VacationRange;
 import ar.com.anepanet.planificator.domain.VacationReport;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -46,5 +49,26 @@ class ShiftServiceVacationReportTest {
         assertEquals('P', (char) pdf[1]);
         assertEquals('D', (char) pdf[2]);
         assertEquals('F', (char) pdf[3]);
+    }
+
+    @Test
+    void pdfTotalsDaysPerPerson() throws Exception {
+        UUID ana = UUID.randomUUID();
+        byte[] pdf = VacationReportPdf.render(new VacationReport(
+                LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 1, 31),
+                3,
+                List.of(new VacationPersonReport(ana, "Ana", 3, List.of(
+                        new VacationRange(LocalDate.of(2026, 1, 2), LocalDate.of(2026, 1, 3), 2),
+                        new VacationRange(LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 5), 1)
+                )))));
+        PdfReader reader = new PdfReader(pdf);
+        try {
+            String text = new PdfTextExtractor(reader).getTextFromPage(1);
+            assertTrue(text.contains("Total Ana"));
+            assertTrue(text.contains("3"));
+        } finally {
+            reader.close();
+        }
     }
 }

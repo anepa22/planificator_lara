@@ -35,7 +35,7 @@ El grupo Vacaciones aparece si el usuario puede cargar o ver el reporte.
 - El encabezado suma los días y las personas del período.
 - Si no hay vacaciones, el período se ve vacío.
 - Quien tiene `vacations:print` ve el botón Imprimir PDF y baja el archivo
-  del período consultado.
+  del período consultado. El PDF cierra cada persona con el total de sus días.
 
 ## Reglas
 - Un tramo son días calendario consecutivos de la misma persona.

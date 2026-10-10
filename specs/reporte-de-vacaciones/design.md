@@ -11,7 +11,8 @@ los roles que ya cargan vacaciones.
 en `admin` y `editor`. No vuelve a copiar el permiso de consulta a otros
 roles: si se lo sacaron a un rol, el próximo arranque no lo devuelve.
 
-El PDF lo arma `VacationReportPdf` con los mismos tramos que la pantalla.
+El PDF lo arma `VacationReportPdf` con los mismos tramos que la pantalla
+y, debajo de cada persona, el total de sus días.
 El archivo se llama `vacaciones-YYYY-MM-DD-YYYY-MM-DD.pdf`.
 
 ## API
