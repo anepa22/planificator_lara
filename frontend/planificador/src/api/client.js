@@ -76,6 +76,8 @@ export const deleteVidriera = (locationId, workDate) =>
   )
 export const getShifts = (weekStart) =>
   api(`/api/shifts?weekStart=${weekStart}`)
+export const getVacationReport = (from, to) =>
+  api(`/api/shifts/vacation-report?from=${from}&to=${to}`)
 export const createShift = (body) =>
   api('/api/shifts', { method: 'POST', body: JSON.stringify(body) })
 export const updateShift = (id, body) =>

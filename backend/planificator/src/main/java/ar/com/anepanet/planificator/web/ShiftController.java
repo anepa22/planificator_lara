@@ -3,6 +3,7 @@ package ar.com.anepanet.planificator.web;
 import ar.com.anepanet.planificator.domain.HoursByUserWeek;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
+import ar.com.anepanet.planificator.domain.VacationReport;
 import ar.com.anepanet.planificator.service.ShiftService;
 import ar.com.anepanet.planificator.web.dto.CreateShiftRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateShiftRequest;
@@ -29,6 +30,13 @@ public class ShiftController {
     public List<ShiftWeekView> byWeek(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
         return service.byWeek(weekStart);
+    }
+
+    @GetMapping("/vacation-report")
+    public VacationReport vacationReport(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return service.vacationReport(from, to);
     }
 
     @GetMapping("/summary")

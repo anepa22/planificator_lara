@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         // Lectura pública del planificador (sin login)
                         .requestMatchers(HttpMethod.GET, "/api/locations", "/api/staff").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/shifts", "/api/shifts/summary").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/shifts", "/api/shifts/summary", "/api/shifts/vacation-report").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/holidays", "/api/vidrieras").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tasks/board", "/api/tasks/*/history").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ws/sync").permitAll()

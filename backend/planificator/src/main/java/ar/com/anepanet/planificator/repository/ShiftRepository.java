@@ -3,6 +3,8 @@ package ar.com.anepanet.planificator.repository;
 import ar.com.anepanet.planificator.domain.HoursByUserWeek;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
+import ar.com.anepanet.planificator.domain.VacationDay;
+import ar.com.anepanet.planificator.security.Permissions;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -49,6 +51,27 @@ public class ShiftRepository {
                         rs.getString("user_name"),
                         rs.getBigDecimal("total_hours"),
                         rs.getInt("shift_count")
+                ))
+                .list();
+    }
+
+    public List<VacationDay> findVacationDays(LocalDate from, LocalDate to) {
+        return jdbc.sql("""
+                SELECT s.user_id, u.display_name, s.work_date
+                FROM shifts s
+                JOIN app_users u ON u.id = s.user_id
+                WHERE s.location_id = :locationId
+                  AND s.work_date BETWEEN :from AND :to
+                GROUP BY s.user_id, u.display_name, s.work_date
+                ORDER BY u.display_name, s.work_date
+                """)
+                .param("locationId", Permissions.VACATION_LOCATION_ID)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, n) -> new VacationDay(
+                        rs.getObject("user_id", UUID.class),
+                        rs.getString("display_name"),
+                        rs.getObject("work_date", LocalDate.class)
                 ))
                 .list();
     }

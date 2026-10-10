@@ -5,6 +5,10 @@ import ar.com.anepanet.planificator.domain.HoursByUserWeek;
 import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
+import ar.com.anepanet.planificator.domain.VacationDay;
+import ar.com.anepanet.planificator.domain.VacationPersonReport;
+import ar.com.anepanet.planificator.domain.VacationRange;
+import ar.com.anepanet.planificator.domain.VacationReport;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
 import ar.com.anepanet.planificator.repository.ShiftRepository;
@@ -24,7 +28,9 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +64,66 @@ public class ShiftService {
 
     public List<HoursByUserWeek> hoursByWeek(LocalDate weekStart) {
         return shifts.hoursByWeek(normalizeWeekStart(weekStart));
+    }
+
+    public VacationReport vacationReport(LocalDate from, LocalDate to) {
+        if (from == null || to == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Indicá desde y hasta");
+        }
+        if (to.isBefore(from)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hasta no puede ser anterior a desde");
+        }
+        if (ChronoUnit.DAYS.between(from, to) > 800) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El período no puede superar 800 días");
+        }
+        List<VacationPersonReport> people = groupVacationDays(shifts.findVacationDays(from, to));
+        int totalDays = people.stream().mapToInt(VacationPersonReport::days).sum();
+        return new VacationReport(from, to, totalDays, people);
+    }
+
+    static List<VacationPersonReport> groupVacationDays(List<VacationDay> days) {
+        List<VacationPersonReport> people = new ArrayList<>();
+        UUID currentId = null;
+        String currentName = null;
+        List<VacationRange> ranges = new ArrayList<>();
+        LocalDate runFrom = null;
+        LocalDate runTo = null;
+        for (VacationDay day : days) {
+            if (currentId != null && !currentId.equals(day.userId())) {
+                ranges.add(range(runFrom, runTo));
+                people.add(person(currentId, currentName, ranges));
+                ranges = new ArrayList<>();
+                runFrom = null;
+                runTo = null;
+            }
+            if (runFrom == null) {
+                runFrom = day.workDate();
+                runTo = day.workDate();
+            } else if (day.workDate().equals(runTo.plusDays(1))) {
+                runTo = day.workDate();
+            } else {
+                ranges.add(range(runFrom, runTo));
+                runFrom = day.workDate();
+                runTo = day.workDate();
+            }
+            currentId = day.userId();
+            currentName = day.userName();
+        }
+        if (currentId != null) {
+            ranges.add(range(runFrom, runTo));
+            people.add(person(currentId, currentName, ranges));
+        }
+        return people;
+    }
+
+    private static VacationRange range(LocalDate from, LocalDate to) {
+        int days = (int) ChronoUnit.DAYS.between(from, to) + 1;
+        return new VacationRange(from, to, days);
+    }
+
+    private static VacationPersonReport person(UUID id, String name, List<VacationRange> ranges) {
+        int days = ranges.stream().mapToInt(VacationRange::days).sum();
+        return new VacationPersonReport(id, name, days, List.copyOf(ranges));
     }
 
     @Transactional

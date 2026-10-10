@@ -34,6 +34,7 @@ export default function AppMenu({
   userLabel,
   loggedIn = false,
   onVacations,
+  onVacationReport,
   onUsers,
   onLunch,
   onVidriera,
@@ -201,6 +202,17 @@ export default function AppMenu({
                         }}
                       >
                         Vacaciones
+                      </MenuItem>
+                    )}
+                    {showVacations && (
+                      <MenuItem
+                        nested
+                        onClick={() => {
+                          onVacationReport()
+                          onClose()
+                        }}
+                      >
+                        Reporte de vacaciones
                       </MenuItem>
                     )}
                     {showVidriera && (

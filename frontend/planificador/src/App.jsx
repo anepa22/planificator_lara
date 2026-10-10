@@ -35,6 +35,7 @@ import TaskRetentionModal from './components/TaskRetentionModal'
 import UsersModal from './components/UsersModal'
 import VacationModal from './components/VacationModal'
 import VacationRemoveModal from './components/VacationRemoveModal'
+import VacationReportModal from './components/VacationReportModal'
 import VidrieraModal from './components/VidrieraModal'
 import VidrieraMonthSummary from './components/VidrieraMonthSummary'
 import WeekNav from './components/WeekNav'
@@ -114,6 +115,7 @@ function App() {
   const [auditOpen, setAuditOpen] = useState(false)
   const [lunchOpen, setLunchOpen] = useState(false)
   const [vacationOpen, setVacationOpen] = useState(false)
+  const [vacationReportOpen, setVacationReportOpen] = useState(false)
   const [vidrieraOpen, setVidrieraOpen] = useState(false)
   const [vidrieraModalDate, setVidrieraModalDate] = useState(null)
   const [taskAdminOpen, setTaskAdminOpen] = useState(false)
@@ -372,6 +374,7 @@ function App() {
     auditOpen ||
     lunchOpen ||
     vacationOpen ||
+    vacationReportOpen ||
     vidrieraOpen ||
     taskAdminOpen ||
     taskRetentionOpen ||
@@ -1034,6 +1037,11 @@ function App() {
         onClose={() => setLunchOpen(false)}
       />}
 
+      {vacationReportOpen && <VacationReportModal
+        open
+        onClose={() => setVacationReportOpen(false)}
+      />}
+
       {vacationOpen && <VacationModal
         open
         staff={staff}
@@ -1110,6 +1118,7 @@ function App() {
         userLabel={user ? user.displayName || user.username : null}
         loggedIn={!!user}
         onVacations={() => setVacationOpen(true)}
+        onVacationReport={() => setVacationReportOpen(true)}
         onUsers={() => setUsersOpen(true)}
         onLunch={() => setLunchOpen(true)}
         onVidriera={() => openVidrieraModal()}

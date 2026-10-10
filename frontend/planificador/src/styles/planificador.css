@@ -95,6 +95,16 @@
     }
     .panel-form .field{margin-bottom:0;}
   }
+  .vacation-report-filters{grid-template-columns:140px 1fr 1fr auto;}
+  .vacation-report-list{list-style:none;margin:0;padding:8px 0 4px;}
+  .vacation-report-person{padding:10px 6px;border-bottom:1px solid var(--border-soft);}
+  .vacation-report-person:last-child{border-bottom:none;}
+  .vacation-report-person-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .vacation-report-name{font-size:13px;font-weight:800;color:var(--ink);}
+  .vacation-report-days{font-size:11.5px;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .vacation-report-ranges{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
+  .vacation-report-ranges li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink);}
+  .vacation-report-range-days{color:var(--ink-soft);font-weight:600;white-space:nowrap;}
   .panel-list.is-busy{opacity:.55;}
   .panel-list ul{list-style:none;margin:0;padding:8px 0 4px;}
   .audit-item{
@@ -1382,6 +1392,7 @@
     .task-admin-state{grid-column:2;}
     .task-admin-actions{grid-column:3;grid-row:1/span 2;align-items:center;}
     .panel-head-right{gap:8px;}
+    .vacation-report-filters{grid-template-columns:1fr;}
     .users-form{grid-template-columns:1fr;}
     .users-toolbar{flex-direction:column;align-items:stretch;gap:8px;}
     .users-toolbar-right{flex-direction:column;align-items:stretch;}
