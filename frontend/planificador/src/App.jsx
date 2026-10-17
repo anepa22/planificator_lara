@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  assignVacations,
   createShift,
   assignTask,
   deleteShift,
@@ -41,7 +42,6 @@ import VidrieraMonthSummary from './components/VidrieraMonthSummary'
 import WeekNav from './components/WeekNav'
 import {
   addDays,
-  eachDateKey,
   fmtMonthLabel,
   fmtWeekRange,
   monthBounds,
@@ -60,7 +60,6 @@ import {
 } from './lib/dates'
 import {
   FRANCO_LOCATION_ID,
-  VACATION_LOCATION_ID,
   francoLocation,
   isAbsenceLocation,
   vacationLocation,
@@ -507,38 +506,16 @@ function App() {
           'No está cargado el local Vacaciones. Ejecutá la migración MIGRA_VACACIONES_LOCATION.sql',
         )
       }
-      const locationId = payload.locationId || VACATION_LOCATION_ID
       const startTime = normalizeTime(payload.startTime)
       const endTime = normalizeTime(payload.endTime)
-      const replaceIds = new Set(payload.replaceConflictIds || [])
-      const workDates = eachDateKey(payload.dateFrom, payload.dateTo)
-      const pool = await fetchShiftsForRange(payload.dateFrom, payload.dateTo)
-
-      for (const workDate of workDates) {
-        for (const userId of payload.userIds) {
-          const overlapping = pool.filter(
-            (s) =>
-              s.userId === userId &&
-              String(s.workDate) === workDate &&
-              timesOverlap(startTime, endTime, s.startTime, s.endTime),
-          )
-          for (const existing of overlapping) {
-            if (replaceIds.has(existing.id)) await deleteShift(existing.id)
-          }
-        }
-      }
-
-      for (const workDate of workDates) {
-        for (const userId of payload.userIds) {
-          await createShift({
-            userId,
-            locationId,
-            workDate,
-            startTime,
-            endTime,
-          })
-        }
-      }
+      await assignVacations({
+        userIds: payload.userIds,
+        dateFrom: payload.dateFrom,
+        dateTo: payload.dateTo,
+        startTime,
+        endTime,
+        replaceShiftIds: payload.replaceConflictIds || [],
+      })
 
       await refreshAfterShiftChange()
       setVacationOpen(false)
@@ -1052,7 +1029,10 @@ function App() {
         busy={busy}
         canWrite={canWriteVacations}
         fetchShiftsForRange={fetchShiftsForRange}
-        onClose={() => setVacationOpen(false)}
+        onClose={() => {
+          setVacationOpen(false)
+          setError(null)
+        }}
         onSave={handleSaveVacation}
       />}
 

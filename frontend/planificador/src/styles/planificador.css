@@ -985,7 +985,10 @@
   .gantt-bar-time{font-size:9px;font-weight:600;color:var(--ink-soft);}
   .gantt-bar-vacation .gantt-bar-loc{color:#5B6675;font-weight:700;}
   .gantt-bar-franco .gantt-bar-loc{color:#C62828;font-weight:700;}
-  .vacation-modal{max-width:min(420px, 92vw);}
+  .vacation-modal{width:min(520px, 92vw);max-width:min(520px, 92vw);max-height:min(86vh, 760px);overflow:auto;}
+  .quota-box{background:#F4F6F8;border-radius:8px;padding:8px 10px;margin:0 0 8px;font-size:12.5px;line-height:1.45;}
+  .quota-title{font-weight:700;}
+  .quota-missing{color:#9A3412;}
   .vidriera-existing{
     max-height:140px;overflow-y:auto;border:1px solid var(--border);
     border-radius:8px;

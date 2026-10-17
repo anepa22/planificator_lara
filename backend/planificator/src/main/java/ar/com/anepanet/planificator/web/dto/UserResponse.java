@@ -1,5 +1,6 @@
 package ar.com.anepanet.planificator.web.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ public record UserResponse(
         String displayName,
         String color,
         String telegramChatId,
+        LocalDate hireDate,
         boolean active,
         boolean canLogin,
         List<String> roles,

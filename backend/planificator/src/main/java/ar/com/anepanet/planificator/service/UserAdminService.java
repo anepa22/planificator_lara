@@ -64,6 +64,7 @@ public class UserAdminService {
                     req.displayName(),
                     req.color(),
                     cleanTelegramChatId(req.telegramChatId()),
+                    req.hireDate(),
                     canLogin,
                     req.roleIds(),
                     req.individualPermissionCodes()
@@ -115,6 +116,7 @@ public class UserAdminService {
                         hash,
                         req.color(),
                         cleanTelegramChatId(req.telegramChatId()),
+                        req.hireDate(),
                         canLogin,
                         passwordChanged && canLogin ? Boolean.TRUE : null,
                         req.roleIds(),
@@ -249,6 +251,7 @@ public class UserAdminService {
                 user.displayName(),
                 user.color(),
                 user.telegramChatId(),
+                user.hireDate(),
                 user.active(),
                 user.canLogin(),
                 user.roleIds(),

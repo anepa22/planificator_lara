@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public record CreateUserRequest(
@@ -12,6 +13,7 @@ public record CreateUserRequest(
         @NotBlank @Size(max = 120) String displayName,
         @Size(max = 20) String color,
         @Size(max = 32) String telegramChatId,
+        LocalDate hireDate,
         Boolean canLogin,
         @NotNull List<String> roleIds,
         @NotNull List<String> individualPermissionCodes

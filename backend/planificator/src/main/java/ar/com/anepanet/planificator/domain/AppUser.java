@@ -1,5 +1,6 @@
 package ar.com.anepanet.planificator.domain;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -14,6 +15,7 @@ public record AppUser(
         boolean active,
         boolean canLogin,
         boolean mustChangePassword,
+        LocalDate hireDate,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         List<String> roleIds,

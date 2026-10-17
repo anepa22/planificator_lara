@@ -127,6 +127,41 @@ public class ShiftRepository {
                 .optional();
     }
 
+    public List<LocalDate> vacationDates(UUID userId, LocalDate from, LocalDate to) {
+        return jdbc.sql("""
+                SELECT DISTINCT work_date
+                FROM shifts
+                WHERE user_id = :userId
+                  AND location_id = :locationId
+                  AND work_date BETWEEN :from AND :to
+                ORDER BY work_date
+                """)
+                .param("userId", userId)
+                .param("locationId", Permissions.VACATION_LOCATION_ID)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, n) -> rs.getObject("work_date", LocalDate.class))
+                .list();
+    }
+
+    public List<LocalDate> workedDates(UUID userId, LocalDate from, LocalDate to) {
+        return jdbc.sql("""
+                SELECT DISTINCT work_date
+                FROM shifts
+                WHERE user_id = :userId
+                  AND location_id NOT IN (:vacationId, :francoId)
+                  AND work_date BETWEEN :from AND :to
+                ORDER BY work_date
+                """)
+                .param("userId", userId)
+                .param("vacationId", Permissions.VACATION_LOCATION_ID)
+                .param("francoId", Permissions.FRANCO_LOCATION_ID)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, n) -> rs.getObject("work_date", LocalDate.class))
+                .list();
+    }
+
     public boolean delete(UUID id) {
         int deleted = jdbc.sql("DELETE FROM shifts WHERE id = :id")
                 .param("id", id)

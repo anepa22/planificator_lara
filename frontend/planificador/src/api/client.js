@@ -101,6 +101,16 @@ export async function downloadVacationReportPdf(from, to) {
 }
 export const createShift = (body) =>
   api('/api/shifts', { method: 'POST', body: JSON.stringify(body) })
+export function getVacationBalance(userIds, periodYears) {
+  const params = new URLSearchParams()
+  userIds.forEach((id) => params.append('userId', id))
+  periodYears.forEach((year) => params.append('periodYear', String(year)))
+  return api(`/api/vacations/balance?${params}`)
+}
+export const saveAgreedVacationDays = (body) =>
+  api('/api/vacations/agreed-days', { method: 'PUT', body: JSON.stringify(body) })
+export const assignVacations = (body) =>
+  api('/api/vacations', { method: 'POST', body: JSON.stringify(body) })
 export const updateShift = (id, body) =>
   api(`/api/shifts/${id}`, { method: 'PUT', body: JSON.stringify(body) })
 export const deleteShift = (id) =>
