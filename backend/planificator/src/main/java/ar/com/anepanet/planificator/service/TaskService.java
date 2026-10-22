@@ -64,11 +64,15 @@ public class TaskService {
 
     public TaskHistoryResponse history(UUID id) {
         Task task = find(id);
+        boolean fullHistory = SecurityUtils.hasAuthority(Permissions.TASKS_HISTORY)
+                || (isStockAdmin() && task.stock());
+        if (!fullHistory && isStockAdmin()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No puede ver el detalle de esta tarea");
+        }
         List<TaskHistory> all = tasks.findHistory(id);
         List<TaskHistory> moves = all.stream().filter(TaskService::isMovement).toList();
-        List<TaskHistory> visible = SecurityUtils.hasAuthority(Permissions.TASKS_HISTORY)
-                ? moves
-                : List.of();
+        List<TaskHistory> visible = fullHistory ? moves : List.of();
         String status = task.status();
         return new TaskHistoryResponse(
                 lastMatching(all, TaskService::wentPending),
@@ -87,12 +91,16 @@ public class TaskService {
     }
 
     public List<Task> listAll() {
-        requireManager();
-        return tasks.findAll();
+        requireCatalogAccess();
+        List<Task> all = tasks.findAll();
+        if (isManager()) {
+            return all;
+        }
+        return all.stream().filter(Task::stock).toList();
     }
 
     public List<TaskAssignee> assignees() {
-        requireManager();
+        requireCatalogAccess();
         return auth.findAllUsers().stream()
                 .filter(AppUser::active)
                 .filter(TaskService::canAppearOnTasks)
@@ -105,10 +113,11 @@ public class TaskService {
 
     @Transactional
     public Task create(CreateTaskRequest req) {
-        requireManager();
+        requireCatalogAccess();
         String locationId = resolveLocationId(req.locationId());
+        boolean stock = !isManager() || Boolean.TRUE.equals(req.stock());
         Task created = tasks.insert(
-                cleanTitle(req.title()), cleanDescription(req.description()), locationId);
+                cleanTitle(req.title()), cleanDescription(req.description()), locationId, stock);
         tasks.addHistory(null, created, currentUser().id(), "CREATE", null);
         audit.record(AuditService.ACTION_CREATE, AuditService.TYPE_TASK,
                 created.id().toString(), created.title());
@@ -118,13 +127,15 @@ public class TaskService {
 
     @Transactional
     public Task update(UUID id, UpdateTaskRequest req) {
-        requireManager();
         Task before = find(id);
+        requireTaskManager(before);
+        boolean stock = nextStock(before, req.stock());
         Task updated = tasks.updateDetails(
                         id,
                         cleanTitle(req.title()),
                         cleanDescription(req.description()),
-                        resolveLocationId(req.locationId()))
+                        resolveLocationId(req.locationId()),
+                        stock)
                 .orElseThrow(() -> notFound());
         tasks.addHistory(before, updated, currentUser().id(), "UPDATE", null);
         audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_TASK,
@@ -135,8 +146,8 @@ public class TaskService {
 
     @Transactional
     public void delete(UUID id) {
-        requireManager();
         Task task = find(id);
+        requireTaskManager(task);
         if (!tasks.delete(id)) {
             throw notFound();
         }
@@ -147,8 +158,8 @@ public class TaskService {
 
     @Transactional
     public Task publish(UUID id) {
-        requireManager();
         Task before = find(id);
+        requireTaskManager(before);
         if (before.onBoard()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La tarea ya está en el tablero");
         }
@@ -159,15 +170,19 @@ public class TaskService {
 
     @Transactional
     public Task assign(UUID id, AssignTaskRequest req) {
-        SecurityUtils.requireAuthority(Permissions.TASKS_WRITE);
         AppUser user = currentUser();
         Task before = find(id);
         if (!before.onBoard()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La tarea no está en el tablero");
         }
 
-        boolean manager = isManager();
+        boolean manager = canManage(before);
         if (!manager) {
+            if (isStockAdmin()) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "No puede administrar esta tarea");
+            }
+            SecurityUtils.requireAuthority(Permissions.TASKS_WRITE);
             if (!user.id().equals(req.userId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede asignarse tareas a sí mismo");
@@ -201,8 +216,8 @@ public class TaskService {
 
     @Transactional
     public Task unassign(UUID id) {
-        requireManager();
         Task before = find(id);
+        requireTaskManager(before);
         if (!before.onBoard()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La tarea no está en el tablero");
         }
@@ -213,7 +228,6 @@ public class TaskService {
 
     @Transactional
     public Task move(UUID id, MoveTaskRequest req) {
-        SecurityUtils.requireAuthority(Permissions.TASKS_WRITE);
         AppUser user = currentUser();
         Task before = find(id);
         String destination = normalizeStatus(req.status());
@@ -226,7 +240,13 @@ public class TaskService {
                     HttpStatus.CONFLICT, "Hay que asignar la tarea antes de moverla");
         }
 
-        if (!isManager()) {
+        boolean manager = canManage(before);
+        if (!manager) {
+            if (isStockAdmin()) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "No puede administrar esta tarea");
+            }
+            SecurityUtils.requireAuthority(Permissions.TASKS_WRITE);
             if (!user.id().equals(before.assigneeUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "Solo puede mover sus propias tareas");
@@ -244,8 +264,9 @@ public class TaskService {
                     HttpStatus.BAD_REQUEST, "El motivo de bloqueo es obligatorio");
         }
 
-        if ("PENDING".equals(destination)) {
-            requireManager();
+        if ("PENDING".equals(destination) && !manager) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No puede devolver la tarea a Pendientes");
         }
         Task updated = tasks.move(id, destination, blockReason).orElseThrow(() -> notFound());
         recordChange(before, updated, "MOVE", blockReason);
@@ -254,8 +275,8 @@ public class TaskService {
 
     @Transactional
     public Task retire(UUID id) {
-        requireManager();
         Task before = find(id);
+        requireTaskManager(before);
         if (!before.onBoard()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La tarea no está en el tablero");
         }
@@ -369,6 +390,39 @@ public class TaskService {
 
     private boolean isManager() {
         return SecurityUtils.hasAuthority(Permissions.TASKS_MANAGE);
+    }
+
+    private boolean isStockAdmin() {
+        return SecurityUtils.hasAuthority(Permissions.TASKS_STOCK);
+    }
+
+    private boolean canManage(Task task) {
+        return isManager() || (isStockAdmin() && task.stock());
+    }
+
+    private void requireCatalogAccess() {
+        if (!isManager() && !isStockAdmin()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No puede administrar tareas");
+        }
+    }
+
+    private void requireTaskManager(Task task) {
+        if (!canManage(task)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No puede administrar esta tarea");
+        }
+    }
+
+    private boolean nextStock(Task before, Boolean requested) {
+        if (!isManager()) {
+            if (Boolean.FALSE.equals(requested)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "No puede quitar la marca de stock");
+            }
+            return true;
+        }
+        return requested == null ? before.stock() : requested;
     }
 
     private static boolean canAppearOnTasks(AppUser user) {

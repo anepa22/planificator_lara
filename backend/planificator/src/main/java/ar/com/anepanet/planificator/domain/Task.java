@@ -16,6 +16,7 @@ public record Task(
         String assigneeName,
         String assigneeColor,
         boolean onBoard,
+        boolean stock,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {}

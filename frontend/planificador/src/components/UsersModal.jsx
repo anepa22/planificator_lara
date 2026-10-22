@@ -16,6 +16,7 @@ const ROLE_LABELS = {
   admin: 'Administrador',
   editor: 'Supervisor',
   personal: 'Asistente',
+  stock: 'Admin de Stock',
 }
 
 /** Los permisos se agrupan por área para que la grilla de roles se lea de un saque. */

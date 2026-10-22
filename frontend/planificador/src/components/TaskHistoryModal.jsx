@@ -86,7 +86,8 @@ function Fact({ label, entry, tone }) {
 
 export default function TaskHistoryModal({ task, onClose }) {
   const { can } = useAuth()
-  const canSeeAllMoves = can('tasks:history')
+  const canSeeAllMoves =
+    can('tasks:history') || (can('tasks:stock') && !!task?.stock)
   const taskId = task?.id
   const [data, setData] = useState(null)
   const [busy, setBusy] = useState(false)

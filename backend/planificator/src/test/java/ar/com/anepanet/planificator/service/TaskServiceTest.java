@@ -8,7 +8,9 @@ import ar.com.anepanet.planificator.repository.TaskRepository;
 import ar.com.anepanet.planificator.security.AuthUser;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.web.dto.AssignTaskRequest;
+import ar.com.anepanet.planificator.web.dto.CreateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.MoveTaskRequest;
+import ar.com.anepanet.planificator.web.dto.UpdateTaskRequest;
 import ar.com.anepanet.planificator.web.dto.TaskAssignee;
 import ar.com.anepanet.planificator.domain.TaskHistory;
 import ar.com.anepanet.planificator.web.dto.TaskHistoryResponse;
@@ -34,7 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -274,6 +278,117 @@ class TaskServiceTest {
         assertNotNull(result.verified());
     }
 
+    @Test
+    void stockAdminCreateIsMarkedAndPlainTaskCannotBeClearedOrMoved() {
+        login(Permissions.TASKS_STOCK);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        Task created = task(UUID.randomUUID(), "PENDING", null, true);
+        created = new Task(
+                created.id(), created.title(), created.description(), "PENDING", null,
+                null, null, null, null, null, null, false, true,
+                created.createdAt(), created.updatedAt());
+        when(tasks.insert("Reponer", null, null, true)).thenReturn(created);
+
+        Task result = service.create(new CreateTaskRequest("Reponer", null, null, false));
+
+        assertTrue(result.stock());
+        verify(tasks).insert("Reponer", null, null, true);
+
+        UUID plainId = UUID.randomUUID();
+        when(tasks.findById(plainId)).thenReturn(Optional.of(task(plainId, "PENDING", userId, false)));
+        ResponseStatusException move = assertThrows(
+                ResponseStatusException.class,
+                () -> service.move(plainId, new MoveTaskRequest("VERIFIED", null)));
+        assertEquals(HttpStatus.FORBIDDEN, move.getStatusCode());
+        verify(tasks, never()).move(any(), any(), any());
+
+        UUID stockId = UUID.randomUUID();
+        when(tasks.findById(stockId)).thenReturn(Optional.of(task(stockId, "PENDING", null, true)));
+        ResponseStatusException clear = assertThrows(
+                ResponseStatusException.class,
+                () -> service.update(stockId, new UpdateTaskRequest("Reponer", null, null, false)));
+        assertEquals(HttpStatus.FORBIDDEN, clear.getStatusCode());
+        verify(tasks, never()).updateDetails(any(), any(), any(), any(), anyBoolean());
+    }
+
+    @Test
+    void stockAdminPublishesAndVerifiesStockTask() {
+        login(Permissions.TASKS_STOCK);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        UUID taskId = UUID.randomUUID();
+        Task offBoard = new Task(
+                taskId, "Reponer", null, "PENDING", null,
+                null, null, null, null, null, null, false, true,
+                OffsetDateTime.now(), OffsetDateTime.now());
+        Task published = task(taskId, "PENDING", null, true);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(offBoard), Optional.of(published));
+        when(tasks.publish(taskId)).thenReturn(Optional.of(published));
+
+        assertTrue(service.publish(taskId).stock());
+
+        UUID assignee = UUID.randomUUID();
+        Task assigned = task(taskId, "DONE", assignee, true);
+        Task verified = task(taskId, "VERIFIED", assignee, true);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(assigned));
+        when(tasks.move(taskId, "VERIFIED", null)).thenReturn(Optional.of(verified));
+
+        assertEquals("VERIFIED", service.move(taskId, new MoveTaskRequest("VERIFIED", null)).status());
+    }
+
+    @Test
+    void stockAdminSeesOnlyStockHistory() {
+        login(Permissions.TASKS_STOCK);
+        UUID stockId = UUID.randomUUID();
+        when(tasks.findById(stockId)).thenReturn(Optional.of(task(stockId, "IN_PROGRESS", userId, true)));
+        when(tasks.findHistory(stockId)).thenReturn(List.of(
+                history(1, stockId, "MOVE", "PENDING", "IN_PROGRESS")));
+
+        assertEquals(1, service.history(stockId).movements().size());
+
+        UUID plainId = UUID.randomUUID();
+        when(tasks.findById(plainId)).thenReturn(Optional.of(task(plainId, "PENDING", userId, false)));
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class, () -> service.history(plainId));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(tasks, never()).findHistory(plainId);
+    }
+
+    @Test
+    void assigneeMovesOwnStockTaskOnlyWithinPersonalColumns() {
+        login(Permissions.TASKS_WRITE);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        UUID taskId = UUID.randomUUID();
+        Task before = task(taskId, "PENDING", userId, true);
+        Task after = task(taskId, "IN_PROGRESS", userId, true);
+        when(tasks.findById(taskId)).thenReturn(Optional.of(before));
+        when(tasks.move(taskId, "IN_PROGRESS", null)).thenReturn(Optional.of(after));
+
+        assertEquals("IN_PROGRESS", service.move(taskId, new MoveTaskRequest("IN_PROGRESS", null)).status());
+
+        ResponseStatusException verified = assertThrows(
+                ResponseStatusException.class,
+                () -> service.move(taskId, new MoveTaskRequest("VERIFIED", null)));
+        assertEquals(HttpStatus.FORBIDDEN, verified.getStatusCode());
+    }
+
+    @Test
+    void stockAdminCannotAssignSomeoneOnVacation() {
+        login(Permissions.TASKS_STOCK);
+        when(auth.findById(userId)).thenReturn(Optional.of(appUser(false)));
+        UUID taskId = UUID.randomUUID();
+        UUID target = UUID.randomUUID();
+        when(tasks.findById(taskId)).thenReturn(Optional.of(task(taskId, "PENDING", null, true)));
+        when(auth.findById(target)).thenReturn(Optional.of(staffUser(target)));
+        when(tasks.isOnVacation(eq(target), any())).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> service.assign(taskId, new AssignTaskRequest(target)));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        verify(tasks, never()).assign(any(), any());
+    }
+
     private void login(String... permissions) {
         List<SimpleGrantedAuthority> authorities =
                 java.util.Arrays.stream(permissions).map(SimpleGrantedAuthority::new).toList();
@@ -313,10 +428,14 @@ class TaskServiceTest {
     }
 
     private Task task(UUID id, String status, UUID assignee) {
+        return task(id, status, assignee, false);
+    }
+
+    private Task task(UUID id, String status, UUID assignee, boolean stock) {
         return new Task(
                 id, "Tarea", "Descripción", status, null,
                 null, null, null, assignee,
-                assignee == null ? null : "Test", "#123456", true,
+                assignee == null ? null : "Test", "#123456", true, stock,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }
 

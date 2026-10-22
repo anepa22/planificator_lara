@@ -115,6 +115,20 @@ public class AuthCleanup implements ApplicationRunner {
 
             ensurePermission("tasks_write", Permissions.TASKS_WRITE, "Tomar y mover tareas propias");
             ensurePermission("tasks_manage", Permissions.TASKS_MANAGE, "Administrar todas las tareas");
+            ensurePermission("tasks_stock", Permissions.TASKS_STOCK, "Administrar tareas de stock");
+            jdbc.sql("""
+                    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS stock BOOLEAN NOT NULL DEFAULT FALSE
+                    """).update();
+            jdbc.sql("""
+                    INSERT INTO roles (id, code, name) VALUES
+                        ('stock', 'stock', 'Admin de Stock')
+                    ON CONFLICT (id) DO UPDATE SET code = EXCLUDED.code, name = EXCLUDED.name
+                    """).update();
+            jdbc.sql("""
+                    INSERT INTO role_permissions (role_id, permission_id) VALUES
+                        ('stock', 'tasks_stock')
+                    ON CONFLICT DO NOTHING
+                    """).update();
             ensurePermission("tasks_history", Permissions.TASKS_HISTORY, "Ver historial de movimientos de tareas");
             ensurePermission("tasks_retention", Permissions.TASKS_RETENTION, "Configurar retiro de tareas verificadas");
             jdbc.sql("""

@@ -22,11 +22,22 @@ function isCompleted(task) {
   return !task.onBoard && task.status === 'VERIFIED'
 }
 
-export default function TaskAdminModal({ open, onClose, onChanged, locations = [] }) {
+export default function TaskAdminModal({
+  open,
+  onClose,
+  onChanged,
+  locations = [],
+  stockOnly = false,
+}) {
   const [tasks, setTasks] = useState([])
   const [editing, setEditing] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', locationId: '' })
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    locationId: '',
+    stock: false,
+  })
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
@@ -52,7 +63,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
 
   function resetForm() {
     setEditing(null)
-    setForm({ title: '', description: '', locationId: '' })
+    setForm({ title: '', description: '', locationId: '', stock: stockOnly })
   }
 
   async function run(action) {
@@ -77,6 +88,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
       title: form.title.trim(),
       description: form.description.trim() || null,
       locationId: form.locationId || null,
+      stock: stockOnly ? true : !!form.stock,
     }
     if (!payload.title) return
     const ok = await run(() =>
@@ -88,8 +100,9 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
   if (!open) return null
 
   const locOptions = workLocations(locations)
-  const completed = tasks.filter(isCompleted)
-  const active = tasks.filter((task) => !isCompleted(task))
+  const visibleTasks = stockOnly ? tasks.filter((task) => task.stock) : tasks
+  const completed = visibleTasks.filter(isCompleted)
+  const active = visibleTasks.filter((task) => !isCompleted(task))
 
   function renderTask(task) {
     const completedTask = isCompleted(task)
@@ -109,6 +122,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
         <div className="task-admin-body">
           <span className="task-admin-title" title={task.title}>
             {task.title}
+            {task.stock && <span className="task-stock-mark">Stock</span>}
           </span>
           {task.description && (
             <span className="task-admin-desc" title={task.description}>
@@ -141,6 +155,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
                 title: task.title,
                 description: task.description || '',
                 locationId: task.locationId || '',
+                stock: stockOnly ? true : !!task.stock,
               })
             }}
           >
@@ -265,6 +280,17 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
                 }
               />
             </div>
+            <label className="task-stock-toggle">
+              <input
+                type="checkbox"
+                checked={stockOnly || !!form.stock}
+                disabled={busy || stockOnly}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, stock: event.target.checked }))
+                }
+              />
+              Stock
+            </label>
             <div className="panel-form-actions">
               <button type="submit" className="btn btn-primary" disabled={busy}>
                 {editing ? 'Guardar cambios' : 'Crear tarea'}
@@ -284,11 +310,11 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
 
           <div className="panel-toolbar">
             <span className="panel-count">
-              {!loaded || busy
-                ? 'Cargando…'
-                : tasks.length === 0
-                  ? 'Sin tareas'
-                  : `${active.length} tarea${active.length === 1 ? '' : 's'}${
+            {!loaded || busy
+              ? 'Cargando…'
+              : visibleTasks.length === 0
+                ? 'Sin tareas'
+                : `${active.length} tarea${active.length === 1 ? '' : 's'}${
                       completed.length
                         ? ` · ${completed.length} completada${
                             completed.length === 1 ? '' : 's'
@@ -299,7 +325,7 @@ export default function TaskAdminModal({ open, onClose, onChanged, locations = [
           </div>
 
           <div className={`panel-list task-admin-lists${busy ? ' is-busy' : ''}`}>
-            {!busy && loaded && tasks.length === 0 ? (
+            {!busy && loaded && visibleTasks.length === 0 ? (
               <div className="panel-empty">
                 <div className="panel-empty-title">Todavía no hay tareas</div>
                 <div>Creá la primera con el formulario de arriba.</div>

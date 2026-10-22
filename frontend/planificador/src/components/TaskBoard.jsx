@@ -25,6 +25,7 @@ export default function TaskBoard({
   currentUserId = null,
   canWrite = false,
   canManage = false,
+  canManageStock = false,
   busy = false,
   onAssign,
   onUnassign,
@@ -38,6 +39,7 @@ export default function TaskBoard({
   const [menu, setMenu] = useState(null)
   const [historyTask, setHistoryTask] = useState(null)
   const [assigneeFilter, setAssigneeFilter] = useState('all')
+  const [stockFilter, setStockFilter] = useState(false)
   const [locationFilter, setLocationFilter] = useState([])
   const [query, setQuery] = useState('')
   const skipClickRef = useRef(false)
@@ -103,12 +105,13 @@ export default function TaskBoard({
         const loc = task.locationId || NO_LOCATION
         if (!locSet.has(loc)) return false
       }
+      if (stockFilter && !task.stock) return false
       if (q && !String(task.title || '').toLowerCase().includes(q)) {
         return false
       }
       return true
     })
-  }, [tasks, assigneeFilter, locationFilter, query, currentUserId])
+  }, [tasks, assigneeFilter, locationFilter, stockFilter, query, currentUserId])
 
   const byStatus = useMemo(() => {
     const map = new Map(COLUMNS.map((column) => [column.id, []]))
@@ -126,14 +129,18 @@ export default function TaskBoard({
     )
   }
 
+  function manages(task) {
+    return canManage || (canManageStock && !!task?.stock)
+  }
+
   function canMoveTask(task) {
     if (!task.assigneeUserId) return false
-    return canManage || (canWrite && task.assigneeUserId === currentUserId)
+    return manages(task) || (canWrite && task.assigneeUserId === currentUserId)
   }
 
   function canDrop(task, status) {
     if (!canMoveTask(task)) return false
-    if (canManage) return true
+    if (manages(task)) return true
     return PERSONAL_DESTINATIONS.has(status)
   }
 
@@ -158,7 +165,7 @@ export default function TaskBoard({
 
   function hasContextMenu(task) {
     if (busy) return false
-    if (canManage) return true
+    if (manages(task)) return true
     return (
       canWrite &&
       !!currentUserId &&
@@ -226,11 +233,37 @@ export default function TaskBoard({
     ? people.filter((person) => String(person.id) !== String(currentUserId))
     : people
   const filtering =
-    assigneeFilter !== 'all' || locationFilter.length > 0 || query.trim().length > 0
+    assigneeFilter !== 'all' ||
+    stockFilter ||
+    locationFilter.length > 0 ||
+    query.trim().length > 0
 
   return (
     <div className="task-board-wrap" ref={wrapRef}>
       <div className="task-board-filters" ref={filtersRef}>
+        <div className="task-board-filter-row">
+          <span className="task-board-filter-label">Tipo</span>
+          <div className="legend" role="group" aria-label="Filtrar por stock">
+            <button
+              type="button"
+              className={`chip${!stockFilter ? ' is-on' : ' is-dim'}`}
+              aria-pressed={!stockFilter}
+              onClick={() => setStockFilter(false)}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              className={`chip${stockFilter ? ' is-on' : ''}${
+                !stockFilter ? ' is-dim' : ''
+              }`}
+              aria-pressed={stockFilter}
+              onClick={() => setStockFilter(true)}
+            >
+              Stock
+            </button>
+          </div>
+        </div>
         <div className="task-board-filter-row">
           <span className="task-board-filter-label">Asignado</span>
           <div className="legend" role="group" aria-label="Filtrar por asignado">
@@ -398,7 +431,7 @@ export default function TaskBoard({
                       draggable={movable && !busy}
                       title={
                         contextual
-                          ? canManage
+                          ? manages(task)
                             ? 'Clic para ver el detalle. Clic derecho para asignar o sacar del tablero'
                             : 'Clic para ver el detalle. Clic derecho para asignar'
                           : 'Clic para ver el detalle'
@@ -419,7 +452,10 @@ export default function TaskBoard({
                       }}
                       onDragEnd={() => setDraggingId(null)}
                     >
-                      <h3>{task.title}</h3>
+                      <h3>
+                        {task.title}
+                        {task.stock && <span className="task-stock-mark">Stock</span>}
+                      </h3>
                       {task.description && (
                         <p className="task-card-description">{task.description}</p>
                       )}
@@ -460,7 +496,7 @@ export default function TaskBoard({
                         !task.assigneeUserId &&
                         canWrite &&
                         currentUserId &&
-                        !canManage && (
+                        !manages(task) && (
                           <button
                             type="button"
                             className="task-action"
@@ -491,7 +527,7 @@ export default function TaskBoard({
           role="menu"
           style={{ left: menu.x, top: menu.y }}
         >
-          {(canManage || canSelfAssign) && (
+          {(manages(menuTask) || canSelfAssign) && (
             <div className="task-context-group">
               <div className="task-context-label">Asignar</div>
               {canSelfAssign && (
@@ -507,7 +543,7 @@ export default function TaskBoard({
                   Asignarme
                 </button>
               )}
-              {canManage && (
+              {manages(menuTask) && (
                 <>
                   <button
                     type="button"
@@ -542,7 +578,7 @@ export default function TaskBoard({
               )}
             </div>
           )}
-          {canManage && (
+          {manages(menuTask) && (
             <div className="task-context-group">
               <button
                 type="button"

@@ -86,6 +86,7 @@ function App() {
   const canReadAudit = can('audit:read')
   const canWriteTasks = can('tasks:write')
   const canManageTasks = can('tasks:manage')
+  const canManageStock = can('tasks:stock')
   const canManageTaskRetention = can('tasks:retention')
 
   const [locations, setLocations] = useState([])
@@ -250,14 +251,14 @@ function App() {
 
   const reloadTaskBoard = useCallback(async () => {
     setTaskBoard(await getTaskBoard())
-    if (canManageTasks) {
+    if (canManageTasks || canManageStock) {
       try {
         setTaskAssignees(await getTaskAssignees())
       } catch {
         setTaskAssignees([])
       }
     }
-  }, [canManageTasks])
+  }, [canManageTasks, canManageStock])
 
   function handleLunchHoursChange(value) {
     setLunchHours(saveLunchHours(value))
@@ -922,6 +923,7 @@ function App() {
           currentUserId={user?.id || null}
           canWrite={canWriteTasks}
           canManage={canManageTasks}
+          canManageStock={canManageStock}
           busy={busy}
           onAssign={handleAssignTask}
           onUnassign={handleUnassignTask}
@@ -1020,6 +1022,7 @@ function App() {
       {taskAdminOpen && <TaskAdminModal
         open
         locations={locations}
+        stockOnly={canManageStock && !canManageTasks}
         onClose={() => setTaskAdminOpen(false)}
         onChanged={reloadTaskBoard}
       />}
@@ -1116,7 +1119,7 @@ function App() {
         showUsers={canManageUsers}
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}
-        showTasksAdmin={canManageTasks}
+        showTasksAdmin={canManageTasks || canManageStock}
         showTaskRetention={canManageTaskRetention}
         showAudit={canReadAudit}
         userLabel={user ? user.displayName || user.username : null}

@@ -1163,6 +1163,15 @@
     box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px rgba(16,22,30,.07);
   }
   .task-unassigned{color:var(--ink-soft);font-style:italic;}
+  .task-stock-mark{
+    display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;
+    background:#E7F6EE;color:#0F6B45;font-size:9px;font-weight:800;
+    letter-spacing:.02em;vertical-align:1px;
+  }
+  .task-stock-toggle{
+    display:flex;align-items:center;gap:8px;margin:0 0 10px;
+    font-size:13px;font-weight:700;
+  }
   .task-card-location{
     margin-left:auto;flex:none;max-width:46%;padding:1px 6px;border-radius:999px;
     background:#fff;border:1px solid var(--loc,#5B6675);
