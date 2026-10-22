@@ -15,7 +15,6 @@ import ar.com.anepanet.planificator.repository.ShiftRepository;
 import ar.com.anepanet.planificator.realtime.PlanificatorChangedEvent;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
-import ar.com.anepanet.planificator.web.dto.AssignVacationsRequest;
 import ar.com.anepanet.planificator.web.dto.CreateShiftRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateShiftRequest;
 import org.springframework.context.ApplicationEventPublisher;
@@ -33,12 +32,9 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -52,21 +48,18 @@ public class ShiftService {
     private final LocationRepository locations;
     private final AuditService audit;
     private final ApplicationEventPublisher events;
-    private final VacationQuotaService quotas;
 
     public ShiftService(
             ShiftRepository shifts,
             AuthRepository users,
             LocationRepository locations,
             AuditService audit,
-            ApplicationEventPublisher events,
-            VacationQuotaService quotas) {
+            ApplicationEventPublisher events) {
         this.shifts = shifts;
         this.users = users;
         this.locations = locations;
         this.audit = audit;
         this.events = events;
-        this.quotas = quotas;
     }
 
     public List<ShiftWeekView> byWeek(LocalDate weekStart) {
@@ -160,9 +153,6 @@ public class ShiftService {
         validateRange(req.startTime(), req.endTime());
         AppUser user = ensureUser(req.userId());
         Location location = ensureLocation(req.locationId());
-        if (Permissions.VACATION_LOCATION_ID.equals(req.locationId())) {
-            quotas.assertAll(List.of(user), req.workDate(), req.workDate(), Map.of());
-        }
         try {
             Shift created = shifts.insert(
                     req.userId(),
@@ -196,14 +186,6 @@ public class ShiftService {
         SecurityUtils.requireLocationWrite(req.locationId());
         validateRange(req.startTime(), req.endTime());
         Location location = ensureLocation(req.locationId());
-        if (Permissions.VACATION_LOCATION_ID.equals(req.locationId())) {
-            AppUser user = ensureUser(existing.userId());
-            Set<LocalDate> ignored = new HashSet<>();
-            if (Permissions.VACATION_LOCATION_ID.equals(existing.locationId())) {
-                ignored.add(existing.workDate());
-            }
-            quotas.assertAll(List.of(user), req.workDate(), req.workDate(), Map.of(user.id(), ignored));
-        }
         String who = nameOf(existing.userId());
         try {
             Shift updated = shifts.update(
@@ -245,85 +227,6 @@ public class ShiftService {
                         + " " + fmtTime(existing.startTime()) + "–" + fmtTime(existing.endTime())
         );
         publishRealtimeScheduleChange();
-    }
-
-    @Transactional
-    public int assignVacations(AssignVacationsRequest req) {
-        SecurityUtils.requireAuthority(Permissions.VACATIONS_WRITE);
-        if (req.dateTo().isBefore(req.dateFrom())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hasta no puede ser anterior a desde");
-        }
-        long days = ChronoUnit.DAYS.between(req.dateFrom(), req.dateTo()) + 1;
-        if (days > MAX_REPORT_RANGE_DAYS) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "El período no puede superar " + MAX_REPORT_RANGE_DAYS + " días");
-        }
-        validateRange(req.startTime(), req.endTime());
-        ensureLocation(Permissions.VACATION_LOCATION_ID);
-
-        List<UUID> userIds = req.userIds().stream().distinct().toList();
-        List<AppUser> people = userIds.stream().map(this::ensureUser).toList();
-        Set<UUID> allowed = Set.copyOf(userIds);
-
-        List<Shift> replacements = new ArrayList<>();
-        Map<UUID, Set<LocalDate>> ignored = new HashMap<>();
-        if (req.replaceShiftIds() != null) {
-            for (UUID id : req.replaceShiftIds()) {
-                shifts.findById(id).ifPresent(existing -> {
-                    if (!allowed.contains(existing.userId())) {
-                        return;
-                    }
-                    if (existing.workDate().isBefore(req.dateFrom())
-                            || existing.workDate().isAfter(req.dateTo())) {
-                        return;
-                    }
-                    replacements.add(existing);
-                    if (Permissions.VACATION_LOCATION_ID.equals(existing.locationId())) {
-                        ignored.computeIfAbsent(existing.userId(), ignoredId -> new HashSet<>())
-                                .add(existing.workDate());
-                    }
-                });
-            }
-        }
-
-        quotas.assertAll(people, req.dateFrom(), req.dateTo(), ignored);
-
-        for (Shift existing : replacements) {
-            if (!shifts.delete(existing.id())) {
-                continue;
-            }
-            audit.record(
-                    AuditService.ACTION_DELETE,
-                    auditEntityType(existing.locationId()),
-                    existing.id().toString(),
-                    nameOf(existing.userId()) + " · reemplazado por vacaciones · " + existing.workDate());
-        }
-
-        int created = 0;
-        for (LocalDate date : VacationQuota.eachDate(req.dateFrom(), req.dateTo())) {
-            for (AppUser user : people) {
-                try {
-                    Shift shift = shifts.insert(
-                            user.id(),
-                            Permissions.VACATION_LOCATION_ID,
-                            date,
-                            req.startTime(),
-                            req.endTime(),
-                            null);
-                    created++;
-                    audit.record(
-                            AuditService.ACTION_CREATE,
-                            AuditService.TYPE_VACATION,
-                            shift.id().toString(),
-                            displayName(user) + " · Vacaciones · " + date);
-                } catch (DataIntegrityViolationException ex) {
-                    throw conflict(ex);
-                }
-            }
-        }
-        publishRealtimeScheduleChange();
-        return created;
     }
 
     private void publishRealtimeScheduleChange() {

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -25,7 +24,7 @@ public class AuthRepository {
 
     private static final String USER_COLUMNS = """
             id, username, password_hash, display_name, color, telegram_chat_id,
-            is_active, can_login, must_change_password, hire_date, created_at, updated_at
+            is_active, can_login, must_change_password, created_at, updated_at
             """;
 
     private final JdbcClient jdbc;
@@ -230,18 +229,17 @@ public class AuthRepository {
             String displayName,
             String color,
             String telegramChatId,
-            LocalDate hireDate,
             boolean canLogin,
             List<String> roleIds,
             List<String> individualPermissionCodes) {
         AppUser created = jdbc.sql("""
                 INSERT INTO app_users (
                     username, password_hash, display_name, color, telegram_chat_id,
-                    hire_date, can_login, must_change_password
+                    can_login, must_change_password
                 )
                 VALUES (
                     :username, :passwordHash, :displayName, :color, :telegramChatId,
-                    :hireDate, :canLogin, :mustChangePassword
+                    :canLogin, :mustChangePassword
                 )
                 RETURNING %s
                 """.formatted(USER_COLUMNS))
@@ -250,7 +248,6 @@ public class AuthRepository {
                 .param("displayName", displayName.trim())
                 .param("color", color)
                 .param("telegramChatId", telegramChatId)
-                .param("hireDate", hireDate)
                 .param("canLogin", canLogin)
                 .param("mustChangePassword", canLogin)
                 .query(this::mapUserBase)
@@ -267,7 +264,6 @@ public class AuthRepository {
             String passwordHash,
             String color,
             String telegramChatId,
-            LocalDate hireDate,
             boolean canLogin,
             Boolean mustChangePassword,
             List<String> roleIds,
@@ -282,7 +278,6 @@ public class AuthRepository {
                     is_active = :active,
                     color = :color,
                     telegram_chat_id = :telegramChatId,
-                    hire_date = :hireDate,
                     can_login = :canLogin,
                     password_hash = COALESCE(:passwordHash, password_hash),
                     must_change_password = COALESCE(:mustChangePassword, must_change_password),
@@ -294,7 +289,6 @@ public class AuthRepository {
                 .param("active", active)
                 .param("color", color)
                 .param("telegramChatId", telegramChatId)
-                .param("hireDate", hireDate)
                 .param("canLogin", canLogin)
                 .param("passwordHash", passwordHash)
                 .param("mustChangePassword", mustChangePassword)
@@ -528,7 +522,6 @@ public class AuthRepository {
                 base.active(),
                 base.canLogin(),
                 base.mustChangePassword(),
-                base.hireDate(),
                 base.createdAt(),
                 base.updatedAt(),
                 roleIds,
@@ -548,7 +541,6 @@ public class AuthRepository {
                 rs.getBoolean("is_active"),
                 rs.getBoolean("can_login"),
                 rs.getBoolean("must_change_password"),
-                rs.getObject("hire_date", LocalDate.class),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),
                 List.of(),

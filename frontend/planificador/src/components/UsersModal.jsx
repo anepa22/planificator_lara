@@ -35,17 +35,10 @@ const EMPTY_FORM = {
   password: '',
   displayName: '',
   telegramChatId: '',
-  hireDate: '',
   canLogin: true,
   active: true,
   roleIds: [],
   individualPermissionCodes: [],
-}
-
-function fmtHireDate(value) {
-  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number)
-  if (!year || !month || !day) return value
-  return new Date(year, month - 1, day).toLocaleDateString('es-AR')
 }
 
 function usernameFromName(name) {
@@ -172,7 +165,6 @@ export default function UsersModal({ open, onClose, onChanged }) {
       password: '',
       displayName: user.displayName,
       telegramChatId: user.telegramChatId || '',
-      hireDate: user.hireDate || '',
       canLogin: user.canLogin !== false,
       active: user.active !== false,
       roleIds: user.roles?.length ? [...user.roles] : [],
@@ -192,7 +184,6 @@ export default function UsersModal({ open, onClose, onChanged }) {
         await updateUser(editingId, {
           displayName: form.displayName.trim(),
           telegramChatId: form.telegramChatId.trim() || null,
-          hireDate: form.hireDate || null,
           active: form.active,
           password: form.password.trim() || null,
           canLogin: form.canLogin,
@@ -210,7 +201,6 @@ export default function UsersModal({ open, onClose, onChanged }) {
           password: form.canLogin ? form.password : null,
           displayName: form.displayName.trim(),
           telegramChatId: form.telegramChatId.trim() || null,
-          hireDate: form.hireDate || null,
           canLogin: form.canLogin,
           roleIds: form.roleIds,
           individualPermissionCodes: individualPermissionsToSave(),
@@ -453,21 +443,6 @@ export default function UsersModal({ open, onClose, onChanged }) {
                     </div>
                   )}
                   <div className="field">
-                    <label htmlFor="user-hire-date">Fecha de ingreso</label>
-                    <input
-                      id="user-hire-date"
-                      type="date"
-                      value={form.hireDate}
-                      disabled={busy}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, hireDate: e.target.value }))
-                      }
-                    />
-                    <span className="field-help">
-                      Sin esta fecha no se pueden cargar vacaciones nuevas.
-                    </span>
-                  </div>
-                  <div className="field">
                     <label htmlFor="user-telegram">Chat ID de Telegram</label>
                     <input
                       id="user-telegram"
@@ -656,11 +631,6 @@ export default function UsersModal({ open, onClose, onChanged }) {
                           </span>
                           <span className="user-tags">
                             <span className="user-username">{user.username}</span>
-                            <span className="user-badge soft">
-                              {user.hireDate
-                                ? `Ingreso ${fmtHireDate(user.hireDate)}`
-                                : 'Sin fecha de ingreso'}
-                            </span>
                             {(user.roles || []).map((role) => (
                               <span className="user-badge" key={role}>
                                 {ROLE_LABELS[role] || role}

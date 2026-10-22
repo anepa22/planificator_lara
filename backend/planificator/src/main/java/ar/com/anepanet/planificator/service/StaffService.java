@@ -57,7 +57,6 @@ public class StaffService {
                     name,
                     req.color(),
                     null,
-                    null,
                     false,
                     List.of(PERSONAL_ROLE),
                     List.of()

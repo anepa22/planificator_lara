@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getVacationBalance, saveAgreedVacationDays } from '../api/client'
 import {
   absenceDayBounds,
   eachDateKey,
@@ -16,24 +15,6 @@ import {
 import { initials, paletteFor } from '../lib/palette'
 
 const { startTime: VAC_START, endTime: VAC_END } = absenceDayBounds()
-
-function periodYearOf(date) {
-  const month = date.getMonth() + 1
-  return month >= 10 ? date.getFullYear() : date.getFullYear() - 1
-}
-
-function periodYearOfKey(key) {
-  const [year, month] = key.split('-').map(Number)
-  return month >= 10 ? year : year - 1
-}
-
-function periodLabel(year) {
-  return `1 oct ${year} – 30 sep ${year + 1}`
-}
-
-function currentPeriodYear() {
-  return periodYearOf(new Date())
-}
 
 function shiftWhere(shift, locations) {
   if (isAbsenceLocation(shift.locationId)) {
@@ -92,17 +73,11 @@ export default function VacationModal({
   const [selectedIds, setSelectedIds] = useState([])
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [agreementYear, setAgreementYear] = useState(currentPeriodYear)
-  const [agreedDraft, setAgreedDraft] = useState({})
-  const [balances, setBalances] = useState([])
-  const [balanceToken, setBalanceToken] = useState(0)
   const [pool, setPool] = useState([])
   const [loadingPool, setLoadingPool] = useState(false)
   const [warn, setWarn] = useState('')
-  const [saveError, setSaveError] = useState('')
   const [confirmMove, setConfirmMove] = useState(false)
   const confirmPendingRef = useRef(false)
-  const dirtyAgreed = useRef(new Set())
 
   const dateKeys = useMemo(() => {
     if (!dateFrom || !dateTo) return []
@@ -110,30 +85,12 @@ export default function VacationModal({
     return eachDateKey(dateFrom, dateTo)
   }, [dateFrom, dateTo])
 
-  const periodChoices = useMemo(() => {
-    const current = currentPeriodYear()
-    const years = new Set([current - 1, current, current + 1, current + 2, agreementYear])
-    dateKeys.forEach((key) => years.add(periodYearOfKey(key)))
-    return [...years].sort((a, b) => a - b)
-  }, [agreementYear, dateKeys])
-
-  const editPeriods = useMemo(() => {
-    const years = new Set([agreementYear])
-    dateKeys.forEach((key) => years.add(periodYearOfKey(key)))
-    return [...years].sort((a, b) => a - b)
-  }, [agreementYear, dateKeys])
-
   useEffect(() => {
     if (!open) return
     setWarn('')
-    setSaveError('')
     confirmPendingRef.current = false
     setConfirmMove(false)
     setSelectedIds([])
-    setBalances([])
-    setAgreedDraft({})
-    dirtyAgreed.current = new Set()
-    setAgreementYear(currentPeriodYear())
     const today = toDateKey(new Date())
     setDateFrom(today)
     setDateTo(today)
@@ -164,34 +121,6 @@ export default function VacationModal({
       cancelled = true
     }
   }, [open, dateFrom, dateTo, fetchShiftsForRange])
-
-  useEffect(() => {
-    if (!open || !canWrite || !selectedIds.length || !editPeriods.length) {
-      setBalances([])
-      return
-    }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const rows = await getVacationBalance(selectedIds, editPeriods)
-        if (cancelled) return
-        setBalances(rows)
-        setAgreedDraft((prev) => {
-          const next = { ...prev }
-          for (const row of rows) {
-            const key = `${row.userId}:${row.periodYear}`
-            if (!dirtyAgreed.current.has(key)) next[key] = String(row.agreedDays ?? 0)
-          }
-          return next
-        })
-      } catch (e) {
-        if (!cancelled) setSaveError(e.message)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [open, canWrite, selectedIds, editPeriods, balanceToken])
 
   const conflicts = useMemo(
     () =>
@@ -242,36 +171,8 @@ export default function VacationModal({
     )
   }
 
-  async function saveAgreed(userId, periodYear) {
-    const key = `${userId}:${periodYear}`
-    const raw = agreedDraft[key] ?? '0'
-    const days = Number(raw)
-    if (!Number.isInteger(days) || days < 0 || days > 366) {
-      setSaveError('Los días acordados tienen que ser un entero entre 0 y 366.')
-      return false
-    }
-    const current = balances.find(
-      (row) => row.userId === userId && row.periodYear === periodYear,
-    )
-    if (current && current.agreedDays === days) {
-      dirtyAgreed.current.delete(key)
-      return true
-    }
-    try {
-      await saveAgreedVacationDays({ userId, periodYear, days })
-      dirtyAgreed.current.delete(key)
-      setSaveError('')
-      setBalanceToken((n) => n + 1)
-      return true
-    } catch (e) {
-      setSaveError(e.message)
-      return false
-    }
-  }
-
   async function handleSave() {
     if (busy || !canWrite) return
-    setSaveError('')
     if (!selectedIds.length) {
       setWarn('Elegí al menos una persona.')
       return
@@ -297,29 +198,16 @@ export default function VacationModal({
 
     confirmPendingRef.current = false
     setConfirmMove(false)
-    for (const personId of selectedIds) {
-      for (const year of editPeriods) {
-        if (!dirtyAgreed.current.has(`${personId}:${year}`)) continue
-        const saved = await saveAgreed(personId, year)
-        if (!saved) return
-      }
-    }
-    try {
-      await onSave({
-        userIds: selectedIds,
-        dateFrom,
-        dateTo,
-        startTime: VAC_START,
-        endTime: VAC_END,
-        locationId: VACATION_LOCATION_ID,
-        replaceConflictIds: currentConflicts.map((c) => c.shiftId),
-      })
-    } catch (e) {
-      setSaveError(e.message || 'No se pudieron guardar las vacaciones.')
-    }
+    await onSave({
+      userIds: selectedIds,
+      dateFrom,
+      dateTo,
+      startTime: VAC_START,
+      endTime: VAC_END,
+      locationId: VACATION_LOCATION_ID,
+      replaceConflictIds: currentConflicts.map((c) => c.shiftId),
+    })
   }
-
-  const selectedPeople = staff.filter((person) => selectedIds.includes(person.id))
 
   return (
     <div
@@ -335,7 +223,27 @@ export default function VacationModal({
         </div>
 
         {warn && <div className="m-warn">{warn}</div>}
-        {saveError && <div className="m-warn">{saveError}</div>}
+
+        <div className="time-row">
+          <div className="field">
+            <label>Desde</label>
+            <input
+              type="date"
+              value={dateFrom}
+              disabled={busy}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Hasta</label>
+            <input
+              type="date"
+              value={dateTo}
+              disabled={busy}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+        </div>
 
         <div className="field">
           <label>Asistentes</label>
@@ -376,120 +284,6 @@ export default function VacationModal({
             })}
           </div>
         </div>
-
-        {canWrite && selectedPeople.length > 0 && (
-          <div className="field">
-            <label htmlFor="vacation-period">Días acordados, antes de las fechas</label>
-            <select
-              id="vacation-period"
-              value={agreementYear}
-              disabled={busy}
-              onChange={(e) => setAgreementYear(Number(e.target.value))}
-            >
-              {periodChoices.map((year) => (
-                <option key={year} value={year}>
-                  {periodLabel(year)}
-                </option>
-              ))}
-            </select>
-            {selectedPeople.map((person) => {
-              const key = `${person.id}:${agreementYear}`
-              return (
-                <div className="field" key={key} style={{ marginTop: 8 }}>
-                  <label htmlFor={`agreed-${key}`}>
-                    {person.name} · {periodLabel(agreementYear)}
-                  </label>
-                  <input
-                    id={`agreed-${key}`}
-                    type="number"
-                    min="0"
-                    max="366"
-                    value={agreedDraft[key] ?? '0'}
-                    disabled={busy}
-                    onChange={(e) => {
-                      dirtyAgreed.current.add(key)
-                      setAgreedDraft((prev) => ({ ...prev, [key]: e.target.value }))
-                    }}
-                    onBlur={() => saveAgreed(person.id, agreementYear)}
-                  />
-                </div>
-              )
-            })}
-            <span className="field-help">
-              Se suman a los días de ley. Cero deja el acuerdo en cero.
-            </span>
-          </div>
-        )}
-
-        <div className="time-row">
-          <div className="field">
-            <label>Desde</label>
-            <input
-              type="date"
-              value={dateFrom}
-              disabled={busy}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label>Hasta</label>
-            <input
-              type="date"
-              value={dateTo}
-              disabled={busy}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {canWrite && selectedPeople.map((person) => {
-          const rows = balances.filter((row) => row.userId === person.id)
-          if (!rows.length) return null
-          if (rows.some((row) => row.hireDateMissing)) {
-            return (
-              <div className="quota-box" key={person.id}>
-                <div className="quota-title">{person.name}</div>
-                <div className="quota-missing">
-                  Falta la fecha de ingreso. No se pueden cargar vacaciones.
-                </div>
-              </div>
-            )
-          }
-          return rows.map((row) => {
-            const adding = dateKeys.filter(
-              (key) =>
-                periodYearOfKey(key) === row.periodYear &&
-                !pool.some(
-                  (shift) =>
-                    shift.userId === person.id &&
-                    String(shift.workDate).slice(0, 10) === key &&
-                    shift.locationId === VACATION_LOCATION_ID,
-                ),
-            ).length
-            const after = row.remainingDays - adding
-            return (
-              <div className="quota-box" key={`${row.userId}:${row.periodYear}`}>
-                <div className="quota-title">
-                  {person.name} · {row.periodLabel}
-                </div>
-                <div>
-                  Ley {row.legalDays} · Acordados {row.agreedDays} · Acumulados{' '}
-                  {row.accumulatedDays} · Gozados {row.takenDays}
-                </div>
-                <div>
-                  Cupo {row.usableDays} · Gozados {row.takenDays} · Quedan{' '}
-                  {row.remainingDays}
-                </div>
-                {adding > 0 && (
-                  <div>
-                    Esta carga suma {adding} {adding === 1 ? 'día' : 'días'}.
-                    Después quedan {after}.
-                  </div>
-                )}
-              </div>
-            )
-          })
-        })}
 
         {loadingPool && (
           <div className="m-sub" style={{ marginBottom: 8 }}>

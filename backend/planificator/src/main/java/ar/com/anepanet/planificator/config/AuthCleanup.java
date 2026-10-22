@@ -26,15 +26,6 @@ public class AuthCleanup implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            jdbc.sql("ALTER TABLE app_users ADD COLUMN IF NOT EXISTS hire_date DATE NULL").update();
-            jdbc.sql("""
-                    CREATE TABLE IF NOT EXISTS vacation_agreed_days (
-                        user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-                        period_year INTEGER NOT NULL,
-                        days INTEGER NOT NULL CHECK (days >= 0),
-                        PRIMARY KEY (user_id, period_year)
-                    )
-                    """).update();
             jdbc.sql("""
                     CREATE TABLE IF NOT EXISTS user_permissions (
                         user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
