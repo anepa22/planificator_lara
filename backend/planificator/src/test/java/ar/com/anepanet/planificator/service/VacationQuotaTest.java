@@ -50,47 +50,54 @@ class VacationQuotaTest {
 
     @Test
     void missingAdjustmentIsZeroAndDoesNotRepeatCarry() {
-        LocalDate hire = LocalDate.of(2024, 6, 1);
-        VacationQuota.Snapshot plain = VacationQuota.snapshot(hire, 2024, Map.of(), Map.of());
+        LocalDate hire = LocalDate.of(2026, 6, 1);
+        VacationQuota.Snapshot plain = VacationQuota.snapshot(hire, 2026, Map.of(), Map.of());
         assertEquals(14, plain.thisPeriod());
         assertEquals(0, plain.carried());
         assertEquals(0, plain.extra());
+        assertEquals(0, plain.remaining());
 
-        VacationQuota.Snapshot opening = VacationQuota.snapshot(hire, 2024, Map.of(), Map.of(2024, 3));
-        assertEquals(17, opening.quota());
+        VacationQuota.Snapshot opening = VacationQuota.snapshot(hire, 2026, Map.of(), Map.of(2026, 3));
+        assertEquals(3, opening.remaining());
 
         VacationQuota.Snapshot both = VacationQuota.snapshot(
-                hire, 2025, Map.of(2024, 11), Map.of(2025, 3));
+                LocalDate.of(2024, 6, 1), 2026, Map.of(2025, 11), Map.of(2026, 3));
         assertEquals(3, both.carried());
         assertEquals(3, both.extra());
-        assertEquals(20, both.quota());
+        assertEquals(14, both.thisPeriod());
+        assertEquals(6, both.remaining());
     }
 
     @Test
-    void unusedDaysCarryAndTheFirstPeriodDoesNot() {
+    void currentPeriodKeepsOnlyThePreviousLeftoverUntilOctober2027() {
         LocalDate hire = LocalDate.of(2024, 6, 1);
-        VacationQuota.Snapshot next = VacationQuota.snapshot(hire, 2025, Map.of(), Map.of());
-        assertEquals(14, next.carried());
-        assertEquals(28, next.quota());
+        VacationQuota.Snapshot now = VacationQuota.snapshot(hire, 2026, Map.of(2025, 11), Map.of());
+        assertEquals(14, now.thisPeriod());
+        assertEquals(3, now.carried());
+        assertEquals(0, now.enjoyed());
+        assertEquals(3, now.remaining());
 
-        VacationQuota.Snapshot leftover = VacationQuota.snapshot(hire, 2025, Map.of(2024, 11), Map.of());
-        assertEquals(3, leftover.carried());
+        VacationQuota.Snapshot stacked = VacationQuota.snapshot(LocalDate.of(2022, 5, 1), 2026, Map.of(), Map.of());
+        assertEquals(14, stacked.carried());
+        assertEquals(14, stacked.remaining());
 
-        VacationQuota.Snapshot first = VacationQuota.snapshot(LocalDate.of(2022, 5, 1), 2022, Map.of(), Map.of());
-        assertEquals(0, first.carried());
-        assertEquals(14, first.thisPeriod());
+        VacationQuota.Snapshot enabled = VacationQuota.snapshot(hire, 2027, Map.of(2025, 12, 2026, 0), Map.of());
+        assertEquals(16, enabled.remaining());
+
+        VacationQuota.Snapshot following = VacationQuota.snapshot(hire, 2028, Map.of(2025, 12, 2026, 0), Map.of());
+        assertEquals(VacationQuota.seniorityDays(hire, 2027) + 16, following.carried());
     }
 
     @Test
     void francoDoesNotReduceTheBalance() {
         VacationQuota.Snapshot snap = VacationQuota.snapshot(
-                LocalDate.of(2026, 6, 1), 2026, Map.of(), Map.of());
+                LocalDate.of(2024, 6, 1), 2026, Map.of(), Map.of());
         assertEquals(14, snap.remaining());
     }
 
     @Test
     void rejectsWhenTheBalanceWouldGoNegativeOrTheQuotaIsZero() {
-        LocalDate hire = LocalDate.of(2026, 6, 1);
+        LocalDate hire = LocalDate.of(2024, 6, 1);
         Map<Integer, Integer> enjoyed = Map.of(2026, 9);
         List<LocalDate> five = VacationQuota.eachDate(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 9));
         assertNull(VacationQuota.rejection("Ana", hire, enjoyed, Map.of(), five));
@@ -109,6 +116,14 @@ class VacationQuotaTest {
                 List.of(LocalDate.of(2026, 12, 21)));
         assertTrue(zero.contains("no tiene días"));
 
+        String notYetEnabled = VacationQuota.rejection(
+                "Ana",
+                LocalDate.of(2026, 6, 1),
+                Map.of(),
+                Map.of(),
+                List.of(LocalDate.of(2026, 10, 5)));
+        assertTrue(notYetEnabled.contains("no tiene días"));
+
         assertNull(VacationQuota.rejection(
                 "Ana",
                 LocalDate.of(2026, 12, 20),
@@ -124,7 +139,7 @@ class VacationQuotaTest {
         assertEquals(List.of(LocalDate.of(2026, 10, 6)), fresh);
         assertNull(VacationQuota.rejection(
                 "Ana",
-                LocalDate.of(2026, 6, 1),
+                LocalDate.of(2024, 6, 1),
                 Map.of(2026, 13),
                 Map.of(),
                 fresh));
@@ -132,8 +147,8 @@ class VacationQuotaTest {
         List<LocalDate> crossing = List.of(LocalDate.of(2027, 9, 30), LocalDate.of(2027, 10, 1));
         String message = VacationQuota.rejection(
                 "Ana",
-                LocalDate.of(2026, 6, 1),
-                Map.of(2026, 13, 2027, 14),
+                LocalDate.of(2024, 6, 1),
+                Map.of(2025, 13, 2027, 14),
                 Map.of(),
                 crossing);
         assertTrue(message.contains("1 oct 2027"));

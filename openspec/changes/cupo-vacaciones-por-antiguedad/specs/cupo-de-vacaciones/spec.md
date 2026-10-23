@@ -22,7 +22,7 @@ El período de goce del año Y SHALL ir del 1 de octubre de Y al 30 de septiembr
 
 #### Scenario: Día dentro del período
 - **WHEN** se carga una vacación el 15 de octubre de 2026
-- **THEN** esa vacación descuenta el cupo del período que termina el 30 de septiembre de 2027
+- **THEN** ese día descuenta lo que sobra de 2025-2026 y no descuenta los días de este período
 
 #### Scenario: Día del período siguiente
 - **WHEN** se carga una vacación el 1 de octubre de 2027
@@ -58,38 +58,49 @@ Si al 31 de diciembre de Y la antigüedad es menor a seis meses, el sistema SHAL
 - **WHEN** al 31 de diciembre de Y la antigüedad es de seis meses
 - **THEN** el cupo usa la escala de 14 días y no la proporcional
 
+### Requirement: Habilitación de la antigüedad
+Los días de antigüedad de un período SHALL mostrarse en De este período y SHALL habilitarse el 1 de octubre siguiente. Hasta esa fecha SHALL NOT entrar en Quedan.
+
+#### Scenario: Quedan tres
+- **WHEN** la antigüedad al 31 de diciembre de 2025 es 14, hay 11 vacaciones cargadas desde el 1 de octubre de 2025 y se mira el período que abre el 1 de octubre de 2026
+- **THEN** De este período es 14, Del período anterior es 3, Gozados es 0 y Quedan es 3
+
+#### Scenario: Habilitación en octubre de 2027
+- **WHEN** al 30 de septiembre de 2027 sobran 2 de 2025-2026 y la antigüedad al 31 de diciembre de 2026 es 14
+- **THEN** el 1 de octubre de 2027 el saldo habilitado es 16
+
 ### Requirement: Arrastre del saldo
-El saldo no gozado de un período SHALL sumarse al cupo del período siguiente. Ese saldo SHALL ser el cupo del período menos las vacaciones cargadas en él. El primer período de goce posterior a la fecha de ingreso SHALL NOT tener saldo anterior.
+Hasta el 30 de septiembre de 2027, Quedan SHALL ser el sobrante de la antigüedad al 31 de diciembre de 2025 más los días extra, menos las vacaciones cargadas desde el 1 de octubre de 2025. Períodos anteriores a 2025-2026 SHALL NOT sumarse. Desde el 1 de octubre de 2027, lo no gozado SHALL sumarse al período siguiente junto con la antigüedad que se habilita. Un exceso de días gozados SHALL NOT reducir el período siguiente.
 
-#### Scenario: No tomó vacaciones
-- **WHEN** en un período el cupo es 14 y no se carga ningún día
-- **THEN** el período siguiente suma esos 14 a los días de la antigüedad
+#### Scenario: Sin años anteriores
+- **WHEN** la persona ingresó el 1 de mayo de 2022 y no tiene vacaciones cargadas desde el 1 de octubre de 2025
+- **THEN** en el período que abre el 1 de octubre de 2026, Del período anterior es 14 y Quedan es 14
 
-#### Scenario: Sobraron tres
-- **WHEN** en un período el cupo es 14 y se cargan 11 días
-- **THEN** el período siguiente suma 3 a los días de la antigüedad
-
-#### Scenario: Primer período
-- **WHEN** la persona ingresó el 1 de mayo de 2022 y el período es el que abre el 1 de octubre de 2022
-- **THEN** el cupo de ese período no suma un saldo anterior
+#### Scenario: El sobrante sigue
+- **WHEN** el saldo habilitado el 1 de octubre de 2027 es 16 y en ese período no se carga ningún día
+- **THEN** el período que abre el 1 de octubre de 2028 suma esos 16 a la antigüedad que se habilita ese día
 
 ### Requirement: Ajuste manual
-Quien tenga `vacations:write` SHALL poder sumar, para una persona y un período, una cantidad entera no negativa de días que el arrastre no conoce. Ese ajuste SHALL sumarse al cupo de ese período y SHALL NOT reemplazar ni repetir el saldo arrastrado. El sistema SHALL rechazar un número negativo.
+Quien tenga `vacations:write` SHALL poder sumar, para una persona y un período, una cantidad entera no negativa de días que el arrastre no conoce. Ese ajuste SHALL sumarse a Quedan aunque la antigüedad de ese período todavía no esté habilitada, y SHALL NOT reemplazar ni repetir el saldo arrastrado. El sistema SHALL rechazar un número negativo.
 
 #### Scenario: Saldo inicial
-- **WHEN** al empezar no hay saldo anterior calculado y se agregan 3 días a una persona con 14 por antigüedad
-- **THEN** el cupo de ese período es 17
+- **WHEN** Del período anterior es 0, De este período es 14 todavía no habilitado y se agregan 3 días extra
+- **THEN** Quedan es 3 y esos 3 se pueden cargar
 
 #### Scenario: Día concedido
-- **WHEN** se agrega 1 día aparte de la antigüedad y del arrastre
-- **THEN** el cupo de ese período sube un día
+- **WHEN** Del período anterior es 3 y se agrega 1 día extra
+- **THEN** Quedan es 4 y los 14 de este período siguen fuera de Quedan
+
+#### Scenario: No duplica el sobrante
+- **WHEN** Del período anterior es 3 y se agregan 3 días extra
+- **THEN** Quedan es 6
 
 #### Scenario: Número negativo
 - **WHEN** se intenta guardar un ajuste negativo
 - **THEN** el sistema rechaza el valor
 
 ### Requirement: Saldo del período
-El saldo SHALL ser el cupo del período menos los días de vacaciones ya cargados dentro de ese período. El sistema SHALL rechazar una carga nueva cuya cantidad de días, contando el primero y el último, deje el saldo de alguna persona seleccionada por debajo de cero.
+El saldo SHALL ser Del período anterior más los días extra menos las vacaciones ya cargadas contra ese saldo. De este período SHALL NOT integrar el saldo hasta el 1 de octubre en que se habilita. El sistema SHALL rechazar una carga nueva cuya cantidad de días, contando el primero y el último, deje el saldo de alguna persona seleccionada por debajo de cero.
 
 #### Scenario: Carga dentro del saldo
 - **WHEN** el saldo es 5 y se cargan 5 días corridos
@@ -100,22 +111,26 @@ El saldo SHALL ser el cupo del período menos los días de vacaciones ya cargado
 - **THEN** el sistema rechaza la carga y no guarda ningún día del rango
 
 ### Requirement: Cupo en cero
-Si en un período De este período, Del período anterior y Días extra son cero, el sistema SHALL rechazar la carga de vacaciones de esa persona en ese período y SHALL NOT guardar ningún día del pedido.
+Si Del período anterior y Días extra son cero, el sistema SHALL rechazar la carga aunque De este período sea mayor que cero, y SHALL NOT guardar ningún día del pedido.
 
 #### Scenario: Menos de veinte días de calendario
-- **WHEN** la persona ingresó el 20 de diciembre de 2026, no tiene arrastre ni días extra, y se intenta cargar un día en el período que abre el 1 de octubre de 2026
+- **WHEN** la persona ingresó el 20 de diciembre de 2026, no tiene saldo de 2025-2026 ni días extra, y se intenta cargar un día en el período que abre el 1 de octubre de 2026
+- **THEN** el sistema rechaza la carga y no guarda ningún día
+
+#### Scenario: Antigüedad todavía no habilitada
+- **WHEN** De este período es 14, Del período anterior es 0, no hay días extra y se intenta cargar un día antes del 1 de octubre de 2027
 - **THEN** el sistema rechaza la carga y no guarda ningún día
 
 #### Scenario: Un día extra habilita
-- **WHEN** De este período y Del período anterior son cero y hay 1 día extra
-- **THEN** se puede cargar ese día
+- **WHEN** Del período anterior es cero y hay 1 día extra
+- **THEN** se puede cargar ese día antes del 1 de octubre de 2027
 
 ### Requirement: Botón en Cargar
-Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir, para una persona y un período de goce, De este período, Del período anterior, Gozados y Quedan, y SHALL ser el único lugar donde se cargan los Días extra, también en cero. De este período y Del período anterior SHALL NOT ser editables. El Reporte SHALL NOT incluir ese botón. Quedan SHALL ser el cupo menos los gozados.
+Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir, para una persona y un período de goce, De este período, Del período anterior, Gozados y Quedan, y SHALL ser el único lugar donde se cargan los Días extra, también en cero. De este período y Del período anterior SHALL NOT ser editables. El Reporte SHALL NOT incluir ese botón. Quedan SHALL ser Del período anterior más los días extra menos los gozados.
 
-#### Scenario: Tres días arrastrados
-- **WHEN** la antigüedad del período es 14, el arrastre es 3 y todavía no hay vacaciones cargadas
-- **THEN** el botón muestra De este período 14, Del período anterior 3, Gozados 0 y Quedan 17
+#### Scenario: Tres días del período anterior
+- **WHEN** De este período es 14, Del período anterior es 3 y Gozados es 0
+- **THEN** el botón muestra esos números y Quedan 3
 
 #### Scenario: Días extra solo ahí
 - **WHEN** se abre el Reporte

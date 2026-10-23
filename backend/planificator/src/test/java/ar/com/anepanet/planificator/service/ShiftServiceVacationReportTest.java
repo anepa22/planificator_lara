@@ -2,7 +2,6 @@ package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.VacationDay;
 import ar.com.anepanet.planificator.domain.VacationPersonReport;
-import ar.com.anepanet.planificator.domain.VacationRange;
 import ar.com.anepanet.planificator.domain.VacationReport;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.parser.PdfTextExtractor;
@@ -55,18 +54,20 @@ class ShiftServiceVacationReportTest {
     void pdfTotalsDaysPerPerson() throws Exception {
         UUID ana = UUID.randomUUID();
         byte[] pdf = VacationReportPdf.render(new VacationReport(
-                LocalDate.of(2026, 1, 1),
-                LocalDate.of(2026, 1, 31),
-                3,
+                LocalDate.of(2026, 10, 1),
+                LocalDate.of(2027, 9, 30),
+                0,
                 List.of(new VacationPersonReport(
-                        ana, "Ana", 11, List.of(
-                        new VacationRange(LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 12), 11)),
-                        14, 3, 0, 11, 6))));
+                        ana, "Ana", 0, List.of(),
+                        14, 3, 0, 0, 3))));
         PdfReader reader = new PdfReader(pdf);
         try {
             String text = new PdfTextExtractor(reader).getTextFromPage(1).replaceAll("\\s+", " ");
             assertTrue(text.contains("Total Ana"), text);
-            assertTrue(text.contains("Quedan 6"), text);
+            assertTrue(text.contains("De este período 14"), text);
+            assertTrue(text.contains("Del período anterior 3"), text);
+            assertTrue(text.contains("Gozados 0"), text);
+            assertTrue(text.contains("Quedan 3"), text);
             assertTrue(!text.contains("Días extra"), text);
         } finally {
             reader.close();
