@@ -58,16 +58,16 @@ class ShiftServiceVacationReportTest {
                 LocalDate.of(2027, 9, 30),
                 0,
                 List.of(new VacationPersonReport(
-                        ana, "Ana", 0, List.of(),
-                        14, 3, 0, 0, 3))));
+                        ana, "Ana", 7, List.of(),
+                        21, 0, 0, 7, 14))));
         PdfReader reader = new PdfReader(pdf);
         try {
             String text = new PdfTextExtractor(reader).getTextFromPage(1).replaceAll("\\s+", " ");
             assertTrue(text.contains("Total Ana"), text);
-            assertTrue(text.contains("De este período 14"), text);
-            assertTrue(text.contains("Del período anterior 3"), text);
-            assertTrue(text.contains("Gozados 0"), text);
-            assertTrue(text.contains("Quedan 3"), text);
+            assertTrue(text.contains("De este período 21"), text);
+            assertTrue(text.contains("Del período anterior 0"), text);
+            assertTrue(text.contains("Gozados 7"), text);
+            assertTrue(text.contains("Quedan 14"), text);
             assertTrue(!text.contains("Días extra"), text);
         } finally {
             reader.close();

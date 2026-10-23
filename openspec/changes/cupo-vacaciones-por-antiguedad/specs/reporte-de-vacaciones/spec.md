@@ -27,11 +27,11 @@ Quien tenga `vacations:print` SHALL poder descargar un PDF del período que est�
 ## ADDED Requirements
 
 ### Requirement: Resumen del cupo
-En un período de goce, cada persona del reporte SHALL mostrar, solo para consultar, De este período, Del período anterior, Gozados y Quedan. Quedan SHALL excluir De este período mientras no esté habilitado. El reporte SHALL NOT editar días extra ni el cupo. Si hay días extra, SHALL mostrarlos. Si el ajuste es cero, SHALL NOT mostrar esa línea. En un rango que no es un período de goce, SHALL mostrar los tramos y SHALL NOT ofrecer un saldo único.
+En un período de goce, cada persona del reporte SHALL mostrar, solo para consultar, De este período, Del período anterior, Gozados y Quedan. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados. El reporte SHALL NOT editar días extra ni el cupo. Si hay días extra, SHALL mostrarlos. Si el ajuste es cero, SHALL NOT mostrar esa línea. En un rango que no es un período de goce, SHALL mostrar los tramos y SHALL NOT ofrecer un saldo único.
 
 #### Scenario: Lectura de una persona
-- **WHEN** en el período que abre el 1 de octubre de 2026 una persona tiene 14 de este período, 3 del período anterior y 0 gozados
-- **THEN** el reporte muestra De este período 14, Del período anterior 3, Gozados 0 y Quedan 3
+- **WHEN** en el período que abre el 1 de octubre de 2026 una persona tiene 21 de este período, 0 del anterior y 7 gozados
+- **THEN** el reporte muestra De este período 21, Del período anterior 0, Gozados 7 y Quedan 14
 
 #### Scenario: Ajuste en cero
 - **WHEN** el ajuste de la persona es cero

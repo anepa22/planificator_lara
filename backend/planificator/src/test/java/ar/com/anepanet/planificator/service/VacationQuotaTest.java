@@ -50,42 +50,38 @@ class VacationQuotaTest {
 
     @Test
     void missingAdjustmentIsZeroAndDoesNotRepeatCarry() {
-        LocalDate hire = LocalDate.of(2026, 6, 1);
+        LocalDate hire = LocalDate.of(2024, 6, 1);
         VacationQuota.Snapshot plain = VacationQuota.snapshot(hire, 2026, Map.of(), Map.of());
         assertEquals(14, plain.thisPeriod());
         assertEquals(0, plain.carried());
         assertEquals(0, plain.extra());
-        assertEquals(0, plain.remaining());
+        assertEquals(14, plain.remaining());
 
         VacationQuota.Snapshot opening = VacationQuota.snapshot(hire, 2026, Map.of(), Map.of(2026, 3));
-        assertEquals(3, opening.remaining());
+        assertEquals(17, opening.remaining());
 
-        VacationQuota.Snapshot both = VacationQuota.snapshot(
-                LocalDate.of(2024, 6, 1), 2026, Map.of(2025, 11), Map.of(2026, 3));
-        assertEquals(3, both.carried());
+        VacationQuota.Snapshot both = VacationQuota.snapshot(hire, 2026, Map.of(2025, 11), Map.of(2026, 3));
+        assertEquals(0, both.carried());
         assertEquals(3, both.extra());
-        assertEquals(14, both.thisPeriod());
-        assertEquals(6, both.remaining());
+        assertEquals(17, both.remaining());
     }
 
     @Test
-    void currentPeriodKeepsOnlyThePreviousLeftoverUntilOctober2027() {
-        LocalDate hire = LocalDate.of(2024, 6, 1);
-        VacationQuota.Snapshot now = VacationQuota.snapshot(hire, 2026, Map.of(2025, 11), Map.of());
-        assertEquals(14, now.thisPeriod());
-        assertEquals(3, now.carried());
-        assertEquals(0, now.enjoyed());
-        assertEquals(3, now.remaining());
+    void enjoymentStartsOnOctober2026AndThenCarriesForward() {
+        LocalDate hire = LocalDate.of(2020, 12, 30);
+        VacationQuota.Snapshot now = VacationQuota.snapshot(hire, 2026, Map.of(2026, 7, 2025, 21, 2024, 21), Map.of());
+        assertEquals(21, now.thisPeriod());
+        assertEquals(0, now.carried());
+        assertEquals(7, now.enjoyed());
+        assertEquals(14, now.remaining());
 
-        VacationQuota.Snapshot stacked = VacationQuota.snapshot(LocalDate.of(2022, 5, 1), 2026, Map.of(), Map.of());
-        assertEquals(14, stacked.carried());
-        assertEquals(14, stacked.remaining());
+        VacationQuota.Snapshot older = VacationQuota.snapshot(LocalDate.of(2022, 5, 1), 2026, Map.of(), Map.of());
+        assertEquals(0, older.carried());
+        assertEquals(14, older.remaining());
 
-        VacationQuota.Snapshot enabled = VacationQuota.snapshot(hire, 2027, Map.of(2025, 12, 2026, 0), Map.of());
-        assertEquals(16, enabled.remaining());
-
-        VacationQuota.Snapshot following = VacationQuota.snapshot(hire, 2028, Map.of(2025, 12, 2026, 0), Map.of());
-        assertEquals(VacationQuota.seniorityDays(hire, 2027) + 16, following.carried());
+        VacationQuota.Snapshot next = VacationQuota.snapshot(hire, 2027, Map.of(2026, 7), Map.of());
+        assertEquals(14, next.carried());
+        assertEquals(VacationQuota.seniorityDays(hire, 2027) + 14, next.remaining());
     }
 
     @Test
@@ -116,13 +112,12 @@ class VacationQuotaTest {
                 List.of(LocalDate.of(2026, 12, 21)));
         assertTrue(zero.contains("no tiene días"));
 
-        String notYetEnabled = VacationQuota.rejection(
+        assertNull(VacationQuota.rejection(
                 "Ana",
                 LocalDate.of(2026, 6, 1),
                 Map.of(),
                 Map.of(),
-                List.of(LocalDate.of(2026, 10, 5)));
-        assertTrue(notYetEnabled.contains("no tiene días"));
+                List.of(LocalDate.of(2026, 10, 5))));
 
         assertNull(VacationQuota.rejection(
                 "Ana",
@@ -148,7 +143,7 @@ class VacationQuotaTest {
         String message = VacationQuota.rejection(
                 "Ana",
                 LocalDate.of(2024, 6, 1),
-                Map.of(2025, 13, 2027, 14),
+                Map.of(2026, 13, 2027, 14),
                 Map.of(),
                 crossing);
         assertTrue(message.contains("1 oct 2027"));

@@ -15,8 +15,8 @@ import java.util.Map;
  */
 public final class VacationQuota {
 
-    /** Primer año cuya antigüedad se habilita. Lo anterior a 2025-2026 no se arrastra. */
-    static final int FIRST_ACCRUAL_YEAR = 2025;
+    /** Período que abre el 1 oct 2026. Lo anterior no entra en el saldo. */
+    static final int FIRST_ENJOYMENT_YEAR = 2026;
 
     private VacationQuota() {}
 
@@ -27,9 +27,9 @@ public final class VacationQuota {
             int enjoyed,
             int remaining) {
 
-        /** Saldo habilitado, sin los días de este período que todavía no se gozan. */
+        /** Días habilitados: antigüedad de este período, más lo arrastrado, más el extra. */
         public int quota() {
-            return carried + extra;
+            return thisPeriod + carried + extra;
         }
     }
 
@@ -107,34 +107,30 @@ public final class VacationQuota {
         if (hire == null || periodYear < hire.getYear()) {
             return new Snapshot(0, 0, extra, enjoyed, extra - enjoyed);
         }
-        int thisPeriod = seniorityDays(hire, periodYear);
+        int seniority = seniorityDays(hire, periodYear);
+        int thisPeriod = periodYear >= FIRST_ENJOYMENT_YEAR ? seniority : 0;
         int carried = carriedInto(hire, periodYear, enjoyedByYear, extraByYear);
-        return new Snapshot(thisPeriod, carried, extra, enjoyed, carried + extra - enjoyed);
+        return new Snapshot(thisPeriod, carried, extra, enjoyed, thisPeriod + carried + extra - enjoyed);
     }
 
     /**
-     * Saldo que entra al período: la antigüedad del año anterior, ya habilitada,
-     * más lo no gozado. Hasta el período 2026 entra solo el sobrante de 2025.
+     * El período 2026 abre sin saldo anterior. Desde el siguiente, entra lo no gozado
+     * más la antigüedad que ya se habilitó.
      */
     private static int carriedInto(
             LocalDate hire,
             int periodYear,
             Map<Integer, Integer> enjoyedByYear,
             Map<Integer, Integer> extraByYear) {
-        if (periodYear <= FIRST_ACCRUAL_YEAR) {
+        if (periodYear <= FIRST_ENJOYMENT_YEAR) {
             return 0;
         }
-        int opening = poolOf(hire, FIRST_ACCRUAL_YEAR, extraByYear) - daysOf(enjoyedByYear, FIRST_ACCRUAL_YEAR);
-        int carried = Math.max(0, opening);
-        for (int year = FIRST_ACCRUAL_YEAR + 1; year < periodYear; year++) {
-            int unused = Math.max(0, carried + daysOf(extraByYear, year) - daysOf(enjoyedByYear, year));
-            carried = seniorityDays(hire, year) + unused;
+        int carried = 0;
+        for (int year = FIRST_ENJOYMENT_YEAR; year < periodYear; year++) {
+            int quota = seniorityDays(hire, year) + carried + daysOf(extraByYear, year);
+            carried = Math.max(0, quota - daysOf(enjoyedByYear, year));
         }
         return carried;
-    }
-
-    private static int poolOf(LocalDate hire, int year, Map<Integer, Integer> extraByYear) {
-        return seniorityDays(hire, year) + daysOf(extraByYear, year);
     }
 
     /**
@@ -165,17 +161,10 @@ public final class VacationQuota {
         for (int year : years) {
             int requested = countByPeriod.get(year);
             Snapshot snap = snapshot(hire, year, enjoyed, extraByYear);
-            int spendable = snap.remaining();
-            boolean enabled = snap.carried() > 0 || snap.extra() > 0;
-            if (year == FIRST_ACCRUAL_YEAR) {
-                int pool = poolOf(hire, year, extraByYear);
-                enabled = pool > 0;
-                spendable = pool - daysOf(enjoyed, year);
+            if (snap.thisPeriod() == 0 && snap.carried() == 0 && snap.extra() == 0) {
+                return name + " no tiene días de este período, del anterior ni extra";
             }
-            if (!enabled) {
-                return name + " no tiene días del período anterior ni extra";
-            }
-            if (spendable < requested) {
+            if (snap.remaining() < requested) {
                 return name + " no tiene saldo en el período " + periodLabel(year);
             }
             enjoyed.merge(year, requested, Integer::sum);
