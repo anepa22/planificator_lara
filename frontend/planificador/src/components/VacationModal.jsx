@@ -14,7 +14,13 @@ import {
 } from '../lib/locations'
 import { initials, paletteFor } from '../lib/palette'
 import { getVacationQuota, saveVacationAdjustment } from '../api/client'
-import { FIRST_ENJOYMENT_YEAR, enjoymentLabel, enjoymentYear, selectableEnjoymentYears } from '../lib/vacations'
+import {
+  FIRST_ENJOYMENT_YEAR,
+  enjoymentLabel,
+  enjoymentYear,
+  fmtVacationRangeLabel,
+  selectableEnjoymentYears,
+} from '../lib/vacations'
 
 const { startTime: VAC_START, endTime: VAC_END } = absenceDayBounds()
 
@@ -136,8 +142,16 @@ export default function VacationModal({
   }, [open, cupoOpen, cupoUserId, cupoYear])
 
   function openCupo() {
-    const initial = selectedIds[0] || staff[0]?.id || ''
-    setCupoUserId(initial)
+    if (selectedIds.length !== 1) {
+      setWarn(
+        selectedIds.length === 0
+          ? 'Elegí un asistente para ver el cupo.'
+          : 'Elegí un solo asistente para ver el cupo.',
+      )
+      return
+    }
+    setWarn('')
+    setCupoUserId(selectedIds[0])
     const year = dateFrom ? enjoymentYear(dateFrom) : enjoymentYear(new Date())
     setCupoYear(Math.max(year, FIRST_ENJOYMENT_YEAR))
     setCupoOpen(true)
@@ -209,30 +223,6 @@ export default function VacationModal({
     setConfirmMove(false)
   }, [selectedIds, dateFrom, dateTo])
 
-  useEffect(() => {
-    if (!open) return
-    if (conflicts.length) {
-      const n = conflicts.length
-      const suffix = confirmMove
-        ? ' Confirmá para reemplazar el/los turno(s) que se solapan.'
-        : ` Si guardás, se reemplazarán ${n} turno(s) solapado(s).`
-      const preview = conflicts
-        .slice(0, 3)
-        .map((c) => c.text)
-        .join(' · ')
-      const more = n > 3 ? ` · +${n - 3} más` : ''
-      setWarn(preview + more + '.' + suffix)
-    } else {
-      setWarn((w) =>
-        w.includes('reemplazará') ||
-        w.includes('solapa') ||
-        w.includes('solapado')
-          ? ''
-          : w,
-      )
-    }
-  }, [conflicts, open, confirmMove])
-
   if (!open) return null
 
   function toggleMember(id) {
@@ -279,6 +269,21 @@ export default function VacationModal({
     })
   }
 
+  const datesInverted = Boolean(dateFrom && dateTo && parseDateKey(dateFrom) > parseDateKey(dateTo))
+  const periodYears = [...new Set(dateKeys.map((key) => enjoymentYear(key)))]
+  const cupoPerson = staff.find((person) => person.id === cupoUserId)
+  const typedExtra = Number(extra)
+  const extraOk = Number.isInteger(typedExtra) && typedExtra >= 0
+  const previewRemaining = quota && extraOk
+    ? quota.remaining - (quota.extra ?? 0) + typedExtra
+    : quota?.remaining
+  const dayLabel = dateKeys.length === 1 ? '1 día' : `${dateKeys.length} días`
+  const whoLabel = selectedIds.length === 1
+    ? staff.find((person) => person.id === selectedIds[0])?.name
+    : selectedIds.length > 1
+      ? `${selectedIds.length} personas`
+      : ''
+
   return (
     <div
       className="overlay open"
@@ -286,9 +291,14 @@ export default function VacationModal({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="modal vacation-modal">
+      <div className="modal vacation-modal vacation-load-modal">
         <div className="vacation-modal-head">
-          <h3>{cupoOpen ? 'Cupo' : 'Vacaciones'}</h3>
+          <div>
+            <h3>{cupoOpen ? 'Cupo' : 'Cargar vacaciones'}</h3>
+            {!cupoOpen && (
+              <p className="vacation-load-lead">Cada día elegido queda como vacación de todo el día.</p>
+            )}
+          </div>
           {!cupoOpen && canWrite && (
             <button
               type="button"
@@ -300,33 +310,14 @@ export default function VacationModal({
             </button>
           )}
         </div>
-        {!cupoOpen && (
-        <div className="m-sub">
-          Todo el día. Las vacaciones cargadas se ven y se quitan en la vista mensual.
-        </div>
-        )}
 
         {warn && !cupoOpen && <div className="m-warn">{warn}</div>}
 
         {cupoOpen ? (
-          <div>
-            <div className="m-sub">{enjoymentLabel(cupoYear)}. De este período y del período anterior no se editan.</div>
-            <div className="field">
-              <label htmlFor="cupo-person">Asistente</label>
-              <select
-                id="cupo-person"
-                value={cupoUserId}
-                disabled={busy || cupoBusy}
-                onChange={(e) => {
-                  setQuota(null)
-                  setCupoUserId(e.target.value)
-                }}
-              >
-                {staff.map((person) => (
-                  <option key={person.id} value={person.id}>{person.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="vacation-card vacation-cupo-card">
+            <header className="vacation-card-head">
+              <h4 className="vacation-report-name">{cupoPerson?.name}</h4>
+            </header>
             <div className="field">
               <label htmlFor="cupo-period">Período</label>
               <select
@@ -343,17 +334,27 @@ export default function VacationModal({
                 ))}
               </select>
             </div>
+            <p className="vacation-load-lead">De este período y del período anterior no se editan. Los días extra se suman a Quedan.</p>
             {cupoError && <div className="m-warn">{cupoError}</div>}
             {cupoBusy && <div className="m-sub">Cargando…</div>}
             {quota && quota.hireDate == null && !cupoBusy && !cupoError && (
               <div className="m-sub">Falta la fecha de ingreso. Cargala en Usuarios.</div>
             )}
             {quota?.hireDate != null && (
-              <div className="vacation-quota">
-                <div><span>De este período</span><span>{quota.thisPeriod}</span></div>
-                <div><span>Del período anterior</span><span>{quota.carried}</span></div>
-                <div><span>Gozados</span><span>{quota.enjoyed}</span></div>
-                <div>
+              <div className="vacation-stats">
+                <div className="vacation-stat">
+                  <span>De este período</span>
+                  <strong>{quota.thisPeriod}</strong>
+                </div>
+                <div className="vacation-stat">
+                  <span>Del período anterior</span>
+                  <strong>{quota.carried}</strong>
+                </div>
+                <div className="vacation-stat">
+                  <span>Gozados</span>
+                  <strong>{quota.enjoyed}</strong>
+                </div>
+                <div className="vacation-stat vacation-stat-extra">
                   <label htmlFor="cupo-extra">Días extra</label>
                   <input
                     id="cupo-extra"
@@ -365,7 +366,10 @@ export default function VacationModal({
                     onChange={(e) => setExtra(e.target.value)}
                   />
                 </div>
-                <div className="is-remaining"><span>Quedan</span><span>{quota.remaining}</span></div>
+                <div className={`vacation-stat ${previewRemaining < 0 ? 'is-over' : 'is-remaining'}`}>
+                  <span>Quedan</span>
+                  <strong>{previewRemaining}</strong>
+                </div>
               </div>
             )}
             <div className="modal-actions">
@@ -378,78 +382,119 @@ export default function VacationModal({
                 disabled={cupoBusy || !quota?.hireDate}
                 onClick={() => void saveExtra()}
               >
-                Guardar
+                Guardar días extra
               </button>
             </div>
           </div>
         ) : (
         <>
-        <div className="time-row">
-          <div className="field">
-            <label>Desde</label>
-            <input
-              type="date"
-              value={dateFrom}
-              disabled={busy}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
+        <section className="vacation-load-block">
+          <div className="vacation-load-block-head">
+            <h4>Fechas</h4>
+            {dateKeys.length > 0 && <span>{dayLabel}</span>}
           </div>
-          <div className="field">
-            <label>Hasta</label>
-            <input
-              type="date"
-              value={dateTo}
-              disabled={busy}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
+          <div className="time-row">
+            <div className="field">
+              <label htmlFor="vacation-from">Desde</label>
+              <input
+                id="vacation-from"
+                type="date"
+                value={dateFrom}
+                disabled={busy}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="vacation-to">Hasta</label>
+              <input
+                id="vacation-to"
+                type="date"
+                value={dateTo}
+                disabled={busy}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
+          {dateKeys.length > 0 && (
+            <div className="vacation-ranges">
+              <span className="vacation-range-chip">
+                {fmtVacationRangeLabel(dateFrom, dateTo)}
+                <em>{dayLabel}</em>
+              </span>
+              {periodYears.map((year) => (
+                <span key={year} className="vacation-range-chip">{enjoymentLabel(year)}</span>
+              ))}
+            </div>
+          )}
+          {datesInverted && <div className="m-warn">Hasta no puede ser anterior a Desde.</div>}
+        </section>
 
-        <div className="field">
-          <label>Asistentes</label>
-          <div className="pick-list">
+        <section className="vacation-load-block">
+          <div className="vacation-load-block-head">
+            <h4>Personas</h4>
+            <span>{selectedIds.length === 0 ? 'Ninguna elegida' : whoLabel}</span>
+          </div>
+          <div className="vacation-people">
             {!staff.length && (
               <div className="pp-empty">Todavía no hay asistentes.</div>
             )}
-            {staff.map((e) => {
-              const av = paletteFor(e.id, staff).c
-              const dayShifts = pool.filter((s) => s.userId === e.id)
+            {staff.map((person) => {
+              const av = paletteFor(person.id, staff).c
+              const dayShifts = pool.filter((shift) => shift.userId === person.id)
               const hasOverlap =
                 dateKeys.length > 0 &&
                 dayShifts.some(
-                  (s) =>
-                    dateKeys.includes(String(s.workDate).slice(0, 10)) &&
-                    timesOverlap(VAC_START, VAC_END, s.startTime, s.endTime),
+                  (shift) =>
+                    dateKeys.includes(String(shift.workDate).slice(0, 10)) &&
+                    timesOverlap(VAC_START, VAC_END, shift.startTime, shift.endTime),
                 )
+              const selected = selectedIds.includes(person.id)
               return (
                 <label
-                  className={`pp-item${hasOverlap ? ' pp-busy' : ''}`}
-                  key={e.id}
+                  className={`vacation-person${selected ? ' is-on' : ''}${hasOverlap ? ' is-busy' : ''}`}
+                  key={person.id}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedIds.includes(e.id)}
+                    checked={selected}
                     disabled={busy}
-                    onChange={() => toggleMember(e.id)}
+                    onChange={() => toggleMember(person.id)}
                   />
                   <span className="pp-av" style={{ background: av }}>
-                    {initials(e.name)}
+                    {initials(person.name)}
                   </span>
-                  <span className="pp-name">{e.name}</span>
-                  {hasOverlap && (
-                    <span className="pp-badge pp-badge-move">solapa</span>
-                  )}
+                  <span className="pp-name">{person.name}</span>
+                  {hasOverlap && <span className="pp-badge pp-badge-move">tiene turno</span>}
                 </label>
               )
             })}
           </div>
-        </div>
+        </section>
 
-        {loadingPool && (
-          <div className="m-sub" style={{ marginBottom: 8 }}>
-            Revisando turnos del rango…
+        {loadingPool && <div className="m-sub">Revisando turnos del rango…</div>}
+
+        {conflicts.length > 0 && (
+          <div className="vacation-conflicts">
+            <strong>
+              {confirmMove
+                ? 'Confirmá para reemplazar estos turnos.'
+                : 'Esas fechas ya tienen turno. Al cargar, se reemplazan.'}
+            </strong>
+            <ul>
+              {conflicts.slice(0, 4).map((conflict) => (
+                <li key={conflict.shiftId}>{conflict.text}</li>
+              ))}
+            </ul>
+            {conflicts.length > 4 && <p>y {conflicts.length - 4} más</p>}
           </div>
         )}
+
+        <div className="vacation-load-summary">
+          {datesInverted && 'Revisá las fechas.'}
+          {!datesInverted && dateKeys.length > 0 && whoLabel && `${dayLabel} para ${whoLabel}.`}
+          {!datesInverted && dateKeys.length > 0 && !whoLabel && `${dayLabel}. Elegí al menos una persona.`}
+          {!datesInverted && !dateKeys.length && 'Elegí desde y hasta.'}
+        </div>
 
         <div className="modal-actions">
           <button
@@ -467,7 +512,7 @@ export default function VacationModal({
               disabled={busy || !staff.length || loadingPool}
               onClick={handleSave}
             >
-              {confirmMove ? 'Confirmar y guardar' : 'Guardar'}
+              {confirmMove ? 'Reemplazar y cargar' : 'Cargar vacaciones'}
             </button>
           )}
         </div>

@@ -126,7 +126,11 @@ Si De este período, Del período anterior y Días extra son cero, el sistema SH
 - **THEN** se puede cargar ese día
 
 ### Requirement: Botón en Cargar
-Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir, para una persona y un período de goce, De este período, Del período anterior, Gozados y Quedan, y SHALL ser el único lugar donde se cargan los Días extra, también en cero. De este período y Del período anterior SHALL NOT ser editables. El Reporte SHALL NOT incluir ese botón. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados.
+Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir el cupo de la única persona ya elegida en Cargar, sin desplegable de personas. Muestra De este período, Del período anterior, Gozados y Quedan, y es el único lugar de los Días extra, también en cero. De este período y Del período anterior SHALL NOT ser editables. El Reporte SHALL NOT incluir ese botón. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados.
+
+#### Scenario: Persona ya elegida
+- **WHEN** en Cargar no hay una sola persona marcada y se pulsa Cupo
+- **THEN** Cupo no abre y pide elegir una
 
 #### Scenario: Veintiuno de este período
 - **WHEN** De este período es 21, Del período anterior es 0 y Gozados es 7

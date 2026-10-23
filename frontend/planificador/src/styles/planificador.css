@@ -1031,6 +1031,55 @@
   .gantt-bar-vacation .gantt-bar-loc{color:#5B6675;font-weight:700;}
   .gantt-bar-franco .gantt-bar-loc{color:#C62828;font-weight:700;}
   .vacation-modal{max-width:min(420px, 92vw);}
+  .vacation-modal.vacation-load-modal{
+    width:min(680px,94vw);max-width:min(680px,94vw);
+  }
+  .vacation-load-lead{margin:2px 0 0;font-size:12.5px;color:var(--ink-soft);font-weight:500;}
+  .vacation-load-block{margin-top:14px;}
+  .vacation-load-block-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;
+  }
+  .vacation-load-block-head h4{margin:0;font-size:13px;font-weight:800;color:var(--ink);}
+  .vacation-load-block-head span{font-size:12px;font-weight:700;color:var(--accent);}
+  .vacation-people{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:280px;overflow:auto;
+  }
+  .vacation-person{
+    display:flex;align-items:center;gap:8px;margin:0;padding:8px 10px;
+    border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;
+    font-size:13px;font-weight:600;color:var(--ink);
+  }
+  .vacation-person input{accent-color:var(--accent);width:15px;height:15px;flex:none;}
+  .vacation-person .pp-av{
+    width:28px;height:28px;border-radius:50%;font-size:10px;font-weight:800;color:#fff;
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .vacation-person .pp-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .vacation-person .pp-badge{
+    flex:none;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;
+  }
+  .vacation-person .pp-badge-move{color:#8B3A1A;background:#F8E6DC;}
+  .vacation-person.is-on{border-color:var(--accent);background:var(--accent-soft);}
+  .vacation-person.is-busy{background:#FFF9F0;}
+  .vacation-person.is-on.is-busy{background:var(--accent-soft);}
+  .vacation-conflicts{
+    margin-top:12px;padding:10px 12px;border-radius:10px;background:#FBF0DC;color:#8B3A1A;
+  }
+  .vacation-conflicts strong{display:block;font-size:12.5px;margin-bottom:6px;}
+  .vacation-conflicts ul{margin:0;padding-left:16px;font-size:12px;}
+  .vacation-conflicts p{margin:6px 0 0;font-size:12px;}
+  .vacation-load-summary{
+    margin-top:12px;font-size:13px;font-weight:700;color:var(--ink);
+  }
+  .vacation-cupo-card{margin-top:12px;}
+  .vacation-stat-extra label{
+    display:block;font-size:10px;font-weight:700;letter-spacing:.03em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .vacation-stat-extra input{
+    width:100%;margin-top:4px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;
+    font-size:18px;font-weight:800;font-family:inherit;color:var(--ink);background:#fff;
+  }
   .vidriera-existing{
     max-height:140px;overflow-y:auto;border:1px solid var(--border);
     border-radius:8px;
@@ -1459,6 +1508,8 @@
     }
     .vacation-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
     .vacation-months{grid-template-columns:repeat(12,52px);}
+    .vacation-modal.vacation-load-modal{width:100%;max-width:100%;}
+    .vacation-people{grid-template-columns:1fr;}
     .users-form{grid-template-columns:1fr;}
     .users-toolbar{flex-direction:column;align-items:stretch;gap:8px;}
     .users-toolbar-right{flex-direction:column;align-items:stretch;}
