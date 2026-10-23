@@ -114,6 +114,18 @@ export function fmtVacationDay(dateKey) {
   })
 }
 
+/** Primer período que se ofrece. Lo anterior al 1 oct 2026 no se cuenta. */
+export const FIRST_ENJOYMENT_YEAR = 2026
+
+export function selectableEnjoymentYears(date = new Date(), extraYear) {
+  const current = enjoymentYear(date)
+  const years = [current - 1, current, current + 1]
+  if (extraYear != null) years.push(extraYear)
+  return [...new Set(years)]
+    .filter((year) => year >= FIRST_ENJOYMENT_YEAR)
+    .sort((a, b) => a - b)
+}
+
 export function enjoymentYear(date = new Date()) {
   const value = date instanceof Date ? date : parseDateKey(date)
   const year = value.getFullYear()

@@ -3,11 +3,11 @@
 ## MODIFIED Requirements
 
 ### Requirement: Período
-Al abrir, el reporte SHALL mostrar el período de goce en curso, del 1 de octubre al 30 de septiembre. El usuario SHALL poder elegir el período de goce anterior, el actual, el siguiente o un rango Desde / Hasta. Hasta SHALL NOT ser anterior a Desde y el período SHALL NOT superar 800 días.
+Al abrir, el reporte SHALL mostrar el período de goce en curso, del 1 de octubre al 30 de septiembre. El usuario SHALL poder elegir el período en curso, el siguiente y un rango Desde / Hasta. SHALL NOT ofrecer un período que abra antes del 1 de octubre de 2026. Hasta SHALL NOT ser anterior a Desde y el período SHALL NOT superar 800 días.
 
 #### Scenario: Apertura
 - **WHEN** se abre el reporte el 23 de octubre de 2026
-- **THEN** el período mostrado es del 1 de octubre de 2026 al 30 de septiembre de 2027
+- **THEN** el período mostrado es del 1 de octubre de 2026 al 30 de septiembre de 2027 y no está el de 2025-2026
 
 #### Scenario: Rango inválido
 - **WHEN** Hasta es anterior a Desde o el período supera 800 días

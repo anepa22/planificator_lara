@@ -14,7 +14,7 @@ import {
 } from '../lib/locations'
 import { initials, paletteFor } from '../lib/palette'
 import { getVacationQuota, saveVacationAdjustment } from '../api/client'
-import { enjoymentLabel, enjoymentYear } from '../lib/vacations'
+import { FIRST_ENJOYMENT_YEAR, enjoymentLabel, enjoymentYear, selectableEnjoymentYears } from '../lib/vacations'
 
 const { startTime: VAC_START, endTime: VAC_END } = absenceDayBounds()
 
@@ -87,8 +87,7 @@ export default function VacationModal({
   const [cupoError, setCupoError] = useState('')
   const [cupoBusy, setCupoBusy] = useState(false)
   const confirmPendingRef = useRef(false)
-  const currentEnjoyment = enjoymentYear(new Date())
-  const cupoYears = [...new Set([currentEnjoyment - 1, currentEnjoyment, currentEnjoyment + 1, cupoYear])].sort((a, b) => a - b)
+  const cupoYears = selectableEnjoymentYears(new Date(), cupoYear)
 
   const dateKeys = useMemo(() => {
     if (!dateFrom || !dateTo) return []
@@ -139,7 +138,8 @@ export default function VacationModal({
   function openCupo() {
     const initial = selectedIds[0] || staff[0]?.id || ''
     setCupoUserId(initial)
-    setCupoYear(dateFrom ? enjoymentYear(dateFrom) : enjoymentYear(new Date()))
+    const year = dateFrom ? enjoymentYear(dateFrom) : enjoymentYear(new Date())
+    setCupoYear(Math.max(year, FIRST_ENJOYMENT_YEAR))
     setCupoOpen(true)
   }
 

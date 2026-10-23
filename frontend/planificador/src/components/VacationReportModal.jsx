@@ -1,6 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { downloadVacationReportPdf, getVacationReport } from '../api/client'
-import { enjoymentLabel, enjoymentRange, enjoymentYear, fmtVacationRangeLabel } from '../lib/vacations'
+import { addDays, parseDateKey } from '../lib/dates'
+import {
+  FIRST_ENJOYMENT_YEAR,
+  enjoymentLabel,
+  enjoymentRange,
+  enjoymentYear,
+  fmtVacationRangeLabel,
+  selectableEnjoymentYears,
+} from '../lib/vacations'
+
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+function monthsInRange(from, to) {
+  const start = parseDateKey(from)
+  const end = parseDateKey(to)
+  const months = []
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1)
+  const last = new Date(end.getFullYear(), end.getMonth(), 1)
+  while (cursor <= last && months.length < 27) {
+    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+  return months
+}
+
+function vacationDaysByMonth(ranges) {
+  const counts = new Map()
+  for (const range of ranges || []) {
+    let cursor = parseDateKey(range.dateFrom)
+    const end = parseDateKey(range.dateTo)
+    while (cursor <= end) {
+      const key = `${cursor.getFullYear()}-${cursor.getMonth()}`
+      counts.set(key, (counts.get(key) || 0) + 1)
+      cursor = addDays(cursor, 1)
+    }
+  }
+  return counts
+}
 
 function dayCount(days) {
   return `${days} día${days === 1 ? '' : 's'}`
@@ -76,8 +113,10 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
 
   const locked = busy || printing
   const people = report?.people || []
-  const years = [currentYear - 1, currentYear, currentYear + 1]
+  const years = selectableEnjoymentYears()
+  const firstDay = `${FIRST_ENJOYMENT_YEAR}-10-01`
   const selectedYear = selectedEnjoymentYear(from, to, years)
+  const months = report ? monthsInRange(report.from, report.to) : []
 
   return (
     <div
@@ -87,7 +126,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
       }}
     >
       <div
-        className="modal panel-modal"
+        className="modal panel-modal vacation-report-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="vacation-report-title"
@@ -140,6 +179,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               id="vacation-report-from"
               type="date"
               value={from}
+              min={firstDay}
               disabled={locked}
               required
               onChange={(e) => setFrom(e.target.value)}
@@ -151,6 +191,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               id="vacation-report-to"
               type="date"
               value={to}
+              min={firstDay}
               disabled={locked}
               required
               onChange={(e) => setTo(e.target.value)}
@@ -192,35 +233,80 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               <div>Probá con otro período.</div>
             </div>
           ) : (
-            <ul className="vacation-report-list">
-              {people.map((person) => (
-                <li key={person.userId} className="vacation-report-person">
-                  <div className="vacation-report-person-head">
-                    <span className="vacation-report-name">{person.userName}</span>
-                    <span className="vacation-report-days">{dayCount(person.days)}</span>
-                  </div>
-                  {person.thisPeriod != null && (
-                    <div className="vacation-report-quota">
-                      <span>De este período {person.thisPeriod}</span>
-                      <span>Del período anterior {person.carried}</span>
-                      <span>Gozados {person.enjoyed}</span>
-                      {person.extra > 0 && <span>Días extra {person.extra}</span>}
-                      <span className="is-remaining">Quedan {person.remaining}</span>
+            <div className="vacation-grid">
+              {people.map((person) => {
+                const byMonth = vacationDaysByMonth(person.ranges)
+                const remainingClass =
+                  person.remaining < 0 ? 'is-over' : 'is-remaining'
+                return (
+                  <article key={person.userId} className="vacation-card">
+                    <header className="vacation-card-head">
+                      <h4 className="vacation-report-name">{person.userName}</h4>
+                      <span className="vacation-report-days">{dayCount(person.days)} tomados</span>
+                    </header>
+                    {person.thisPeriod != null && (
+                      <div className="vacation-stats">
+                        <div className="vacation-stat">
+                          <span>De este período</span>
+                          <strong>{person.thisPeriod}</strong>
+                        </div>
+                        <div className="vacation-stat">
+                          <span>Del período anterior</span>
+                          <strong>{person.carried}</strong>
+                        </div>
+                        {person.extra > 0 && (
+                          <div className="vacation-stat">
+                            <span>Días extra</span>
+                            <strong>{person.extra}</strong>
+                          </div>
+                        )}
+                        <div className="vacation-stat">
+                          <span>Gozados</span>
+                          <strong>{person.enjoyed}</strong>
+                        </div>
+                        <div className={`vacation-stat ${remainingClass}`}>
+                          <span>Quedan</span>
+                          <strong>{person.remaining}</strong>
+                        </div>
+                      </div>
+                    )}
+                    <div className="vacation-months-scroll">
+                      <div
+                        className="vacation-months"
+                        style={{ gridTemplateColumns: `repeat(${months.length}, minmax(44px, 1fr))` }}
+                      >
+                        {months.map(({ year, month }, index) => {
+                          const count = byMonth.get(`${year}-${month}`) || 0
+                          const name = MONTHS[month]
+                          const showYear = index === 0 || months[index - 1].year !== year
+                          return (
+                            <div
+                              key={`${year}-${month}`}
+                              className={`vacation-month${count ? ' is-taken' : ''}`}
+                              title={`${name} ${year}: ${dayCount(count)}`}
+                            >
+                              <span className="label">
+                                {name}
+                                {showYear ? <i>{year}</i> : null}
+                              </span>
+                              <span className="count">{count || '–'}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  )}
-                  <ul className="vacation-report-ranges">
-                    {person.ranges.map((range) => (
-                      <li key={`${range.dateFrom}-${range.dateTo}`}>
-                        <span>{fmtVacationRangeLabel(range.dateFrom, range.dateTo)}</span>
-                        <span className="vacation-report-range-days">
-                          {dayCount(range.days)}
+                    <div className="vacation-ranges">
+                      {person.ranges.map((range) => (
+                        <span key={`${range.dateFrom}-${range.dateTo}`} className="vacation-range-chip">
+                          {fmtVacationRangeLabel(range.dateFrom, range.dateTo)}
+                          <em>{dayCount(range.days)}</em>
                         </span>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
+                      ))}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>

@@ -97,23 +97,59 @@
     .panel-form .field{margin-bottom:0;}
   }
   .vacation-report-filters{grid-template-columns:minmax(180px, 1.3fr) 1fr 1fr auto;}
-  .vacation-report-list{list-style:none;margin:0;padding:8px 0 4px;}
-  .vacation-report-person{padding:10px 6px;border-bottom:1px solid var(--border-soft);}
-  .vacation-report-person:last-child{border-bottom:none;}
-  .vacation-report-person-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
-  .vacation-report-name{font-size:13px;font-weight:800;color:var(--ink);}
-  .vacation-report-days{font-size:11.5px;font-weight:700;color:var(--accent);white-space:nowrap;}
-  .vacation-report-ranges{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
-  .vacation-report-quota{display:flex;flex-direction:column;gap:2px;margin-top:6px;font-size:12.5px;color:var(--ink-soft);}
-  .vacation-report-quota .is-remaining{color:var(--accent);font-weight:700;}
+  .overlay.panel-overlay .modal.panel-modal.vacation-report-modal{
+    width:min(1080px,94vw);max-width:min(1080px,94vw);
+  }
+  .vacation-grid{display:flex;flex-direction:column;gap:10px;padding:12px 2px 8px;}
+  .vacation-card{
+    border:1px solid var(--border);border-radius:12px;background:#fff;
+    padding:12px;box-shadow:var(--shadow);
+  }
+  .vacation-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px;}
+  .vacation-report-name{font-size:14px;font-weight:800;color:var(--ink);margin:0;}
+  .vacation-report-days{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .vacation-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin-bottom:10px;}
+  .vacation-stat{background:var(--bg);border-radius:10px;padding:8px 10px;min-width:0;}
+  .vacation-stat span{
+    display:block;font-size:10px;font-weight:700;letter-spacing:.03em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .vacation-stat strong{display:block;margin-top:2px;font-size:18px;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .vacation-stat.is-remaining{background:var(--accent-soft);}
+  .vacation-stat.is-remaining strong{color:var(--accent);}
+  .vacation-stat.is-over{background:#F8E8EE;}
+  .vacation-stat.is-over strong{color:#9E3356;}
+  .vacation-months-scroll{overflow-x:auto;}
+  .vacation-months{display:grid;gap:4px;min-width:max-content;}
+  .vacation-month{
+    border:1px solid var(--border-soft);border-radius:8px;min-height:46px;
+    padding:5px 2px 4px;text-align:center;background:#fafbfc;
+  }
+  .vacation-month .label{
+    display:flex;flex-direction:column;align-items:center;gap:1px;
+    font-size:10px;font-weight:700;letter-spacing:.03em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .vacation-month .label i{font-style:normal;font-weight:600;letter-spacing:0;text-transform:none;font-size:9px;}
+  .vacation-month .count{
+    display:block;margin-top:2px;font-size:13px;font-weight:800;
+    color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  }
+  .vacation-month.is-taken{background:var(--accent-soft);border-color:transparent;}
+  .vacation-month.is-taken .label,.vacation-month.is-taken .count{color:var(--accent);}
+  .vacation-ranges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .vacation-range-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12px;font-weight:600;color:var(--ink);
+    background:var(--bg);border-radius:999px;padding:4px 8px 4px 10px;
+  }
+  .vacation-range-chip em{font-style:normal;font-weight:700;color:var(--ink-soft);font-size:11px;}
   .vacation-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .vacation-modal-head h3{margin:0;}
   .vacation-quota{margin:8px 0 12px;}
   .vacation-quota div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border-soft);}
   .vacation-quota .is-remaining{color:var(--accent);font-weight:700;}
   .vacation-quota input{width:88px;text-align:right;}
-  .vacation-report-ranges li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink);}
-  .vacation-report-range-days{color:var(--ink-soft);font-weight:600;white-space:nowrap;}
   .panel-list.is-busy{opacity:.55;}
   .panel-list ul{list-style:none;margin:0;padding:8px 0 4px;}
   .audit-item{
@@ -1418,6 +1454,11 @@
     .task-admin-actions{grid-column:3;grid-row:1/span 2;align-items:center;}
     .panel-head-right{gap:8px;}
     .vacation-report-filters{grid-template-columns:1fr;}
+    .overlay.panel-overlay .modal.panel-modal.vacation-report-modal{
+      width:100%;max-width:100%;
+    }
+    .vacation-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .vacation-months{grid-template-columns:repeat(12,52px);}
     .users-form{grid-template-columns:1fr;}
     .users-toolbar{flex-direction:column;align-items:stretch;gap:8px;}
     .users-toolbar-right{flex-direction:column;align-items:stretch;}
