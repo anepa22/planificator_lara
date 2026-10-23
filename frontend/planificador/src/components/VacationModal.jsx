@@ -13,7 +13,7 @@ import {
   isAbsenceLocation,
 } from '../lib/locations'
 import { initials, paletteFor } from '../lib/palette'
-import { getVacationQuota, saveVacationAdjustment } from '../api/client'
+import { actionMessage, getVacationQuota, saveVacationAdjustment } from '../api/client'
 import {
   FIRST_ENJOYMENT_YEAR,
   enjoymentLabel,
@@ -258,15 +258,20 @@ export default function VacationModal({
 
     confirmPendingRef.current = false
     setConfirmMove(false)
-    await onSave({
-      userIds: selectedIds,
-      dateFrom,
-      dateTo,
-      startTime: VAC_START,
-      endTime: VAC_END,
-      locationId: VACATION_LOCATION_ID,
-      replaceConflictIds: currentConflicts.map((c) => c.shiftId),
-    })
+    try {
+      await onSave({
+        userIds: selectedIds,
+        dateFrom,
+        dateTo,
+        startTime: VAC_START,
+        endTime: VAC_END,
+        locationId: VACATION_LOCATION_ID,
+        replaceConflictIds: currentConflicts.map((c) => c.shiftId),
+      })
+    } catch (e) {
+      if (e.status === 401) return
+      setWarn(actionMessage(e, 'No se pudieron cargar las vacaciones.'))
+    }
   }
 
   const datesInverted = Boolean(dateFrom && dateTo && parseDateKey(dateFrom) > parseDateKey(dateTo))
@@ -310,8 +315,6 @@ export default function VacationModal({
             </button>
           )}
         </div>
-
-        {warn && !cupoOpen && <div className="m-warn">{warn}</div>}
 
         {cupoOpen ? (
           <div className="vacation-card vacation-cupo-card">
@@ -488,6 +491,8 @@ export default function VacationModal({
             {conflicts.length > 4 && <p>y {conflicts.length - 4} más</p>}
           </div>
         )}
+
+        {warn && <div className="m-warn vacation-load-warn">{warn}</div>}
 
         <div className="vacation-load-summary">
           {datesInverted && 'Revisá las fechas.'}

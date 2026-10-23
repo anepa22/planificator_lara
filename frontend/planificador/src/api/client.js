@@ -17,6 +17,11 @@ class ApiError extends Error {
   }
 }
 
+export function actionMessage(error, fallback = 'No se pudo completar.') {
+  const text = String(error?.message || fallback)
+  return text.replace(/^Bad Request:\s*/i, '')
+}
+
 function authHeaders(extra = {}) {
   const headers = { ...extra }
   const token = getToken()

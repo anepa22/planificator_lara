@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../auth/useAuth'
 
-export default function LoginScreen({ open = true, onClose }) {
+export default function LoginScreen({ open = true, onClose, notice = '' }) {
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -37,7 +37,7 @@ export default function LoginScreen({ open = true, onClose }) {
       <form className="modal login-card" onSubmit={handleSubmit}>
         <h3>Iniciar sesión</h3>
         <div className="m-sub">Necesario para editar el planificador</div>
-        {error && <div className="m-warn">{error}</div>}
+        {(error || notice) && <div className="m-warn">{error || notice}</div>}
         <div className="field">
           <label htmlFor="login-user">Usuario</label>
           <input

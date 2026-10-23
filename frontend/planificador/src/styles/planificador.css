@@ -615,6 +615,7 @@
   .modal h3{font-size:15px;font-weight:800;margin-bottom:2px;}
   .modal .m-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;}
   .m-warn{font-size:11.5px;color:#B4720A;background:#FBF0DC;border-radius:6px;padding:6px 9px;margin-bottom:12px;}
+  .board-warn{margin:0 0 14px;font-size:13px;line-height:1.4;}
   .m-ok{font-size:11.5px;color:#246748;background:#E6F4EC;border-radius:6px;padding:6px 9px;margin-bottom:12px;}
   .field{margin-bottom:12px;}
   .field label{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px;}
@@ -1071,6 +1072,7 @@
   .vacation-load-summary{
     margin-top:12px;font-size:13px;font-weight:700;color:var(--ink);
   }
+  .vacation-load-warn{margin-top:12px;margin-bottom:0;font-size:13px;line-height:1.4;}
   .vacation-cupo-card{margin-top:12px;}
   .vacation-stat-extra label{
     display:block;font-size:10px;font-weight:700;letter-spacing:.03em;

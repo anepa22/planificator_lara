@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { actionMessage } from '../api/client'
 import { fmtVidrieraDay, toDateKey, workDateKey } from '../lib/dates'
 
 export default function VidrieraModal({
@@ -97,8 +98,6 @@ export default function VidrieraModal({
           lo que ya estaba cargado: suma los nuevos y quita los destildados.
         </div>
 
-        {warn && <div className="m-warn">{warn}</div>}
-
         <div className="field">
           <label htmlFor="vidriera-date">Día</label>
           <input
@@ -159,6 +158,7 @@ export default function VidrieraModal({
           </div>
         </div>
 
+        {warn && <div className="m-warn vacation-load-warn">{warn}</div>}
         <div className="modal-actions">
           <button
             type="button"
@@ -172,7 +172,16 @@ export default function VidrieraModal({
             type="button"
             className="btn btn-primary"
             disabled={busy || loading || !workDate || !vidrieraLocations.length}
-            onClick={() => onSave?.({ workDate, locationIds: selectedIds })}
+            onClick={() => {
+              void (async () => {
+                try {
+                  await onSave?.({ workDate, locationIds: selectedIds })
+                } catch (e) {
+                  if (e.status === 401) return
+                  setWarn(actionMessage(e, 'No se pudieron guardar las vidrieras.'))
+                }
+              })()
+            }}
           >
             {busy ? '…' : hasSelection ? 'Guardar cambios' : 'Quitar'}
           </button>

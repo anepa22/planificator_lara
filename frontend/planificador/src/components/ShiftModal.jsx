@@ -17,6 +17,7 @@ import {
   isAbsenceLocation,
   workLocations,
 } from '../lib/locations'
+import { actionMessage } from '../api/client'
 import { initials, paletteFor } from '../lib/palette'
 import { findContiguousWorkShiftRange } from '../lib/vacations'
 import ConfirmModal from './ConfirmModal'
@@ -564,6 +565,7 @@ export default function ShiftModal({
     setStart(startSnapped)
     setEnd(endSnapped)
 
+    try {
     if (ctx.mode === 'edit') {
       await onSave({
         mode: 'edit',
@@ -630,6 +632,19 @@ export default function ShiftModal({
       endTime: endSnapped,
       replaceConflictIds,
     })
+    } catch (e) {
+      if (e.status === 401) return
+      setWarn(actionMessage(e, 'No se pudo guardar el turno.'))
+    }
+  }
+
+  async function removeShifts(ids) {
+    try {
+      await onDelete(ids)
+    } catch (e) {
+      if (e.status === 401) return
+      setWarn(actionMessage(e, 'No se pudo quitar el turno.'))
+    }
   }
 
   return (
@@ -659,7 +674,6 @@ export default function ShiftModal({
             ? 'Cargá usuarios con rol Asistente desde el menú (Usuarios).'
             : subtitle}
         </div>
-        {warn && <div className="m-warn">{warn}</div>}
 
         {showFrancoCheck && (
           <label className={`check-card${asFranco ? ' is-on' : ''}`}>
@@ -912,6 +926,7 @@ export default function ShiftModal({
           </div>
         )}
 
+        {warn && <div className="m-warn vacation-load-warn">{warn}</div>}
         <div className="modal-actions">
           {ctx.mode === 'edit' && !noStaff && (
             <button
@@ -967,11 +982,11 @@ export default function ShiftModal({
         onClose={() => setPendingDelete(false)}
         onRemoveDay={() => {
           setPendingDelete(false)
-          onDelete([ctx.shiftId])
+          void removeShifts([ctx.shiftId])
         }}
         onRemoveRange={() => {
           setPendingDelete(false)
-          onDelete(workDeleteRange.shiftIds)
+          void removeShifts(workDeleteRange.shiftIds)
         }}
       />
     ) : (
@@ -983,7 +998,7 @@ export default function ShiftModal({
         onClose={() => setPendingDelete(false)}
         onConfirm={() => {
           setPendingDelete(false)
-          onDelete([ctx.shiftId])
+          void removeShifts([ctx.shiftId])
         }}
       />
     )}

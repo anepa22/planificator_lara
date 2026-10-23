@@ -470,22 +470,36 @@ function App() {
     }
   }, [booting, holidayYears])
 
+  function promptLoginIfNeeded(error) {
+    if (error?.status !== 401) return false
+    setLoginOpen(true)
+    setError((current) =>
+      current === SESSION_EXPIRED_MESSAGE
+        ? current
+        : 'Iniciá sesión para continuar',
+    )
+    return true
+  }
+
   async function withBusy(fn) {
     setBusy(true)
     setError(null)
     try {
       await fn()
     } catch (e) {
-      if (e.status === 401) {
-        setLoginOpen(true)
-        setError((current) =>
-          current === SESSION_EXPIRED_MESSAGE
-            ? current
-            : 'Iniciá sesión para continuar',
-        )
-      } else {
-        setError(e.message)
-      }
+      if (!promptLoginIfNeeded(e)) setError(e.message)
+      throw e
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runInModal(fn) {
+    setBusy(true)
+    try {
+      await fn()
+    } catch (e) {
+      promptLoginIfNeeded(e)
       throw e
     } finally {
       setBusy(false)
@@ -538,7 +552,7 @@ function App() {
   )
 
   async function handleSaveVacation(payload) {
-    await withBusy(async () => {
+    await runInModal(async () => {
       if (!vacationLocation(locations)) {
         throw new Error(
           'No está cargado el local Vacaciones. Ejecutá la migración MIGRA_VACACIONES_LOCATION.sql',
@@ -598,7 +612,7 @@ function App() {
   }
 
   async function handleSaveShift(payload) {
-    await withBusy(async () => {
+    await runInModal(async () => {
       const francoWeekdays = payload.francoWeekdays || []
       const needsFranco =
         payload.locationId === FRANCO_LOCATION_ID || francoWeekdays.length > 0
@@ -710,7 +724,7 @@ function App() {
   async function handleDeleteShifts(shiftIds) {
     const ids = (shiftIds || []).filter(Boolean)
     if (!ids.length) return
-    await withBusy(async () => {
+    await runInModal(async () => {
       for (const id of ids) await deleteShift(id)
       await refreshAfterShiftChange()
       setShiftModal(null)
@@ -747,7 +761,7 @@ function App() {
   async function handleSaveVidriera({ workDate, locationIds }) {
     if (!canWriteShifts || !workDate) return
     const want = new Set(locationIds || [])
-    await withBusy(async () => {
+    await runInModal(async () => {
       const current = await getVidrieras(workDate, workDate)
       for (const row of current) {
         if (!want.has(row.locationId)) {
@@ -838,6 +852,22 @@ function App() {
     )
   }
 
+  const dialogCoversBoard = !!(
+    shiftModal ||
+    usersOpen ||
+    auditOpen ||
+    lunchOpen ||
+    vacationOpen ||
+    vacationReportOpen ||
+    vidrieraOpen ||
+    taskAdminOpen ||
+    taskRetentionOpen ||
+    absenceRemove ||
+    loginOpen ||
+    changePasswordOpen ||
+    taskBoardInteracting
+  )
+
   return (
     <div className="planner-root">
       <div className="topbar">
@@ -875,10 +905,8 @@ function App() {
         </div>
       </div>
 
-      {error && (
-        <div className="m-warn" style={{ marginBottom: 12 }}>
-          {error}
-        </div>
+      {error && !dialogCoversBoard && (
+        <div className="m-warn board-warn">{error}</div>
       )}
 
       {view === 'week' && (
@@ -944,6 +972,7 @@ function App() {
           onMove={handleMoveTask}
           onRetire={handleRetireTask}
           onSyncPauseChange={setTaskBoardInteracting}
+          onClearError={() => setError(null)}
         />
       ) : view === 'month' ? (
         <>
@@ -1153,7 +1182,11 @@ function App() {
       />
 
       {loginOpen && (
-        <LoginScreen open onClose={() => setLoginOpen(false)} />
+        <LoginScreen
+          open
+          notice={error || ''}
+          onClose={() => setLoginOpen(false)}
+        />
       )}
       {changePasswordOpen && <ChangePasswordModal
         open

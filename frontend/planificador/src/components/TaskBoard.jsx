@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { SESSION_ENDED_EVENT } from '../api/client'
+import { SESSION_ENDED_EVENT, actionMessage } from '../api/client'
 import { initials, paletteFor } from '../lib/palette'
 import TaskHistoryModal from './TaskHistoryModal'
 
@@ -33,10 +33,12 @@ export default function TaskBoard({
   onMove,
   onRetire,
   onSyncPauseChange,
+  onClearError,
 }) {
   const [draggingId, setDraggingId] = useState(null)
   const [blockRequest, setBlockRequest] = useState(null)
   const [blockReason, setBlockReason] = useState('')
+  const [blockError, setBlockError] = useState('')
   const [menu, setMenu] = useState(null)
   const [historyTask, setHistoryTask] = useState(null)
   const [assigneeFilter, setAssigneeFilter] = useState('all')
@@ -161,6 +163,7 @@ export default function TaskBoard({
     if (!canDrop(task, status) || status === task.status) return
     if (status === 'BLOCKED') {
       setBlockReason('')
+      setBlockError('')
       setBlockRequest({ task, status })
       return
     }
@@ -170,10 +173,17 @@ export default function TaskBoard({
   async function perform(action) {
     try {
       await action()
-      return true
-    } catch {
-      return false
+      return ''
+    } catch (e) {
+      return actionMessage(e)
     }
+  }
+
+  function closeBlock() {
+    const failed = blockError
+    setBlockRequest(null)
+    setBlockError('')
+    if (failed) onClearError?.()
   }
 
   function hasContextMenu(task) {
@@ -621,14 +631,13 @@ export default function TaskBoard({
         <div
           className="overlay open"
           onClick={(event) => {
-            if (event.target === event.currentTarget && !busy) {
-              setBlockRequest(null)
-            }
+            if (event.target === event.currentTarget && !busy) closeBlock()
           }}
         >
           <div className="modal task-block-modal">
             <h3>Bloquear tarea</h3>
             <div className="m-sub">{blockRequest.task.title}</div>
+            {blockError && <div className="m-warn vacation-load-warn">{blockError}</div>}
             <div className="field">
               <label htmlFor="task-block-reason">Motivo</label>
               <textarea
@@ -645,7 +654,7 @@ export default function TaskBoard({
                 type="button"
                 className="btn btn-ghost"
                 disabled={busy}
-                onClick={() => setBlockRequest(null)}
+                onClick={closeBlock}
               >
                 Cancelar
               </button>
@@ -654,14 +663,15 @@ export default function TaskBoard({
                 className="btn btn-primary"
                 disabled={busy || !blockReason.trim()}
                 onClick={async () => {
-                  const ok = await perform(() =>
+                  const message = await perform(() =>
                     onMove?.(
                       blockRequest.task.id,
                       blockRequest.status,
                       blockReason.trim(),
                     ),
                   )
-                  if (ok) setBlockRequest(null)
+                  if (!message) closeBlock()
+                  else setBlockError(message)
                 }}
               >
                 Bloquear
