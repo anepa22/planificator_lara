@@ -24,6 +24,16 @@ function authHeaders(extra = {}) {
   return headers
 }
 
+export const SESSION_ENDED_EVENT = 'planificator:session-ended'
+
+export function notifySessionEnded(promptLogin) {
+  window.dispatchEvent(
+    new CustomEvent(SESSION_ENDED_EVENT, {
+      detail: { promptLogin: !!promptLogin },
+    }),
+  )
+}
+
 function rejectIfUnauthorized(res) {
   if (res.status !== 401) return
   clearToken()
@@ -57,7 +67,13 @@ export const login = (username, password) =>
 
 export const getMe = () => api('/api/auth/me')
 
-export const logout = () => api('/api/auth/logout', { method: 'POST' })
+export function logout(token = getToken()) {
+  const headers = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  return fetch(`${BASE}/api/auth/logout`, { method: 'POST', headers }).catch(
+    () => null,
+  )
+}
 
 export const changePassword = (currentPassword, newPassword) =>
   api('/api/auth/change-password', {

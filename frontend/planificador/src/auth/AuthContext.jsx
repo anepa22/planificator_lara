@@ -5,7 +5,12 @@ import {
   useRef,
   useState,
 } from 'react'
-import { getMe, login as apiLogin, logout as apiLogout } from '../api/client'
+import {
+  getMe,
+  login as apiLogin,
+  logout as apiLogout,
+  notifySessionEnded,
+} from '../api/client'
 import {
   clearToken,
   getToken,
@@ -30,32 +35,35 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [booting, setBooting] = useState(true)
   const idleTimerRef = useRef(null)
+  const userRef = useRef(null)
 
   const applySession = useCallback((payload, token) => {
     if (token) setToken(token)
     setLastActivity()
-    setUser({
+    const next = {
       id: payload.id,
       username: payload.username,
       displayName: payload.displayName,
       roles: payload.roles || [],
       permissions: new Set(payload.permissions || []),
       mustChangePassword: !!payload.mustChangePassword,
-    })
+    }
+    userRef.current = next
+    setUser(next)
   }, [])
 
-  const logout = useCallback(async () => {
+  const logout = useCallback((reason) => {
+    const expired = reason === 'expired'
     if (idleTimerRef.current != null) {
       clearTimeout(idleTimerRef.current)
       idleTimerRef.current = null
     }
-    try {
-      await apiLogout()
-    } catch {
-      /* igual cerramos sesión local */
-    }
-    clearToken()
+    const token = getToken()
+    userRef.current = null
     setUser(null)
+    notifySessionEnded(expired)
+    clearToken()
+    if (token) void apiLogout(token)
   }, [])
 
   const refreshMe = useCallback(async () => {
@@ -96,8 +104,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     function onUnauthorized() {
+      const hadUser = !!userRef.current
+      userRef.current = null
       clearToken()
       setUser(null)
+      if (!hadUser) return
+      notifySessionEnded(true)
     }
     window.addEventListener('planificator:unauthorized', onUnauthorized)
     return () =>
@@ -110,7 +122,7 @@ export function AuthProvider({ children }) {
     const armTimer = () => {
       if (idleTimerRef.current != null) clearTimeout(idleTimerRef.current)
       idleTimerRef.current = setTimeout(() => {
-        void logout()
+        logout('expired')
       }, IDLE_TIMEOUT_MS)
     }
 
@@ -124,7 +136,7 @@ export function AuthProvider({ children }) {
     }
 
     if (isIdleExpired()) {
-      void logout()
+      logout('expired')
       return
     }
     bump()
@@ -135,7 +147,7 @@ export function AuthProvider({ children }) {
 
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return
-      if (isIdleExpired()) void logout()
+      if (isIdleExpired()) logout('expired')
       else bump()
     }
     document.addEventListener('visibilitychange', onVisibility)

@@ -14,6 +14,7 @@ import {
   moveTask,
   putVidriera,
   retireTask,
+  SESSION_ENDED_EVENT,
   unassignTask,
   updateShift,
 } from './api/client'
@@ -70,6 +71,8 @@ import { loadLunchHours, saveLunchHours } from './lib/prefs'
 import { findContiguousAbsenceRange } from './lib/vacations'
 import { appVersionLabel } from './lib/version'
 import './styles/planificador.css'
+
+const SESSION_EXPIRED_MESSAGE = 'La sesión venció. Iniciá sesión para continuar'
 
 function activeOnly(list) {
   return list.filter((x) => x.active !== false)
@@ -133,6 +136,36 @@ function App() {
     document.body.classList.toggle('menu-open', menuOpen)
     return () => document.body.classList.remove('menu-open')
   }, [menuOpen])
+
+  useEffect(() => {
+    function onSessionEnded(event) {
+      setShiftModal(null)
+      setUsersOpen(false)
+      setAuditOpen(false)
+      setLunchOpen(false)
+      setVacationOpen(false)
+      setVacationReportOpen(false)
+      setVidrieraOpen(false)
+      setVidrieraModalDate(null)
+      setTaskAdminOpen(false)
+      setTaskRetentionOpen(false)
+      setAbsenceRemove(null)
+      setMenuOpen(false)
+      setChangePasswordOpen(false)
+      setBusy(false)
+      if (event.detail?.promptLogin) {
+        setLoginOpen(true)
+        setError(SESSION_EXPIRED_MESSAGE)
+      }
+    }
+    window.addEventListener(SESSION_ENDED_EVENT, onSessionEnded)
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, onSessionEnded)
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    setError((current) => (current === SESSION_EXPIRED_MESSAGE ? null : current))
+  }, [user])
 
   const mustChangePassword = !!user?.mustChangePassword
 
@@ -446,7 +479,11 @@ function App() {
     } catch (e) {
       if (e.status === 401) {
         setLoginOpen(true)
-        setError('Iniciá sesión para continuar')
+        setError((current) =>
+          current === SESSION_EXPIRED_MESSAGE
+            ? current
+            : 'Iniciá sesión para continuar',
+        )
       } else {
         setError(e.message)
       }

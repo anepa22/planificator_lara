@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { SESSION_ENDED_EVENT } from '../api/client'
 import { initials, paletteFor } from '../lib/palette'
 import TaskHistoryModal from './TaskHistoryModal'
 
@@ -52,6 +53,18 @@ export default function TaskBoard({
     onSyncPauseChange?.(syncPaused)
     return () => onSyncPauseChange?.(false)
   }, [syncPaused, onSyncPauseChange])
+
+  useEffect(() => {
+    function onSessionEnded() {
+      setDraggingId(null)
+      setBlockRequest(null)
+      setBlockReason('')
+      setMenu(null)
+      setHistoryTask(null)
+    }
+    window.addEventListener(SESSION_ENDED_EVENT, onSessionEnded)
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, onSessionEnded)
+  }, [])
 
   useLayoutEffect(() => {
     const filters = filtersRef.current
