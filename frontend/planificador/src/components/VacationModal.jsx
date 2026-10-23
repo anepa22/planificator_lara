@@ -13,6 +13,8 @@ import {
   isAbsenceLocation,
 } from '../lib/locations'
 import { initials, paletteFor } from '../lib/palette'
+import { getVacationQuota, saveVacationAdjustment } from '../api/client'
+import { enjoymentLabel, enjoymentYear } from '../lib/vacations'
 
 const { startTime: VAC_START, endTime: VAC_END } = absenceDayBounds()
 
@@ -77,7 +79,16 @@ export default function VacationModal({
   const [loadingPool, setLoadingPool] = useState(false)
   const [warn, setWarn] = useState('')
   const [confirmMove, setConfirmMove] = useState(false)
+  const [cupoOpen, setCupoOpen] = useState(false)
+  const [cupoUserId, setCupoUserId] = useState('')
+  const [cupoYear, setCupoYear] = useState(() => enjoymentYear(new Date()))
+  const [quota, setQuota] = useState(null)
+  const [extra, setExtra] = useState('0')
+  const [cupoError, setCupoError] = useState('')
+  const [cupoBusy, setCupoBusy] = useState(false)
   const confirmPendingRef = useRef(false)
+  const currentEnjoyment = enjoymentYear(new Date())
+  const cupoYears = [...new Set([currentEnjoyment - 1, currentEnjoyment, currentEnjoyment + 1, cupoYear])].sort((a, b) => a - b)
 
   const dateKeys = useMemo(() => {
     if (!dateFrom || !dateTo) return []
@@ -91,10 +102,69 @@ export default function VacationModal({
     confirmPendingRef.current = false
     setConfirmMove(false)
     setSelectedIds([])
+    setCupoOpen(false)
+    setQuota(null)
+    setCupoError('')
     const today = toDateKey(new Date())
     setDateFrom(today)
     setDateTo(today)
+    setCupoYear(enjoymentYear(new Date()))
   }, [open])
+
+  useEffect(() => {
+    if (!open || !cupoOpen || !cupoUserId) return
+    let cancelled = false
+    setCupoBusy(true)
+    setCupoError('')
+    getVacationQuota(cupoUserId, cupoYear)
+      .then((row) => {
+        if (cancelled) return
+        setQuota(row)
+        setExtra(String(row.extra ?? 0))
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setQuota(null)
+          setCupoError(e.message)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCupoBusy(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, cupoOpen, cupoUserId, cupoYear])
+
+  function openCupo() {
+    const initial = selectedIds[0] || staff[0]?.id || ''
+    setCupoUserId(initial)
+    setCupoYear(dateFrom ? enjoymentYear(dateFrom) : enjoymentYear(new Date()))
+    setCupoOpen(true)
+  }
+
+  async function saveExtra() {
+    const days = Number(extra)
+    if (!Number.isInteger(days) || days < 0) {
+      setCupoError('Ingresá un número entero de cero o más.')
+      return
+    }
+    setCupoBusy(true)
+    setCupoError('')
+    try {
+      const row = await saveVacationAdjustment({
+        userId: cupoUserId,
+        periodYear: cupoYear,
+        days,
+      })
+      setQuota(row)
+      setExtra(String(row.extra ?? 0))
+    } catch (e) {
+      setCupoError(e.message)
+    } finally {
+      setCupoBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!open || !dateFrom || !dateTo) {
@@ -217,13 +287,103 @@ export default function VacationModal({
       }}
     >
       <div className="modal vacation-modal">
-        <h3>Vacaciones</h3>
+        <div className="vacation-modal-head">
+          <h3>{cupoOpen ? 'Cupo' : 'Vacaciones'}</h3>
+          {!cupoOpen && canWrite && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy || !staff.length}
+              onClick={openCupo}
+            >
+              Cupo
+            </button>
+          )}
+        </div>
+        {!cupoOpen && (
         <div className="m-sub">
           Todo el día. Las vacaciones cargadas se ven y se quitan en la vista mensual.
         </div>
+        )}
 
-        {warn && <div className="m-warn">{warn}</div>}
+        {warn && !cupoOpen && <div className="m-warn">{warn}</div>}
 
+        {cupoOpen ? (
+          <div>
+            <div className="m-sub">{enjoymentLabel(cupoYear)}. De este período y del período anterior no se editan.</div>
+            <div className="field">
+              <label htmlFor="cupo-person">Asistente</label>
+              <select
+                id="cupo-person"
+                value={cupoUserId}
+                disabled={busy || cupoBusy}
+                onChange={(e) => {
+                  setQuota(null)
+                  setCupoUserId(e.target.value)
+                }}
+              >
+                {staff.map((person) => (
+                  <option key={person.id} value={person.id}>{person.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="cupo-period">Período</label>
+              <select
+                id="cupo-period"
+                value={cupoYear}
+                disabled={busy || cupoBusy}
+                onChange={(e) => {
+                  setQuota(null)
+                  setCupoYear(Number(e.target.value))
+                }}
+              >
+                {cupoYears.map((year) => (
+                  <option key={year} value={year}>{enjoymentLabel(year)}</option>
+                ))}
+              </select>
+            </div>
+            {cupoError && <div className="m-warn">{cupoError}</div>}
+            {cupoBusy && <div className="m-sub">Cargando…</div>}
+            {quota && quota.hireDate == null && !cupoBusy && !cupoError && (
+              <div className="m-sub">Falta la fecha de ingreso. Cargala en Usuarios.</div>
+            )}
+            {quota?.hireDate != null && (
+              <div className="vacation-quota">
+                <div><span>De este período</span><span>{quota.thisPeriod}</span></div>
+                <div><span>Del período anterior</span><span>{quota.carried}</span></div>
+                <div><span>Gozados</span><span>{quota.enjoyed}</span></div>
+                <div>
+                  <label htmlFor="cupo-extra">Días extra</label>
+                  <input
+                    id="cupo-extra"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={extra}
+                    disabled={busy || cupoBusy}
+                    onChange={(e) => setExtra(e.target.value)}
+                  />
+                </div>
+                <div className="is-remaining"><span>Quedan</span><span>{quota.remaining}</span></div>
+              </div>
+            )}
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" disabled={cupoBusy} onClick={() => setCupoOpen(false)}>
+                Volver
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={cupoBusy || !quota?.hireDate}
+                onClick={() => void saveExtra()}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="time-row">
           <div className="field">
             <label>Desde</label>
@@ -311,6 +471,8 @@ export default function VacationModal({
             </button>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   )

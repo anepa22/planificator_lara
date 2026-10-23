@@ -114,6 +114,20 @@ export function fmtVacationDay(dateKey) {
   })
 }
 
+export function enjoymentYear(date = new Date()) {
+  const value = date instanceof Date ? date : parseDateKey(date)
+  const year = value.getFullYear()
+  return value.getMonth() >= 9 ? year : year - 1
+}
+
+export function enjoymentRange(year) {
+  return { from: `${year}-10-01`, to: `${year + 1}-09-30` }
+}
+
+export function enjoymentLabel(year) {
+  return `1 oct ${year} – 30 sep ${year + 1}`
+}
+
 export function fmtVacationRangeLabel(from, to) {
   if (!from || !to) return ''
   if (from === to) return fmtVacationDay(from)

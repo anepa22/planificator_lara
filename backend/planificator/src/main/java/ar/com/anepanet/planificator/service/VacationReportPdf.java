@@ -87,6 +87,18 @@ final class VacationReportPdf {
             PdfPCell days = cell(String.valueOf(person.days()), TOTAL);
             days.setBackgroundColor(TOTAL_BACKGROUND);
             table.addCell(days);
+            if (person.thisPeriod() != null) {
+                String summary = "De este período " + person.thisPeriod()
+                        + " · Del período anterior " + person.carried()
+                        + " · Gozados " + person.enjoyed()
+                        + " · Quedan " + person.remaining();
+                if (person.extra() != null && person.extra() > 0) {
+                    summary += " · Días extra " + person.extra();
+                }
+                PdfPCell quota = cell(summary, TEXT);
+                quota.setColspan(COLUMN_WIDTHS.length);
+                table.addCell(quota);
+            }
         }
         return table;
     }

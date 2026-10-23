@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public record UpdateUserRequest(
@@ -14,5 +15,6 @@ public record UpdateUserRequest(
         @Size(max = 32) String telegramChatId,
         Boolean canLogin,
         @NotNull List<String> roleIds,
-        @NotNull List<String> individualPermissionCodes
+        @NotNull List<String> individualPermissionCodes,
+        LocalDate hireDate
 ) {}

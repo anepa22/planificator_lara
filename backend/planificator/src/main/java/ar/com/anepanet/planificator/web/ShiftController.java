@@ -6,6 +6,7 @@ import ar.com.anepanet.planificator.domain.ShiftWeekView;
 import ar.com.anepanet.planificator.domain.VacationReport;
 import ar.com.anepanet.planificator.service.ShiftService;
 import ar.com.anepanet.planificator.web.dto.CreateShiftRequest;
+import ar.com.anepanet.planificator.web.dto.CreateVacationsRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateShiftRequest;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -58,6 +59,12 @@ public class ShiftController {
     public List<HoursByUserWeek> summary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
         return service.hoursByWeek(weekStart);
+    }
+
+    @PostMapping("/vacations")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void createVacations(@Valid @RequestBody CreateVacationsRequest request) {
+        service.createVacations(request);
     }
 
     @PostMapping

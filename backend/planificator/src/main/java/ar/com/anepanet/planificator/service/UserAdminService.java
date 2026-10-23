@@ -65,6 +65,7 @@ public class UserAdminService {
                     req.color(),
                     cleanTelegramChatId(req.telegramChatId()),
                     canLogin,
+                    req.hireDate(),
                     req.roleIds(),
                     req.individualPermissionCodes()
             );
@@ -117,6 +118,7 @@ public class UserAdminService {
                         cleanTelegramChatId(req.telegramChatId()),
                         canLogin,
                         passwordChanged && canLogin ? Boolean.TRUE : null,
+                        req.hireDate(),
                         req.roleIds(),
                         req.individualPermissionCodes())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -253,7 +255,8 @@ public class UserAdminService {
                 user.canLogin(),
                 user.roleIds(),
                 user.individualPermissions(),
-                user.permissions()
+                user.permissions(),
+                user.hireDate()
         );
     }
 }

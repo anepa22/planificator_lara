@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,7 +25,7 @@ public class AuthRepository {
 
     private static final String USER_COLUMNS = """
             id, username, password_hash, display_name, color, telegram_chat_id,
-            is_active, can_login, must_change_password, created_at, updated_at
+            is_active, can_login, must_change_password, hire_date, created_at, updated_at
             """;
 
     private final JdbcClient jdbc;
@@ -230,16 +231,17 @@ public class AuthRepository {
             String color,
             String telegramChatId,
             boolean canLogin,
+            LocalDate hireDate,
             List<String> roleIds,
             List<String> individualPermissionCodes) {
         AppUser created = jdbc.sql("""
                 INSERT INTO app_users (
                     username, password_hash, display_name, color, telegram_chat_id,
-                    can_login, must_change_password
+                    can_login, must_change_password, hire_date
                 )
                 VALUES (
                     :username, :passwordHash, :displayName, :color, :telegramChatId,
-                    :canLogin, :mustChangePassword
+                    :canLogin, :mustChangePassword, :hireDate
                 )
                 RETURNING %s
                 """.formatted(USER_COLUMNS))
@@ -250,6 +252,7 @@ public class AuthRepository {
                 .param("telegramChatId", telegramChatId)
                 .param("canLogin", canLogin)
                 .param("mustChangePassword", canLogin)
+                .param("hireDate", hireDate)
                 .query(this::mapUserBase)
                 .single();
         replaceUserRoles(created.id(), roleIds);
@@ -266,6 +269,7 @@ public class AuthRepository {
             String telegramChatId,
             boolean canLogin,
             Boolean mustChangePassword,
+            LocalDate hireDate,
             List<String> roleIds,
             List<String> individualPermissionCodes) {
         Optional<AppUser> existing = findById(id);
@@ -279,6 +283,7 @@ public class AuthRepository {
                     color = :color,
                     telegram_chat_id = :telegramChatId,
                     can_login = :canLogin,
+                    hire_date = :hireDate,
                     password_hash = COALESCE(:passwordHash, password_hash),
                     must_change_password = COALESCE(:mustChangePassword, must_change_password),
                     updated_at = NOW()
@@ -290,6 +295,7 @@ public class AuthRepository {
                 .param("color", color)
                 .param("telegramChatId", telegramChatId)
                 .param("canLogin", canLogin)
+                .param("hireDate", hireDate)
                 .param("passwordHash", passwordHash)
                 .param("mustChangePassword", mustChangePassword)
                 .update();
@@ -522,6 +528,7 @@ public class AuthRepository {
                 base.active(),
                 base.canLogin(),
                 base.mustChangePassword(),
+                base.hireDate(),
                 base.createdAt(),
                 base.updatedAt(),
                 roleIds,
@@ -541,6 +548,7 @@ public class AuthRepository {
                 rs.getBoolean("is_active"),
                 rs.getBoolean("can_login"),
                 rs.getBoolean("must_change_password"),
+                rs.getObject("hire_date", LocalDate.class),
                 rs.getObject("created_at", OffsetDateTime.class),
                 rs.getObject("updated_at", OffsetDateTime.class),
                 List.of(),

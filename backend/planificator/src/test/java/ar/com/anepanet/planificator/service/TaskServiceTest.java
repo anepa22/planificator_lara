@@ -414,7 +414,7 @@ class TaskServiceTest {
             List<String> roleIds,
             List<String> permissions) {
         return new AppUser(
-                id, username, "hash", displayName, "#123456", null, true, canLogin, false,
+                id, username, "hash", displayName, "#123456", null, true, canLogin, false, null,
                 OffsetDateTime.now(), OffsetDateTime.now(), roleIds, List.of(), permissions);
     }
 
@@ -423,7 +423,7 @@ class TaskServiceTest {
                 ? List.of(Permissions.TASKS_WRITE, Permissions.TASKS_MANAGE)
                 : List.of(Permissions.TASKS_WRITE, Permissions.TASKS_APPEAR);
         return new AppUser(
-                userId, "test", "hash", "Test", "#123456", telegramChatId, true, true, false,
+                userId, "test", "hash", "Test", "#123456", telegramChatId, true, true, false, null,
                 OffsetDateTime.now(), OffsetDateTime.now(), List.of("personal"), List.of(), permissions);
     }
 

@@ -7,5 +7,14 @@ public record VacationPersonReport(
         UUID userId,
         String userName,
         int days,
-        List<VacationRange> ranges
-) {}
+        List<VacationRange> ranges,
+        Integer thisPeriod,
+        Integer carried,
+        Integer extra,
+        Integer enjoyed,
+        Integer remaining
+) {
+    public VacationPersonReport(UUID userId, String userName, int days, List<VacationRange> ranges) {
+        this(userId, userName, days, ranges, null, null, null, null, null);
+    }
+}

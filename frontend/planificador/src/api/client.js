@@ -117,6 +117,12 @@ export async function downloadVacationReportPdf(from, to) {
 }
 export const createShift = (body) =>
   api('/api/shifts', { method: 'POST', body: JSON.stringify(body) })
+export const createVacations = (body) =>
+  api('/api/shifts/vacations', { method: 'POST', body: JSON.stringify(body) })
+export const getVacationQuota = (userId, periodYear) =>
+  api(`/api/vacation-quota?userId=${userId}&periodYear=${periodYear}`)
+export const saveVacationAdjustment = (body) =>
+  api('/api/vacation-quota', { method: 'PUT', body: JSON.stringify(body) })
 export const updateShift = (id, body) =>
   api(`/api/shifts/${id}`, { method: 'PUT', body: JSON.stringify(body) })
 export const deleteShift = (id) =>

@@ -16,6 +16,7 @@ import ar.com.anepanet.planificator.realtime.PlanificatorChangedEvent;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.CreateShiftRequest;
+import ar.com.anepanet.planificator.web.dto.CreateVacationsRequest;
 import ar.com.anepanet.planificator.web.dto.UpdateShiftRequest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -48,18 +49,21 @@ public class ShiftService {
     private final LocationRepository locations;
     private final AuditService audit;
     private final ApplicationEventPublisher events;
+    private final VacationQuotaService quotas;
 
     public ShiftService(
             ShiftRepository shifts,
             AuthRepository users,
             LocationRepository locations,
             AuditService audit,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            VacationQuotaService quotas) {
         this.shifts = shifts;
         this.users = users;
         this.locations = locations;
         this.audit = audit;
         this.events = events;
+        this.quotas = quotas;
     }
 
     public List<ShiftWeekView> byWeek(LocalDate weekStart) {
@@ -94,6 +98,10 @@ public class ShiftService {
                     "El período no puede superar " + MAX_REPORT_RANGE_DAYS + " días");
         }
         List<VacationPersonReport> people = groupVacationDays(shifts.findVacationDays(from, to));
+        if (VacationQuota.isEnjoymentPeriod(from, to)) {
+            int periodYear = VacationQuota.periodYear(from);
+            people = people.stream().map(person -> quotas.withQuota(person, periodYear)).toList();
+        }
         int totalDays = people.stream().mapToInt(VacationPersonReport::days).sum();
         return new VacationReport(from, to, totalDays, people);
     }
@@ -151,6 +159,9 @@ public class ShiftService {
     public Shift create(CreateShiftRequest req) {
         SecurityUtils.requireLocationWrite(req.locationId());
         validateRange(req.startTime(), req.endTime());
+        if (Permissions.VACATION_LOCATION_ID.equals(req.locationId())) {
+            quotas.assertCanLoad(List.of(req.userId()), req.workDate(), req.workDate());
+        }
         AppUser user = ensureUser(req.userId());
         Location location = ensureLocation(req.locationId());
         try {
@@ -185,6 +196,13 @@ public class ShiftService {
         SecurityUtils.requireLocationWrite(existing.locationId());
         SecurityUtils.requireLocationWrite(req.locationId());
         validateRange(req.startTime(), req.endTime());
+        if (Permissions.VACATION_LOCATION_ID.equals(req.locationId())) {
+            boolean sameVacationDay = Permissions.VACATION_LOCATION_ID.equals(existing.locationId())
+                    && existing.workDate().equals(req.workDate());
+            if (!sameVacationDay) {
+                quotas.assertCanLoad(List.of(existing.userId()), req.workDate(), req.workDate());
+            }
+        }
         Location location = ensureLocation(req.locationId());
         String who = nameOf(existing.userId());
         try {
@@ -205,6 +223,51 @@ public class ShiftService {
         } catch (DataIntegrityViolationException ex) {
             throw conflict(ex);
         }
+    }
+
+    @Transactional
+    public void createVacations(CreateVacationsRequest req) {
+        SecurityUtils.requireAuthority(Permissions.VACATIONS_WRITE);
+        validateRange(req.startTime(), req.endTime());
+        if (req.dateTo().isBefore(req.dateFrom())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hasta no puede ser anterior a desde");
+        }
+        for (UUID userId : req.userIds()) {
+            ensureUser(userId);
+        }
+        quotas.assertCanLoad(req.userIds(), req.dateFrom(), req.dateTo());
+        if (req.replaceConflictIds() != null) {
+            for (UUID id : req.replaceConflictIds()) {
+                shifts.findById(id)
+                        .filter(shift -> req.userIds().contains(shift.userId()))
+                        .ifPresent(shift -> shifts.delete(shift.id()));
+            }
+        }
+        Location location = ensureLocation(Permissions.VACATION_LOCATION_ID);
+        for (LocalDate date : VacationQuota.eachDate(req.dateFrom(), req.dateTo())) {
+            for (UUID userId : req.userIds()) {
+                try {
+                    Shift created = shifts.insert(
+                            userId,
+                            Permissions.VACATION_LOCATION_ID,
+                            date,
+                            req.startTime(),
+                            req.endTime(),
+                            null);
+                    audit.record(
+                            AuditService.ACTION_CREATE,
+                            AuditService.TYPE_VACATION,
+                            created.id().toString(),
+                            nameOf(userId)
+                                    + " · " + location.name()
+                                    + " · " + created.workDate()
+                                    + " " + fmtTime(created.startTime()) + "–" + fmtTime(created.endTime()));
+                } catch (DataIntegrityViolationException ex) {
+                    throw conflict(ex);
+                }
+            }
+        }
+        publishRealtimeScheduleChange();
     }
 
     @Transactional

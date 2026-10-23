@@ -175,6 +175,18 @@ public class AuthCleanup implements ApplicationRunner {
                     """).update();
             jdbc.sql("DELETE FROM role_permissions WHERE permission_id = 'people_write'").update();
             jdbc.sql("DELETE FROM permissions WHERE id = 'people_write'").update();
+
+            jdbc.sql("""
+                    ALTER TABLE app_users ADD COLUMN IF NOT EXISTS hire_date DATE NULL
+                    """).update();
+            jdbc.sql("""
+                    CREATE TABLE IF NOT EXISTS vacation_adjustments (
+                        user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+                        period_year INTEGER NOT NULL,
+                        days INTEGER NOT NULL CHECK (days >= 0),
+                        PRIMARY KEY (user_id, period_year)
+                    )
+                    """).update();
         } catch (Exception ex) {
             log.warn("Auth cleanup skipped: {}", ex.getMessage());
         }

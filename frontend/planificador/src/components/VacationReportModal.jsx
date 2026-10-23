@@ -1,28 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { downloadVacationReportPdf, getVacationReport } from '../api/client'
-import { fmtVacationRangeLabel } from '../lib/vacations'
+import { enjoymentLabel, enjoymentRange, enjoymentYear, fmtVacationRangeLabel } from '../lib/vacations'
 
 function dayCount(days) {
   return `${days} día${days === 1 ? '' : 's'}`
 }
 
-function yearRange(year) {
-  return { from: `${year}-01-01`, to: `${year}-12-31` }
-}
-
-function selectedFullYear(from, to, validYears) {
-  const year = Number(from.slice(0, 4))
-  return validYears.includes(year) &&
-    from === `${year}-01-01` &&
-    to === `${year}-12-31`
-    ? String(year)
-    : ''
+function selectedEnjoymentYear(from, to, validYears) {
+  const match = validYears.find((year) => {
+    const range = enjoymentRange(year)
+    return from === range.from && to === range.to
+  })
+  return match == null ? '' : String(match)
 }
 
 export default function VacationReportModal({ open, canPrint = false, onClose }) {
-  const currentYear = new Date().getFullYear()
-  const [from, setFrom] = useState(yearRange(currentYear).from)
-  const [to, setTo] = useState(yearRange(currentYear).to)
+  const currentYear = enjoymentYear(new Date())
+  const opening = enjoymentRange(currentYear)
+  const [from, setFrom] = useState(opening.from)
+  const [to, setTo] = useState(opening.to)
   const [report, setReport] = useState(null)
   const [busy, setBusy] = useState(false)
   const [printing, setPrinting] = useState(false)
@@ -66,7 +62,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
 
   useEffect(() => {
     if (!open) return
-    const range = yearRange(new Date().getFullYear())
+    const range = enjoymentRange(enjoymentYear(new Date()))
     setFrom(range.from)
     setTo(range.to)
     setLoaded(false)
@@ -81,7 +77,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
   const locked = busy || printing
   const people = report?.people || []
   const years = [currentYear - 1, currentYear, currentYear + 1]
-  const selectedYear = selectedFullYear(from, to, years)
+  const selectedYear = selectedEnjoymentYear(from, to, years)
 
   return (
     <div
@@ -117,14 +113,14 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
           }}
         >
           <div className="field">
-            <label htmlFor="vacation-report-year">Año</label>
+            <label htmlFor="vacation-report-year">Período</label>
             <select
               id="vacation-report-year"
               value={selectedYear}
               disabled={locked}
               onChange={(e) => {
                 if (!e.target.value) return
-                const range = yearRange(Number(e.target.value))
+                const range = enjoymentRange(Number(e.target.value))
                 setFrom(range.from)
                 setTo(range.to)
                 void load(range)
@@ -133,7 +129,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
               <option value="">Personalizado</option>
               {years.map((year) => (
                 <option key={year} value={year}>
-                  {year}
+                  {enjoymentLabel(year)}
                 </option>
               ))}
             </select>
@@ -203,6 +199,15 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
                     <span className="vacation-report-name">{person.userName}</span>
                     <span className="vacation-report-days">{dayCount(person.days)}</span>
                   </div>
+                  {person.thisPeriod != null && (
+                    <div className="vacation-report-quota">
+                      <span>De este período {person.thisPeriod}</span>
+                      <span>Del período anterior {person.carried}</span>
+                      <span>Gozados {person.enjoyed}</span>
+                      {person.extra > 0 && <span>Días extra {person.extra}</span>}
+                      <span className="is-remaining">Quedan {person.remaining}</span>
+                    </div>
+                  )}
                   <ul className="vacation-report-ranges">
                     {person.ranges.map((range) => (
                       <li key={`${range.dateFrom}-${range.dateTo}`}>

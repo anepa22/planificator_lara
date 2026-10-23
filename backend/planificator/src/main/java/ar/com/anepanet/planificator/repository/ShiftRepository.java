@@ -76,6 +76,23 @@ public class ShiftRepository {
                 .list();
     }
 
+    public List<LocalDate> findVacationDates(UUID userId, LocalDate from, LocalDate to) {
+        return jdbc.sql("""
+                SELECT DISTINCT work_date
+                FROM shifts
+                WHERE user_id = :userId
+                  AND location_id = :locationId
+                  AND work_date BETWEEN :from AND :to
+                ORDER BY work_date
+                """)
+                .param("userId", userId)
+                .param("locationId", Permissions.VACATION_LOCATION_ID)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, n) -> rs.getObject("work_date", LocalDate.class))
+                .list();
+    }
+
     public Optional<Shift> findById(UUID id) {
         return jdbc.sql("""
                 SELECT id, user_id, location_id, work_date, start_time, end_time, notes, created_at, updated_at

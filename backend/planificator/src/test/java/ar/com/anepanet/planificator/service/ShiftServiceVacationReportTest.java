@@ -58,14 +58,16 @@ class ShiftServiceVacationReportTest {
                 LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 1, 31),
                 3,
-                List.of(new VacationPersonReport(ana, "Ana", 3, List.of(
-                        new VacationRange(LocalDate.of(2026, 1, 2), LocalDate.of(2026, 1, 3), 2),
-                        new VacationRange(LocalDate.of(2026, 1, 5), LocalDate.of(2026, 1, 5), 1)
-                )))));
+                List.of(new VacationPersonReport(
+                        ana, "Ana", 11, List.of(
+                        new VacationRange(LocalDate.of(2026, 10, 2), LocalDate.of(2026, 10, 12), 11)),
+                        14, 3, 0, 11, 6))));
         PdfReader reader = new PdfReader(pdf);
         try {
             String text = new PdfTextExtractor(reader).getTextFromPage(1).replaceAll("\\s+", " ");
             assertTrue(text.contains("Total Ana"), text);
+            assertTrue(text.contains("Quedan 6"), text);
+            assertTrue(!text.contains("Días extra"), text);
         } finally {
             reader.close();
         }

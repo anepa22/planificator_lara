@@ -36,6 +36,7 @@ const EMPTY_FORM = {
   password: '',
   displayName: '',
   telegramChatId: '',
+  hireDate: '',
   canLogin: true,
   active: true,
   roleIds: [],
@@ -166,6 +167,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
       password: '',
       displayName: user.displayName,
       telegramChatId: user.telegramChatId || '',
+      hireDate: user.hireDate || '',
       canLogin: user.canLogin !== false,
       active: user.active !== false,
       roleIds: user.roles?.length ? [...user.roles] : [],
@@ -185,6 +187,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
         await updateUser(editingId, {
           displayName: form.displayName.trim(),
           telegramChatId: form.telegramChatId.trim() || null,
+          hireDate: form.hireDate || null,
           active: form.active,
           password: form.password.trim() || null,
           canLogin: form.canLogin,
@@ -202,6 +205,7 @@ export default function UsersModal({ open, onClose, onChanged }) {
           password: form.canLogin ? form.password : null,
           displayName: form.displayName.trim(),
           telegramChatId: form.telegramChatId.trim() || null,
+          hireDate: form.hireDate || null,
           canLogin: form.canLogin,
           roleIds: form.roleIds,
           individualPermissionCodes: individualPermissionsToSave(),
@@ -443,6 +447,18 @@ export default function UsersModal({ open, onClose, onChanged }) {
                       />
                     </div>
                   )}
+                  <div className="field">
+                    <label htmlFor="user-hire-date">Fecha de ingreso</label>
+                    <input
+                      id="user-hire-date"
+                      type="date"
+                      value={form.hireDate}
+                      disabled={busy}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, hireDate: e.target.value }))
+                      }
+                    />
+                  </div>
                   <div className="field">
                     <label htmlFor="user-telegram">Chat ID de Telegram</label>
                     <input
