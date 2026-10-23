@@ -7,7 +7,7 @@ Hoy se cargan vacaciones sin saber cuántos días le corresponden a cada persona
 ## What Changes
 
 - El cupo de cada período de goce se calcula con la escala de la Ley de Contrato de Trabajo a partir de la fecha de ingreso.
-- El período va del 1 de octubre del año Y al 30 de septiembre de Y+1. La antigüedad se cuenta hasta el 31 de diciembre de Y.
+- El período va del 1 de octubre del año Y al 30 de septiembre de Y+1. La escala se cuenta hasta el 31 de diciembre de Y. La proporcional cuenta los lunes a viernes ya transcurridos, con ese tope.
 - Desde el período que abre el 1 de octubre de 2026 se goza la antigüedad de ese período. Lo anterior a esa fecha no se cuenta. Lo que no se goza pasa al período siguiente.
 - Quien carga vacaciones puede sumar, a mano y sin número negativo, días que el arrastre no conoce: un saldo anterior al 1 de octubre de 2026 que la grilla no reconstruye, o un día concedido. No se usa para volver a cargar el sobrante que ya aparece solo.
 - Los días ya cargados en el período descuentan el saldo. Guardar un rango que deje el saldo negativo se rechaza. Si de este período, del período anterior y los días extra son cero, no se puede cargar.

@@ -44,15 +44,15 @@ Si al 31 de diciembre de Y la antigüedad es de al menos seis meses, el sistema 
 - **THEN** el cupo por antigüedad es 35 días
 
 ### Requirement: Cupo proporcional
-Si al 31 de diciembre de Y la antigüedad es menor a seis meses, el sistema SHALL otorgar un día por cada veinte días de calendario desde la fecha de ingreso hasta el 31 de diciembre de Y, inclusive, y SHALL descartar la fracción. Esos días SHALL incluir domingos y días sin turno. El sistema SHALL NOT usar los turnos cargados para esta cuenta.
+Si al 31 de diciembre de Y la antigüedad es menor a seis meses, el sistema SHALL otorgar un día por cada veinte días de lunes a viernes ya transcurridos desde el ingreso hasta hoy, con tope el 31 de diciembre de Y, y SHALL descartar la fracción. Un sábado o un domingo SHALL NOT entrar. El sistema SHALL NOT usar los turnos cargados para esta cuenta.
 
 #### Scenario: Menos de seis meses
-- **WHEN** la persona ingresó el 1 de octubre de Y
-- **THEN** los días de calendario hasta el 31 de diciembre, domingos incluidos, se dividen por veinte y el cupo por antigüedad es la parte entera
+- **WHEN** la persona ingresó el 1 de octubre de 2026 y hoy es el 23 de octubre de 2026
+- **THEN** hay 17 días de lunes a viernes y el cupo proporcional es 0
 
 #### Scenario: Semana incompleta
-- **WHEN** la persona no tiene turno todos los días de la semana
-- **THEN** los días sin turno igual entran en la cuenta proporcional
+- **WHEN** un miércoles no tiene turno cargado
+- **THEN** ese miércoles entra en la cuenta y un domingo no entra
 
 #### Scenario: Seis meses justos
 - **WHEN** al 31 de diciembre de Y la antigüedad es de seis meses

@@ -37,15 +37,20 @@ class VacationQuotaTest {
     @Test
     void sixMonthsUsesTheScale() {
         assertEquals(14, VacationQuota.seniorityDays(LocalDate.of(2026, 6, 30), 2026));
-        assertEquals(9, VacationQuota.seniorityDays(LocalDate.of(2026, 7, 1), 2026));
+        LocalDate endOfYear = LocalDate.of(2026, 12, 31);
+        assertEquals(6, VacationQuota.seniorityDays(LocalDate.of(2026, 7, 1), 2026, endOfYear));
     }
 
     @Test
-    void proportionalCountsCalendarDaysIncludingSundays() {
-        assertEquals(4, VacationQuota.seniorityDays(LocalDate.of(2026, 10, 1), 2026));
-        assertEquals(92, inclusiveDays(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 31)));
-        assertEquals(1, VacationQuota.seniorityDays(LocalDate.of(2026, 12, 12), 2026));
-        assertEquals(0, VacationQuota.seniorityDays(LocalDate.of(2026, 12, 20), 2026));
+    void proportionalCountsWeekdaysAlreadyElapsed() {
+        LocalDate hire = LocalDate.of(2026, 10, 1);
+        assertEquals(17, VacationQuota.weekdays(hire, LocalDate.of(2026, 10, 23)));
+        assertEquals(0, VacationQuota.seniorityDays(hire, 2026, LocalDate.of(2026, 10, 23)));
+        assertEquals(0, VacationQuota.seniorityDays(hire, 2026, LocalDate.of(2026, 10, 27)));
+        assertEquals(1, VacationQuota.seniorityDays(hire, 2026, LocalDate.of(2026, 10, 28)));
+        assertEquals(3, VacationQuota.seniorityDays(hire, 2026, LocalDate.of(2026, 12, 31)));
+        assertEquals(0, VacationQuota.seniorityDays(LocalDate.of(2026, 12, 12), 2026, LocalDate.of(2026, 12, 31)));
+        assertEquals(0, VacationQuota.seniorityDays(LocalDate.of(2026, 12, 20), 2026, LocalDate.of(2026, 12, 31)));
     }
 
     @Test
@@ -154,7 +159,4 @@ class VacationQuotaTest {
         assertThrows(IllegalArgumentException.class, () -> VacationQuota.requireAdjustment(-1));
     }
 
-    private static int inclusiveDays(LocalDate from, LocalDate to) {
-        return (int) (to.toEpochDay() - from.toEpochDay()) + 1;
-    }
 }

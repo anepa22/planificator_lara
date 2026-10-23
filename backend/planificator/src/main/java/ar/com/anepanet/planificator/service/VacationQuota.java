@@ -1,6 +1,8 @@
 package ar.com.anepanet.planificator.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,6 +19,8 @@ public final class VacationQuota {
 
     /** Período que abre el 1 oct 2026. Lo anterior no entra en el saldo. */
     static final int FIRST_ENJOYMENT_YEAR = 2026;
+
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Argentina/Buenos_Aires");
 
     private VacationQuota() {}
 
@@ -77,13 +81,24 @@ public final class VacationQuota {
     }
 
     public static int seniorityDays(LocalDate hire, int periodYear) {
+        return seniorityDays(hire, periodYear, LocalDate.now(BUSINESS_ZONE));
+    }
+
+    /**
+     * La escala usa la antigüedad al 31 de diciembre. La proporcional cuenta lunes a
+     * viernes ya transcurridos, desde el ingreso hasta hoy, con ese mismo tope.
+     */
+    public static int seniorityDays(LocalDate hire, int periodYear, LocalDate today) {
         LocalDate cutoff = LocalDate.of(periodYear, 12, 31);
-        if (hire == null || hire.isAfter(cutoff)) {
+        if (hire == null || today == null || hire.isAfter(cutoff)) {
             return 0;
         }
         if (hire.plusMonths(6).isAfter(cutoff)) {
-            long calendarDays = ChronoUnit.DAYS.between(hire, cutoff) + 1;
-            return (int) (calendarDays / 20);
+            LocalDate end = today.isBefore(cutoff) ? today : cutoff;
+            if (end.isBefore(hire)) {
+                return 0;
+            }
+            return weekdays(hire, end) / 20;
         }
         if (hire.plusYears(20).isBefore(cutoff)) {
             return 35;
@@ -95,6 +110,24 @@ public final class VacationQuota {
             return 21;
         }
         return 14;
+    }
+
+    /** Lunes a viernes entre las dos fechas, inclusive. Un feriado que cae en semana entra. */
+    static int weekdays(LocalDate from, LocalDate to) {
+        long span = ChronoUnit.DAYS.between(from, to) + 1;
+        if (span <= 0) {
+            return 0;
+        }
+        int count = (int) (span / 7) * 5;
+        int extra = (int) (span % 7);
+        DayOfWeek cursor = from.getDayOfWeek();
+        for (int i = 0; i < extra; i++) {
+            if (cursor.getValue() <= DayOfWeek.FRIDAY.getValue()) {
+                count++;
+            }
+            cursor = cursor.plus(1);
+        }
+        return count;
     }
 
     public static Snapshot snapshot(

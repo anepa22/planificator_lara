@@ -7,7 +7,7 @@
 
 ## 2. Cálculo
 
-- [x] 2.1 Calcular el período Y de una fecha, la antigüedad al 31 de diciembre de Y y el cupo: 14, 21, 28 o 35, o la proporcional de días de calendario desde el ingreso hasta el 31 de diciembre, domingos y días sin turno incluidos, dividida por 20. Verificar con pruebas los bordes de cinco, diez y veinte años, seis meses justos, el ingreso del 1 de octubre y que un día sin turno igual suma.
+- [x] 2.1 Calcular el período Y de una fecha, la escala al 31 de diciembre de Y (14, 21, 28 o 35) y la proporcional de lunes a viernes ya transcurridos hasta hoy, con tope ese 31 de diciembre, dividida por 20. Verificar los bordes de cinco, diez y veinte años, seis meses justos, y que quien ingresó el 1 de octubre de 2026 tiene 0 el 23 de octubre y 1 el 28.
 - [x] 2.2 Armar Quedan, desde el período que abre el 1 de octubre de 2026, como la antigüedad de ese período más el ajuste, con Del período anterior en cero, menos los turnos del local `vacaciones` de ese período. Desde el período siguiente, sumar lo no gozado. Verificar 21 de antigüedad y 7 gozados: Quedan 14 y Del período anterior 0 aunque haya vacaciones anteriores; un ingreso del 1 de mayo de 2022 tampoco arrastra años viejos; si de esos 21 sobran 14, el 1 de octubre de 2027 los suma a la antigüedad nueva; un ajuste de 3 no se duplica; el franco no descuenta; un rango que cruza el 1 de octubre de 2027 se parte y no usa dos veces el sobrante.
 
 ## 3. Carga
