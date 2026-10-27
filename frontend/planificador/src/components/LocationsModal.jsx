@@ -21,6 +21,8 @@ const LOCATION_COLORS = [
   '#5B6675',
 ]
 
+const MAX_ACTIVE_LOCATIONS = 8
+
 const EMPTY = {
   id: null,
   name: '',
@@ -67,6 +69,12 @@ export default function LocationsModal({ open, onClose, onChanged }) {
   }, [open])
 
   if (!open) return null
+
+  const activeCount = rows.filter((location) => location.active).length
+  const atCapacity = activeCount >= MAX_ACTIVE_LOCATIONS
+  const capacityHint = atCapacity
+    ? `Ya hay ${MAX_ACTIVE_LOCATIONS} locales activos. Dad uno de baja para agregar otro.`
+    : `${activeCount} de ${MAX_ACTIVE_LOCATIONS} locales activos.`
 
   function startCreate() {
     setWarn('')
@@ -161,6 +169,7 @@ export default function LocationsModal({ open, onClose, onChanged }) {
         <p className="m-sub">
           Alta, edición y baja de los locales de venta. Franco y vacaciones no se administran acá.
         </p>
+        {!form && <p className="panel-hint">{capacityHint}</p>}
 
         {!form && (
           <>
@@ -186,7 +195,13 @@ export default function LocationsModal({ open, onClose, onChanged }) {
                         Dar de baja
                       </button>
                     ) : (
-                      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => alta(location)}>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy || atCapacity}
+                        title={atCapacity ? capacityHint : undefined}
+                        onClick={() => alta(location)}
+                      >
                         Dar de alta
                       </button>
                     )}
@@ -198,7 +213,13 @@ export default function LocationsModal({ open, onClose, onChanged }) {
               <button type="button" className="btn btn-ghost" disabled={busy} onClick={onClose}>
                 Cerrar
               </button>
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={startCreate}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || atCapacity}
+                title={atCapacity ? capacityHint : undefined}
+                onClick={startCreate}
+              >
                 Nuevo local
               </button>
             </div>

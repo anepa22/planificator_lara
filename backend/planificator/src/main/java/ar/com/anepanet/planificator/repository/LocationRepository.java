@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.repository;
 
 import ar.com.anepanet.planificator.domain.Location;
+import ar.com.anepanet.planificator.security.Permissions;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -74,6 +75,21 @@ public class LocationRepository {
                 .query(Integer.class)
                 .single();
         return count != null && count > 0;
+    }
+
+    public int countActiveSales() {
+        Integer count = jdbc.sql("""
+                SELECT count(*)::int
+                FROM locations
+                WHERE is_active = TRUE
+                  AND id <> :franco
+                  AND id <> :vacaciones
+                """)
+                .param("franco", Permissions.FRANCO_LOCATION_ID)
+                .param("vacaciones", Permissions.VACATION_LOCATION_ID)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
     }
 
     public short nextSortOrder() {

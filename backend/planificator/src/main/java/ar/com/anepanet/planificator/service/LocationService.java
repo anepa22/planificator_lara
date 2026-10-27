@@ -19,6 +19,8 @@ import java.util.Locale;
 @Service
 public class LocationService {
 
+    static final int MAX_ACTIVE_SALES = 8;
+
     private final LocationRepository locations;
     private final AuditService audit;
 
@@ -52,6 +54,7 @@ public class LocationService {
         if (locations.nameTaken(nameKey(name), "")) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un local con ese nombre");
         }
+        requireRoom();
         try {
             locations.insert(id, name, color, colorSoft(color), locations.nextSortOrder(), vidriera);
         } catch (DataIntegrityViolationException ex) {
@@ -98,6 +101,7 @@ public class LocationService {
         SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         Location current = requireSales(id);
         if (!current.active()) {
+            requireRoom();
             save(current.id(), current.name(), current.color(), current.sortOrder(), true, current.supportsVidriera());
             audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_LOCATION, current.id(), "Alta de local " + current.name());
         }
@@ -131,6 +135,14 @@ public class LocationService {
     private Location require(String id) {
         return locations.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Local no encontrado"));
+    }
+
+    private void requireRoom() {
+        if (locations.countActiveSales() >= MAX_ACTIVE_SALES) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ya hay " + MAX_ACTIVE_SALES + " locales activos. Dad uno de baja para agregar otro.");
+        }
     }
 
     private static void requireName(String name) {

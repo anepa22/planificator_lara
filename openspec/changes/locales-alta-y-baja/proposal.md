@@ -6,7 +6,7 @@ Los locales de venta están cargados en la base y no se pueden crear ni retirar 
 
 ## What Changes
 
-- Quien tiene el permiso Gestionar locales puede crear un local de venta, editarlo, darlo de alta y darlo de baja. Administrar usuarios no alcanza.
+- Quien tiene el permiso Gestionar locales puede crear un local de venta, editarlo, darlo de alta y darlo de baja. Administrar usuarios no alcanza. No puede haber más de 8 locales de venta activos.
 - El alta lo deja disponible para turnos, tareas y vidriera. La baja lo oculta para cargas nuevas y no borra el local ni lo ya guardado.
 - Una semana o un mes que ya tiene turnos de ese local sigue mostrándolos con su nombre.
 - Franco y vacaciones no entran en esta pantalla: siguen siendo locales del sistema y no se pueden crear, editar ni dar de baja.

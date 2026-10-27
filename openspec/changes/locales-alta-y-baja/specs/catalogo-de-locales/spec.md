@@ -36,6 +36,21 @@ El alta SHALL pedir nombre, color y si el local hace vidriera. El nombre SHALL s
 - **WHEN** ya existe un local llamado «Lara 1» y se intenta crear «lara 1»
 - **THEN** el sistema rechaza el alta
 
+### Requirement: Tope de locales
+Los locales de venta activos SHALL ser como máximo 8. Franco y vacaciones SHALL NOT contar. Crear o volver a dar de alta un noveno SHALL rechazarse. Dar de baja SHALL liberar un lugar.
+
+#### Scenario: Noveno local
+- **WHEN** ya hay 8 locales de venta activos y se intenta crear otro
+- **THEN** el sistema rechaza el alta y los 8 siguen activos
+
+#### Scenario: Franco no cuenta
+- **WHEN** hay 7 locales de venta activos, y franco y vacaciones también están activos
+- **THEN** se puede crear un local de venta más
+
+#### Scenario: La baja libera un lugar
+- **WHEN** hay 8 locales de venta activos, uno se da de baja y luego se crea otro
+- **THEN** el nuevo queda activo
+
 ### Requirement: Edición
 De un local de venta SHALL poder cambiarse el nombre, el color, el orden y si hace vidriera. El identificador SHALL NOT cambiar. Un nombre ya usado por otro local SHALL rechazarse. El nombre nuevo SHALL verse en los turnos ya guardados.
 
@@ -70,7 +85,7 @@ Una semana o un mes que ya tiene turnos de un local inactivo SHALL seguir mostr�
 - **THEN** el local no aparece como columna
 
 ### Requirement: Volver a dar de alta
-Un local inactivo SHALL poder darse de alta de nuevo y SHALL volver a ofrecerse para cargas nuevas.
+Un local inactivo SHALL poder darse de alta de nuevo mientras haya menos de 8 locales de venta activos, y SHALL volver a ofrecerse para cargas nuevas.
 
 #### Scenario: Reactivación
 - **WHEN** un administrador da de alta un local que estaba de baja

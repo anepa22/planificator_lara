@@ -7,6 +7,7 @@
 - [x] 1.3 Exponer la lectura de administración y las escrituras solo con `locations:manage`, dejar `GET /api/locations` público y solo con activos, y verificar que sin permiso, incluido `users:manage` solo, responde 403.
 - [x] 1.4 Crear al arrancar, de forma idempotente, el índice único de nombre en minúsculas si los nombres actuales no chocan. Verificar que un segundo arranque no falla.
 - [x] 1.5 Crear el permiso Gestionar locales al arrancar, una sola vez, y dárselo a quien ya tenía `users:manage` y al rol admin. Un arranque posterior no vuelve a otorgarlo.
+- [x] 1.6 Rechazar el alta y la reactivación cuando ya hay 8 locales de venta activos. Franco y vacaciones no cuentan. Verificar el rechazo y que la pantalla no ofrece crear ni reactivar en ese caso.
 
 ## 2. Cargas nuevas
 

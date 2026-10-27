@@ -159,6 +159,25 @@ class LocationServiceTest {
         verify(audit).record(AuditService.ACTION_CREATE, AuditService.TYPE_LOCATION, "lara3", "Alta de local Lara 3");
     }
 
+    @Test
+    void createAndActivateRejectWhenEightSalesLocationsAreActive() {
+        login(Permissions.LOCATIONS_MANAGE);
+        when(locations.countActiveSales()).thenReturn(LocationService.MAX_ACTIVE_SALES);
+
+        ResponseStatusException created = assertThrows(
+                ResponseStatusException.class,
+                () -> service.create(new SaveLocationRequest("Lara 9", "#112233", false)));
+        assertEquals(HttpStatus.CONFLICT, created.getStatusCode());
+        verify(locations, never()).insert(anyString(), anyString(), anyString(), anyString(), anyShort(), anyBoolean());
+
+        Location inactive = location("lara1", "Lara 1", false, false);
+        when(locations.findById("lara1")).thenReturn(Optional.of(inactive));
+        ResponseStatusException activated = assertThrows(
+                ResponseStatusException.class, () -> service.activate("lara1"));
+        assertEquals(HttpStatus.CONFLICT, activated.getStatusCode());
+        verify(locations, never()).update(anyString(), anyString(), anyString(), anyString(), anyShort(), anyBoolean(), anyBoolean());
+    }
+
     private void login(String permission) {
         AuthUser principal = new AuthUser(
                 UUID.randomUUID(), "admin", List.of(new SimpleGrantedAuthority(permission)));
