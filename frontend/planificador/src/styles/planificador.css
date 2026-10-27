@@ -215,10 +215,41 @@
     background:var(--accent-soft);border-radius:999px;padding:2px 8px;
   }
   .location-admin-actions{display:flex;gap:6px;flex:none;}
-  .location-admin-check{
-    display:flex;align-items:center;gap:8px;
-    font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;
+  .locations-form.panel-form{grid-template-columns:1fr;}
+  .location-colors{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .location-swatch{
+    width:28px;height:28px;padding:0;border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 0 1px var(--border);
+    cursor:pointer;flex:none;
   }
+  .location-swatch:hover:not(:disabled){transform:translateY(-1px);}
+  .location-swatch.is-on{box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent);}
+  .location-swatch:disabled{cursor:not-allowed;opacity:.65;}
+  .field .location-color-custom{
+    position:relative;display:block;width:28px;height:28px;margin:0;border-radius:50%;
+    overflow:hidden;border:1px dashed var(--border);flex:none;cursor:pointer;
+    text-transform:none;letter-spacing:0;font-size:0;
+  }
+  .location-color-custom input[type=color]{
+    position:absolute;inset:-6px;width:40px;height:40px;
+    padding:0;border:0;background:transparent;cursor:pointer;opacity:0;
+  }
+  .location-color-custom span{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:16px;font-weight:600;line-height:1;color:var(--ink-soft);pointer-events:none;
+  }
+  .location-color-custom.is-on{border-style:solid;box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--accent);}
+  .location-vidriera{
+    display:flex;align-items:center;gap:12px;margin:0 0 12px;
+    padding:10px 12px;border:1px solid var(--border);border-radius:10px;
+    background:#fff;cursor:pointer;text-transform:none;letter-spacing:0;color:var(--ink);
+  }
+  .location-vidriera input{
+    width:16px;height:16px;margin:0;flex:none;accent-color:var(--accent);
+  }
+  .location-vidriera strong{display:block;font-size:13px;font-weight:700;}
+  .location-vidriera span span{display:block;margin-top:1px;font-size:12px;font-weight:500;color:var(--ink-soft);line-height:1.3;}
+  .location-vidriera.is-on{background:var(--accent-soft);border-color:#B7CBE0;}
   .panel-head-right{display:flex;align-items:center;gap:10px;flex:none;}
   .users-tabs{display:flex;gap:6px;}
   .users-tab{

@@ -10,12 +10,28 @@ import {
 import { isAbsenceLocation } from '../lib/locations'
 import ConfirmModal from './ConfirmModal'
 
+const LOCATION_COLORS = [
+  '#2A5B8C',
+  '#2F7D57',
+  '#1F7A8C',
+  '#6B4C9A',
+  '#C46A2A',
+  '#C4436D',
+  '#E3B505',
+  '#5B6675',
+]
+
 const EMPTY = {
   id: null,
   name: '',
-  color: '#2A5B8C',
+  color: LOCATION_COLORS[0],
   supportsVidriera: false,
   sortOrder: '',
+}
+
+function cssColor(value) {
+  const match = String(value || '').trim().match(/^#([0-9a-fA-F]{6})$/)
+  return match ? `#${match[1].toUpperCase()}` : LOCATION_COLORS[0]
 }
 
 export default function LocationsModal({ open, onClose, onChanged }) {
@@ -62,7 +78,7 @@ export default function LocationsModal({ open, onClose, onChanged }) {
     setForm({
       id: location.id,
       name: location.name,
-      color: location.color || '#2A5B8C',
+      color: cssColor(location.color),
       supportsVidriera: !!location.supportsVidriera,
       sortOrder: location.sortOrder ?? '',
     })
@@ -190,7 +206,7 @@ export default function LocationsModal({ open, onClose, onChanged }) {
         )}
 
         {form && (
-          <form className="panel-form" onSubmit={save}>
+          <form className="panel-form locations-form" onSubmit={save}>
             <div className="field">
               <label htmlFor="location-name">Nombre</label>
               <input
@@ -202,14 +218,39 @@ export default function LocationsModal({ open, onClose, onChanged }) {
               />
             </div>
             <div className="field">
-              <label htmlFor="location-color">Color</label>
-              <input
-                id="location-color"
-                type="color"
-                value={form.color}
-                disabled={busy}
-                onChange={(e) => setForm((current) => ({ ...current, color: e.target.value }))}
-              />
+              <label id="location-color-label">Color</label>
+              <div className="location-colors" role="radiogroup" aria-labelledby="location-color-label">
+                {(LOCATION_COLORS.includes(form.color) ? LOCATION_COLORS : [form.color, ...LOCATION_COLORS]).map(
+                  (color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`location-swatch${form.color === color ? ' is-on' : ''}`}
+                      style={{ background: color }}
+                      aria-label={color}
+                      aria-pressed={form.color === color}
+                      disabled={busy}
+                      onClick={() => setForm((current) => ({ ...current, color }))}
+                    />
+                  ),
+                )}
+                <label
+                  className={`location-color-custom${LOCATION_COLORS.includes(form.color) ? '' : ' is-on'}`}
+                  title="Otro color"
+                  style={LOCATION_COLORS.includes(form.color) ? undefined : { background: form.color }}
+                >
+                  <input
+                    type="color"
+                    value={form.color.toLowerCase()}
+                    disabled={busy}
+                    aria-label="Otro color"
+                    onChange={(e) =>
+                      setForm((current) => ({ ...current, color: cssColor(e.target.value) }))
+                    }
+                  />
+                  {LOCATION_COLORS.includes(form.color) && <span aria-hidden="true">+</span>}
+                </label>
+              </div>
             </div>
             {form.id && (
               <div className="field">
@@ -224,7 +265,7 @@ export default function LocationsModal({ open, onClose, onChanged }) {
                 />
               </div>
             )}
-            <label className="field location-admin-check">
+            <label className={`location-vidriera${form.supportsVidriera ? ' is-on' : ''}`}>
               <input
                 type="checkbox"
                 checked={form.supportsVidriera}
@@ -233,7 +274,10 @@ export default function LocationsModal({ open, onClose, onChanged }) {
                   setForm((current) => ({ ...current, supportsVidriera: e.target.checked }))
                 }
               />
-              Hace vidriera
+              <span>
+                <strong>Hace vidriera</strong>
+                <span>Se puede marcar en el calendario de este local.</span>
+              </span>
             </label>
             {warn && <div className="m-warn vacation-load-warn">{warn}</div>}
             <div className="modal-actions">
