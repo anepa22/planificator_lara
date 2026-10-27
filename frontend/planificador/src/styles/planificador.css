@@ -201,6 +201,24 @@
   .overlay.panel-overlay .modal.users-panel{
     height:min(86vh,900px);max-height:min(88vh,920px);
   }
+  .overlay.panel-overlay .modal.panel-modal.locations-modal{
+    width:min(640px,94vw);
+  }
+  .location-admin-list{margin:8px 0 4px;}
+  .location-admin-row{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 0;border-bottom:1px solid var(--border);
+  }
+  .location-admin-name{font-weight:600;min-width:0;flex:1;}
+  .location-admin-badge{
+    font-size:11px;font-weight:700;color:var(--ink-soft);
+    background:var(--accent-soft);border-radius:999px;padding:2px 8px;
+  }
+  .location-admin-actions{display:flex;gap:6px;flex:none;}
+  .location-admin-check{
+    display:flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;
+  }
   .panel-head-right{display:flex;align-items:center;gap:10px;flex:none;}
   .users-tabs{display:flex;gap:6px;}
   .users-tab{

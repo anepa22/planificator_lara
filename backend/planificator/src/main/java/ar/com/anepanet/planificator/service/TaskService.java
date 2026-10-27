@@ -114,7 +114,7 @@ public class TaskService {
     @Transactional
     public Task create(CreateTaskRequest req) {
         requireCatalogAccess();
-        String locationId = resolveLocationId(req.locationId());
+        String locationId = resolveLocationId(req.locationId(), false);
         boolean stock = !isManager() || Boolean.TRUE.equals(req.stock());
         Task created = tasks.insert(
                 cleanTitle(req.title()), cleanDescription(req.description()), locationId, stock);
@@ -134,7 +134,7 @@ public class TaskService {
                         id,
                         cleanTitle(req.title()),
                         cleanDescription(req.description()),
-                        resolveLocationId(req.locationId()),
+                        resolveLocationId(req.locationId(), sameLocation(before.locationId(), req.locationId())),
                         stock)
                 .orElseThrow(() -> notFound());
         tasks.addHistory(before, updated, currentUser().id(), "UPDATE", null);
@@ -449,20 +449,29 @@ public class TaskService {
         return user.displayName();
     }
 
-    private String resolveLocationId(String locationId) {
+    private String resolveLocationId(String locationId, boolean keepCurrent) {
         if (locationId == null || locationId.isBlank()) {
             return null;
         }
         String id = locationId.trim();
         Location location = locations.findById(id)
-                .filter(Location::active)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST, "Local inválido o inactivo"));
+        if (!location.active() && !keepCurrent) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Local inválido o inactivo");
+        }
         if (Permissions.isAbsenceLocation(location.id())) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "La tarea no puede asociarse a vacaciones o franco");
         }
         return location.id();
+    }
+
+    private static boolean sameLocation(String current, String requested) {
+        String left = current == null ? "" : current.trim();
+        String right = requested == null ? "" : requested.trim();
+        return left.equals(right);
     }
 
     private static String cleanTitle(String title) {

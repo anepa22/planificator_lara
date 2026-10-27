@@ -187,9 +187,31 @@ public class AuthCleanup implements ApplicationRunner {
                         PRIMARY KEY (user_id, period_year)
                     )
                     """).update();
+            ensureLocationNameIndex();
+            jdbc.sql(LocationCatalogSchema.SHIFT_WEEK_VIEW).update();
         } catch (Exception ex) {
             log.warn("Auth cleanup skipped: {}", ex.getMessage());
         }
+    }
+
+    private void ensureLocationNameIndex() {
+        Long duplicateGroups = jdbc.sql("""
+                SELECT count(*)
+                FROM (
+                    SELECT lower(btrim(name))
+                    FROM locations
+                    GROUP BY 1
+                    HAVING count(*) > 1
+                ) d
+                """)
+                .query(Long.class)
+                .single();
+        int groups = duplicateGroups == null ? 0 : duplicateGroups.intValue();
+        if (!LocationCatalogSchema.shouldCreateNameIndex(groups)) {
+            log.warn("No se creó el índice único de locales: hay {} nombres repetidos", groups);
+            return;
+        }
+        jdbc.sql(LocationCatalogSchema.UNIQUE_NAME_INDEX).update();
     }
 
     private void ensurePermission(String id, String code, String name) {

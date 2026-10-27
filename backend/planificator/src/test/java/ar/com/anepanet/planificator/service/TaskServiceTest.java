@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.AppUser;
+import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Task;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.LocationRepository;
@@ -387,6 +388,21 @@ class TaskServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
         verify(tasks, never()).assign(any(), any());
+    }
+
+    @Test
+    void createRejectsInactiveLocation() {
+        login(Permissions.TASKS_MANAGE);
+        when(locations.findById("lara1")).thenReturn(Optional.of(new Location(
+                "lara1", "Lara 1", "#112233", "#D0D5DB", (short) 1, false, true,
+                OffsetDateTime.now(), OffsetDateTime.now())));
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> service.create(new CreateTaskRequest("Reponer", null, "lara1", false)));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(tasks, never()).insert(any(), any(), any(), anyBoolean());
     }
 
     private void login(String... permissions) {

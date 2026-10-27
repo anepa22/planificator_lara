@@ -115,6 +115,7 @@ export default function ScheduleGrid({
             ))}
           </div>
           {locations.map((loc) => {
+            const columnCanAdd = canAdd && loc.active !== false
             const dayShifts = shifts
               .filter(
                 (s) =>
@@ -130,7 +131,7 @@ export default function ScheduleGrid({
               )
 
             const { placed, laneCount } = assignLanes(dayShifts)
-            const addLaneW = canAdd ? 45 : 0
+            const addLaneW = columnCanAdd ? 45 : 0
             const laneW =
               laneCount > 0
                 ? addLaneW
@@ -140,7 +141,7 @@ export default function ScheduleGrid({
             const compactLanes = laneCount > 3
 
             function openAddAt(y) {
-              if (!canAdd) return
+              if (!columnCanAdd) return
               const start = yToStartTime(y, hourH)
               const endMin = Math.min(HOUR_END * 60, toMinutes(start) + 60)
               onAdd({
@@ -156,7 +157,7 @@ export default function ScheduleGrid({
                 className={`track${isToday ? ' is-today' : ''}`}
                 style={{ height: totalHeight }}
                 onClick={(e) => {
-                  if (!canAdd) return
+                  if (!columnCanAdd) return
                   if (
                     e.target.closest('.shift-block') ||
                     e.target.closest('.add-lane')
@@ -212,7 +213,7 @@ export default function ScheduleGrid({
                     </div>
                   )
                 })}
-                {canAdd && (
+                {columnCanAdd && (
                   <div
                     className="add-lane"
                     title="Agregar personas en esta franja"

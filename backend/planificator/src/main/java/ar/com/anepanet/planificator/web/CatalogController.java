@@ -6,6 +6,8 @@ import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.service.LocationService;
 import ar.com.anepanet.planificator.service.StaffService;
 import ar.com.anepanet.planificator.web.dto.CreateStaffRequest;
+import ar.com.anepanet.planificator.web.dto.SaveLocationRequest;
+import ar.com.anepanet.planificator.web.dto.UpdateLocationRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,37 @@ public class CatalogController {
     @GetMapping("/locations")
     public List<Location> locations() {
         return locations.list();
+    }
+
+    @GetMapping("/locations/admin")
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "')")
+    public List<Location> manageableLocations() {
+        return locations.listManageable();
+    }
+
+    @PostMapping("/locations")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "')")
+    public Location createLocation(@Valid @RequestBody SaveLocationRequest request) {
+        return locations.create(request);
+    }
+
+    @PutMapping("/locations/{id}")
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "')")
+    public Location updateLocation(@PathVariable String id, @Valid @RequestBody UpdateLocationRequest request) {
+        return locations.update(id, request);
+    }
+
+    @PostMapping("/locations/{id}/baja")
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "')")
+    public Location deactivateLocation(@PathVariable String id) {
+        return locations.deactivate(id);
+    }
+
+    @PostMapping("/locations/{id}/alta")
+    @PreAuthorize("hasAuthority('" + Permissions.USERS_MANAGE + "')")
+    public Location activateLocation(@PathVariable String id) {
+        return locations.activate(id);
     }
 
     @GetMapping("/staff")

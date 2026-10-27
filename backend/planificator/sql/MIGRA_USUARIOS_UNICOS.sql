@@ -180,7 +180,7 @@ SELECT s.id,
 FROM shifts s
          JOIN app_users u ON u.id = s.user_id
          JOIN locations l ON l.id = s.location_id
-WHERE u.is_active AND l.is_active;
+WHERE u.is_active;
 
 CREATE VIEW v_hours_by_user_week AS
 SELECT week_start,

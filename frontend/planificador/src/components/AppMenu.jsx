@@ -48,6 +48,7 @@ export default function AppMenu({
   showVacations = true,
   showVacationReport = false,
   showUsers = false,
+  showLocations = false,
   showLunch = false,
   showVidriera = false,
   showTasksAdmin = false,
@@ -58,6 +59,7 @@ export default function AppMenu({
   onVacations,
   onVacationReport,
   onUsers,
+  onLocations,
   onLunch,
   onVidriera,
   onTasksAdmin,
@@ -71,7 +73,7 @@ export default function AppMenu({
   const showVacationGroup = showVacations || showVacationReport
   const showPersonalGroup = showVacationGroup || showVidriera
   const showConfigGroup = showLunch || showTaskRetention
-  const showOtherActions = showUsers || showTasksAdmin || showAudit
+  const showOtherActions = showUsers || showLocations || showTasksAdmin || showAudit
   const hasActions = showPersonalGroup || showConfigGroup || showOtherActions
   const [personalOpen, setPersonalOpen] = useState(false)
   const [vacationsOpen, setVacationsOpen] = useState(false)
@@ -310,6 +312,16 @@ export default function AppMenu({
                     }}
                   >
                     Usuarios
+                  </MenuItem>
+                )}
+                {showLocations && (
+                  <MenuItem
+                    onClick={() => {
+                      onLocations()
+                      onClose()
+                    }}
+                  >
+                    Locales
                   </MenuItem>
                 )}
                 {showTasksAdmin && (

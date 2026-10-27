@@ -35,6 +35,7 @@ public class AuditService {
     public static final String TYPE_SESSION = "session";
     public static final String TYPE_VIDRIERA = "vidriera";
     public static final String TYPE_TASK = "task";
+    public static final String TYPE_LOCATION = "location";
 
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 500;

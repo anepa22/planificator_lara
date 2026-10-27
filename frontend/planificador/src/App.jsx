@@ -26,6 +26,7 @@ import AuditModal from './components/AuditModal'
 import DayTabs from './components/DayTabs'
 import ChangePasswordModal from './components/ChangePasswordModal'
 import LoginScreen from './components/LoginScreen'
+import LocationsModal from './components/LocationsModal'
 import LunchModal from './components/LunchModal'
 import MonthGantt from './components/MonthGantt'
 import ScheduleGrid from './components/ScheduleGrid'
@@ -63,6 +64,7 @@ import {
   FRANCO_LOCATION_ID,
   francoLocation,
   isAbsenceLocation,
+  gridLocations,
   vacationLocation,
   workLocations,
 } from './lib/locations'
@@ -85,6 +87,7 @@ function App() {
   const canPrintVacationReport = can('vacations:print')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
+  const canManageLocations = can('users:manage')
   const canReadAudit = can('audit:read')
   const canWriteTasks = can('tasks:write')
   const canManageTasks = can('tasks:manage')
@@ -117,6 +120,7 @@ function App() {
   const [error, setError] = useState(null)
   const [shiftModal, setShiftModal] = useState(null)
   const [usersOpen, setUsersOpen] = useState(false)
+  const [locationsOpen, setLocationsOpen] = useState(false)
   const [auditOpen, setAuditOpen] = useState(false)
   const [lunchOpen, setLunchOpen] = useState(false)
   const [vacationOpen, setVacationOpen] = useState(false)
@@ -177,11 +181,14 @@ function App() {
 
   useEffect(() => {
     const ids = new Set(locations.map((l) => l.id))
+    for (const shift of monthShifts) {
+      if (shift?.locationId) ids.add(shift.locationId)
+    }
     setMonthLocFilter((prev) => {
       const next = prev.filter((id) => ids.has(id))
       return next.length === prev.length ? prev : next
     })
-  }, [locations])
+  }, [locations, monthShifts])
 
   function goToday() {
     if (view === 'month') {
@@ -221,6 +228,15 @@ function App() {
     const y1 = end.getFullYear()
     return y0 === y1 ? [y0] : [y0, y1]
   }, [view, weekOffset, monthOffset])
+
+  const weekColumns = useMemo(
+    () => gridLocations(locations, shifts),
+    [locations, shifts],
+  )
+  const monthColumns = useMemo(
+    () => gridLocations(locations, monthShifts),
+    [locations, monthShifts],
+  )
 
   const visibleMonthShifts = useMemo(() => {
     if (!monthLocFilter.length) return monthShifts
@@ -406,6 +422,7 @@ function App() {
     taskBoardInteracting ||
     !!shiftModal ||
     usersOpen ||
+    locationsOpen ||
     auditOpen ||
     lunchOpen ||
     vacationOpen ||
@@ -855,6 +872,7 @@ function App() {
   const dialogCoversBoard = !!(
     shiftModal ||
     usersOpen ||
+    locationsOpen ||
     auditOpen ||
     lunchOpen ||
     vacationOpen ||
@@ -930,7 +948,7 @@ function App() {
                 Todos
               </button>
             )}
-            {locations.map((l) => {
+            {monthColumns.map((l) => {
               const on = monthLocFilter.includes(l.id)
               const dim = monthLocFilter.length > 0 && !on
               return (
@@ -1001,7 +1019,7 @@ function App() {
         </>
       ) : (
         <ScheduleGrid
-          locations={workLocations(locations)}
+          locations={weekColumns}
           staff={staff}
           shifts={shifts}
           selectedDay={selectedDay}
@@ -1052,6 +1070,19 @@ function App() {
           })
         }}
       />}
+
+      {locationsOpen && (
+        <LocationsModal
+          open
+          onClose={() => setLocationsOpen(false)}
+          onChanged={async () => {
+            const locs = await getLocations()
+            setLocations(activeOnly(locs))
+            if (view === 'week') await reloadWeek(weekKey)
+            if (view === 'month') await reloadMonth(monthDate)
+          }}
+        />
+      )}
 
       {usersOpen && <UsersModal
         open
@@ -1160,6 +1191,7 @@ function App() {
         showVacations={canWriteVacations}
         showVacationReport={canReportVacations}
         showUsers={canManageUsers}
+        showLocations={canManageLocations}
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}
         showTasksAdmin={canManageTasks || canManageStock}
@@ -1170,6 +1202,7 @@ function App() {
         onVacations={() => setVacationOpen(true)}
         onVacationReport={() => setVacationReportOpen(true)}
         onUsers={() => setUsersOpen(true)}
+        onLocations={() => setLocationsOpen(true)}
         onLunch={() => setLunchOpen(true)}
         onVidriera={() => openVidrieraModal()}
         onTasksAdmin={() => setTaskAdminOpen(true)}

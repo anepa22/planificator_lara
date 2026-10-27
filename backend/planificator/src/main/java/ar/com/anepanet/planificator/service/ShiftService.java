@@ -203,7 +203,10 @@ public class ShiftService {
                 quotas.assertCanLoad(List.of(existing.userId()), req.workDate(), req.workDate());
             }
         }
-        Location location = ensureLocation(req.locationId());
+        Location location = existing.locationId().equals(req.locationId())
+                ? locations.findById(req.locationId())
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Local inválido"))
+                : ensureLocation(req.locationId());
         String who = nameOf(existing.userId());
         try {
             Shift updated = shifts.update(

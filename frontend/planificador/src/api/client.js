@@ -87,6 +87,18 @@ export const changePassword = (currentPassword, newPassword) =>
   })
 
 export const getLocations = () => api('/api/locations')
+export const getManageableLocations = () => api('/api/locations/admin')
+export const createLocation = (body) =>
+  api('/api/locations', { method: 'POST', body: JSON.stringify(body) })
+export const updateLocation = (id, body) =>
+  api(`/api/locations/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+export const deactivateLocation = (id) =>
+  api(`/api/locations/${encodeURIComponent(id)}/baja`, { method: 'POST' })
+export const activateLocation = (id) =>
+  api(`/api/locations/${encodeURIComponent(id)}/alta`, { method: 'POST' })
 export const getStaff = () => api('/api/staff')
 export const getHolidays = (year) => api(`/api/holidays?year=${year}`)
 
