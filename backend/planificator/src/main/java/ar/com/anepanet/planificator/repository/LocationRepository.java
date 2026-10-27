@@ -77,12 +77,11 @@ public class LocationRepository {
         return count != null && count > 0;
     }
 
-    public int countActiveSales() {
+    public int countSales() {
         Integer count = jdbc.sql("""
                 SELECT count(*)::int
                 FROM locations
-                WHERE is_active = TRUE
-                  AND id <> :franco
+                WHERE id <> :franco
                   AND id <> :vacaciones
                 """)
                 .param("franco", Permissions.FRANCO_LOCATION_ID)

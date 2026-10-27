@@ -37,19 +37,19 @@ El alta SHALL pedir nombre, color y si el local hace vidriera. El nombre SHALL s
 - **THEN** el sistema rechaza el alta
 
 ### Requirement: Tope de locales
-Los locales de venta activos SHALL ser como máximo 8. Franco y vacaciones SHALL NOT contar. Crear o volver a dar de alta un noveno SHALL rechazarse. Dar de baja SHALL liberar un lugar.
+Los locales de venta SHALL ser como máximo 8, estén activos o dados de baja. Franco y vacaciones SHALL NOT contar. Crear un noveno SHALL rechazarse. Dar de baja SHALL NOT liberar un lugar para uno nuevo.
 
 #### Scenario: Noveno local
-- **WHEN** ya hay 8 locales de venta activos y se intenta crear otro
-- **THEN** el sistema rechaza el alta y los 8 siguen activos
+- **WHEN** ya hay 8 locales de venta, aunque alguno esté de baja, y se intenta crear otro
+- **THEN** el sistema rechaza el alta y siguen siendo 8
 
 #### Scenario: Franco no cuenta
-- **WHEN** hay 7 locales de venta activos, y franco y vacaciones también están activos
+- **WHEN** hay 7 locales de venta, y franco y vacaciones también existen
 - **THEN** se puede crear un local de venta más
 
-#### Scenario: La baja libera un lugar
-- **WHEN** hay 8 locales de venta activos, uno se da de baja y luego se crea otro
-- **THEN** el nuevo queda activo
+#### Scenario: Reactivar no suma
+- **WHEN** ya hay 8 locales de venta y uno está de baja
+- **THEN** ese local se puede volver a dar de alta y no se puede crear uno nuevo
 
 ### Requirement: Edición
 De un local de venta SHALL poder cambiarse el nombre, el color, el orden y si hace vidriera. El identificador SHALL NOT cambiar. Un nombre ya usado por otro local SHALL rechazarse. El nombre nuevo SHALL verse en los turnos ya guardados.
@@ -85,7 +85,7 @@ Una semana o un mes que ya tiene turnos de un local inactivo SHALL seguir mostr�
 - **THEN** el local no aparece como columna
 
 ### Requirement: Volver a dar de alta
-Un local inactivo SHALL poder darse de alta de nuevo mientras haya menos de 8 locales de venta activos, y SHALL volver a ofrecerse para cargas nuevas.
+Un local inactivo SHALL poder darse de alta de nuevo y SHALL volver a ofrecerse para cargas nuevas.
 
 #### Scenario: Reactivación
 - **WHEN** un administrador da de alta un local que estaba de baja

@@ -21,7 +21,7 @@ const LOCATION_COLORS = [
   '#5B6675',
 ]
 
-const MAX_ACTIVE_LOCATIONS = 8
+const MAX_LOCATIONS = 8
 
 const EMPTY = {
   id: null,
@@ -70,11 +70,10 @@ export default function LocationsModal({ open, onClose, onChanged }) {
 
   if (!open) return null
 
-  const activeCount = rows.filter((location) => location.active).length
-  const atCapacity = activeCount >= MAX_ACTIVE_LOCATIONS
+  const atCapacity = rows.length >= MAX_LOCATIONS
   const capacityHint = atCapacity
-    ? `Ya hay ${MAX_ACTIVE_LOCATIONS} locales activos. Dad uno de baja para agregar otro.`
-    : `${activeCount} de ${MAX_ACTIVE_LOCATIONS} locales activos.`
+    ? `Ya hay ${MAX_LOCATIONS} locales. No se puede agregar otro.`
+    : `${rows.length} de ${MAX_LOCATIONS} locales.`
 
   function startCreate() {
     setWarn('')
@@ -195,13 +194,7 @@ export default function LocationsModal({ open, onClose, onChanged }) {
                         Dar de baja
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={busy || atCapacity}
-                        title={atCapacity ? capacityHint : undefined}
-                        onClick={() => alta(location)}
-                      >
+                      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => alta(location)}>
                         Dar de alta
                       </button>
                     )}

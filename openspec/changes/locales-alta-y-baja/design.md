@@ -35,7 +35,7 @@ La tabla `locations` ya tiene nombre, color, `color_soft`, orden, `is_active` y 
 
 8. Destildar la vidriera no borra las marcas ya guardadas. Solo impide marcar una fecha nueva, que es lo que la spec de vidriera ya exige para un local sin esa habilitación.
 
-9. Hay como máximo 8 locales de venta activos. Franco y vacaciones no entran en la cuenta. El noveno, sea un alta nueva o una reactivación, se rechaza. Dar de baja libera el lugar. Los que ya estaban activos siguen; el tope no da de baja a nadie.
+9. Hay como máximo 8 locales de venta, activos o dados de baja. Franco y vacaciones no entran en la cuenta. Crear un noveno se rechaza. Dar de baja no libera el lugar, porque el local sigue existiendo. Volver a dar de alta uno que ya estaba no suma otro.
 
 ## Risks / Trade-offs
 

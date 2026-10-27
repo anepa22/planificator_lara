@@ -160,9 +160,9 @@ class LocationServiceTest {
     }
 
     @Test
-    void createAndActivateRejectWhenEightSalesLocationsAreActive() {
+    void createRejectsNinthSalesLocationEvenIfOneIsInactive() {
         login(Permissions.LOCATIONS_MANAGE);
-        when(locations.countActiveSales()).thenReturn(LocationService.MAX_ACTIVE_SALES);
+        when(locations.countSales()).thenReturn(LocationService.MAX_SALES_LOCATIONS);
 
         ResponseStatusException created = assertThrows(
                 ResponseStatusException.class,
@@ -171,11 +171,12 @@ class LocationServiceTest {
         verify(locations, never()).insert(anyString(), anyString(), anyString(), anyString(), anyShort(), anyBoolean());
 
         Location inactive = location("lara1", "Lara 1", false, false);
-        when(locations.findById("lara1")).thenReturn(Optional.of(inactive));
-        ResponseStatusException activated = assertThrows(
-                ResponseStatusException.class, () -> service.activate("lara1"));
-        assertEquals(HttpStatus.CONFLICT, activated.getStatusCode());
-        verify(locations, never()).update(anyString(), anyString(), anyString(), anyString(), anyShort(), anyBoolean(), anyBoolean());
+        Location active = location("lara1", "Lara 1", true, false);
+        when(locations.findById("lara1")).thenReturn(Optional.of(inactive), Optional.of(active));
+        when(locations.update(eq("lara1"), eq("Lara 1"), eq("#112233"), anyString(), eq((short) 1), eq(true), eq(false)))
+                .thenReturn(1);
+
+        assertEquals(true, service.activate("lara1").active());
     }
 
     private void login(String permission) {

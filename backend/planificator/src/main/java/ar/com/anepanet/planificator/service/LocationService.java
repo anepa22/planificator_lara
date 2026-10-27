@@ -19,7 +19,7 @@ import java.util.Locale;
 @Service
 public class LocationService {
 
-    static final int MAX_ACTIVE_SALES = 8;
+    static final int MAX_SALES_LOCATIONS = 8;
 
     private final LocationRepository locations;
     private final AuditService audit;
@@ -101,7 +101,6 @@ public class LocationService {
         SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         Location current = requireSales(id);
         if (!current.active()) {
-            requireRoom();
             save(current.id(), current.name(), current.color(), current.sortOrder(), true, current.supportsVidriera());
             audit.record(AuditService.ACTION_UPDATE, AuditService.TYPE_LOCATION, current.id(), "Alta de local " + current.name());
         }
@@ -138,10 +137,10 @@ public class LocationService {
     }
 
     private void requireRoom() {
-        if (locations.countActiveSales() >= MAX_ACTIVE_SALES) {
+        if (locations.countSales() >= MAX_SALES_LOCATIONS) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Ya hay " + MAX_ACTIVE_SALES + " locales activos. Dad uno de baja para agregar otro.");
+                    "Ya hay " + MAX_SALES_LOCATIONS + " locales. No se puede agregar otro.");
         }
     }
 
