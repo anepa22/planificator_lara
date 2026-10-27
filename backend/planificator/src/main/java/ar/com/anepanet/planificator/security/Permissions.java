@@ -10,6 +10,7 @@ public final class Permissions {
     public static final String SCHEDULE_APPEAR = "schedule:appear";
     public static final String LUNCH_MANAGE = "lunch:manage";
     public static final String USERS_MANAGE = "users:manage";
+    public static final String LOCATIONS_MANAGE = "locations:manage";
     public static final String ROLES_MANAGE = "roles:manage";
     public static final String AUDIT_READ = "audit:read";
     public static final String TASKS_WRITE = "tasks:write";

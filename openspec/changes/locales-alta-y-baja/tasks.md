@@ -4,8 +4,9 @@
 
 - [x] 1.1 Agregar lectura de todos los locales de venta, alta y actualización en el repositorio, y verificar con un test que un inactivo se lista para administración y que el identificador no cambia al renombrar.
 - [x] 1.2 Implementar las reglas de nombre obligatorio y único, color, vidriera, orden, identificador estable, rechazo de franco y vacaciones, y bitácora. Verificar con tests de alta, nombre vacío, nombre repetido, baja y vuelta a alta.
-- [x] 1.3 Exponer la lectura de administración y las escrituras solo con `users:manage`, dejar `GET /api/locations` público y solo con activos, y verificar que sin permiso responde 403.
+- [x] 1.3 Exponer la lectura de administración y las escrituras solo con `locations:manage`, dejar `GET /api/locations` público y solo con activos, y verificar que sin permiso, incluido `users:manage` solo, responde 403.
 - [x] 1.4 Crear al arrancar, de forma idempotente, el índice único de nombre en minúsculas si los nombres actuales no chocan. Verificar que un segundo arranque no falla.
+- [x] 1.5 Crear el permiso Gestionar locales al arrancar, una sola vez, y dárselo a quien ya tenía `users:manage` y al rol admin. Un arranque posterior no vuelve a otorgarlo.
 
 ## 2. Cargas nuevas
 
@@ -20,7 +21,7 @@
 
 ## 4. Pantalla
 
-- [x] 4.1 Agregar Locales al menú, visible solo con `users:manage`, con alta, edición, baja con confirmación y vuelta a alta. Verificar que franco y vacaciones no aparecen y que sin el permiso el ítem no está.
+- [x] 4.1 Agregar Locales al menú, visible solo con `locations:manage`, con alta, edición, baja con confirmación y vuelta a alta. Verificar que franco y vacaciones no aparecen y que sin el permiso el ítem no está.
 
 ## Workflow follow-up
 

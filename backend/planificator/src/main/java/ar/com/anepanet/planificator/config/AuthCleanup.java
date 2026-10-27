@@ -189,6 +189,7 @@ public class AuthCleanup implements ApplicationRunner {
                     """).update();
             ensureLocationNameIndex();
             jdbc.sql(LocationCatalogSchema.SHIFT_WEEK_VIEW).update();
+            ensureLocationsPermission();
         } catch (Exception ex) {
             log.warn("Auth cleanup skipped: {}", ex.getMessage());
         }
@@ -212,6 +213,41 @@ public class AuthCleanup implements ApplicationRunner {
             return;
         }
         jdbc.sql(LocationCatalogSchema.UNIQUE_NAME_INDEX).update();
+    }
+
+    private void ensureLocationsPermission() {
+        int created = jdbc.sql("""
+                INSERT INTO permissions (id, code, name) VALUES
+                    ('locations_manage', :code, 'Gestionar locales')
+                ON CONFLICT (id) DO NOTHING
+                """)
+                .param("code", Permissions.LOCATIONS_MANAGE)
+                .update();
+        ensurePermission("locations_manage", Permissions.LOCATIONS_MANAGE, "Gestionar locales");
+        if (created == 0) {
+            return;
+        }
+        jdbc.sql("""
+                INSERT INTO role_permissions (role_id, permission_id)
+                SELECT rp.role_id, 'locations_manage'
+                FROM role_permissions rp
+                JOIN permissions p ON p.id = rp.permission_id
+                WHERE p.code = 'users:manage'
+                ON CONFLICT DO NOTHING
+                """).update();
+        jdbc.sql("""
+                INSERT INTO user_permissions (user_id, permission_id)
+                SELECT up.user_id, 'locations_manage'
+                FROM user_permissions up
+                JOIN permissions p ON p.id = up.permission_id
+                WHERE p.code = 'users:manage'
+                ON CONFLICT DO NOTHING
+                """).update();
+        jdbc.sql("""
+                INSERT INTO role_permissions (role_id, permission_id) VALUES
+                    ('admin', 'locations_manage')
+                ON CONFLICT DO NOTHING
+                """).update();
     }
 
     private void ensurePermission(String id, String code, String name) {

@@ -54,7 +54,7 @@ class LocationServiceTest {
 
     @Test
     void adminListIncludesInactiveSalesLocationAndKeepsIdOnRename() {
-        login(Permissions.USERS_MANAGE);
+        login(Permissions.LOCATIONS_MANAGE);
         Location inactive = location("lara1", "Lara 1", false, false);
         when(locations.findAll()).thenReturn(List.of(
                 inactive,
@@ -80,7 +80,7 @@ class LocationServiceTest {
 
     @Test
     void createRejectsEmptyNameDuplicateNameAndReservedName() {
-        login(Permissions.USERS_MANAGE);
+        login(Permissions.LOCATIONS_MANAGE);
 
         ResponseStatusException empty = assertThrows(
                 ResponseStatusException.class,
@@ -102,7 +102,7 @@ class LocationServiceTest {
 
     @Test
     void deactivateAndActivateAreAuditedAndFrancoIsRejected() {
-        login(Permissions.USERS_MANAGE);
+        login(Permissions.LOCATIONS_MANAGE);
         Location active = location("lara3", "Lara 3", true, true);
         Location inactive = location("lara3", "Lara 3", false, true);
         when(locations.findById("lara3")).thenReturn(Optional.of(active), Optional.of(inactive), Optional.of(inactive), Optional.of(active));
@@ -123,6 +123,16 @@ class LocationServiceTest {
     }
 
     @Test
+    void usersManageAloneDoesNotManageLocations() {
+        login(Permissions.USERS_MANAGE);
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class, () -> service.listManageable());
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(locations, never()).findAll();
+    }
+
+    @Test
     void withoutPermissionRespondsForbidden() {
         login(Permissions.SHIFTS_WRITE);
 
@@ -134,7 +144,7 @@ class LocationServiceTest {
 
     @Test
     void createStoresActiveLocation() {
-        login(Permissions.USERS_MANAGE);
+        login(Permissions.LOCATIONS_MANAGE);
         when(locations.idExists("lara3")).thenReturn(false);
         when(locations.nameTaken("lara 3", "")).thenReturn(false);
         when(locations.nextSortOrder()).thenReturn((short) 4);

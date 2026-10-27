@@ -87,7 +87,7 @@ function App() {
   const canPrintVacationReport = can('vacations:print')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
-  const canManageLocations = can('users:manage')
+  const canManageLocations = can('locations:manage')
   const canReadAudit = can('audit:read')
   const canWriteTasks = can('tasks:write')
   const canManageTasks = can('tasks:manage')

@@ -7,11 +7,15 @@ Crear locales de venta, editarlos y darlos de alta o de baja sin perder los turn
 ## ADDED Requirements
 
 ### Requirement: Quién administra
-Solo un usuario con `users:manage` SHALL poder crear, editar, dar de alta y dar de baja un local. Sin ese permiso el sistema SHALL rechazar la operación y SHALL NOT mostrar la pantalla. La consulta de los locales activos SHALL seguir siendo pública.
+Solo un usuario con `locations:manage` (Gestionar locales) SHALL poder crear, editar, dar de alta y dar de baja un local. Sin ese permiso el sistema SHALL rechazar la operación y SHALL NOT mostrar el ítem Locales. Tener `users:manage` sin `locations:manage` SHALL NOT alcanzar. La consulta de los locales activos SHALL seguir siendo pública.
 
-#### Scenario: Sin permiso
-- **WHEN** un usuario sin `users:manage` intenta dar de baja un local
-- **THEN** el sistema rechaza la operación y no muestra la pantalla
+#### Scenario: Sin el permiso de locales
+- **WHEN** un usuario sin `locations:manage` abre el menú o intenta dar de baja un local
+- **THEN** no ve el ítem Locales y la baja se rechaza
+
+#### Scenario: Administrar usuarios no alcanza
+- **WHEN** un usuario tiene `users:manage` y no tiene `locations:manage`
+- **THEN** no ve el ítem Locales y no puede dar de baja un local
 
 #### Scenario: Consulta pública
 - **WHEN** una persona sin sesión consulta los locales

@@ -9,12 +9,11 @@ La tabla `locations` ya tiene nombre, color, `color_soft`, orden, `is_active` y 
 **Goals:**
 
 - Reusar `is_active` para la baja y el identificador estable para no cortar turnos, tareas ni vidrieras.
-- Una sola pantalla para quien tiene `users:manage`.
+- Una sola pantalla para quien tiene `locations:manage`.
 - La grilla muestra un local inactivo solo cuando el período consultado tiene turnos suyos.
 
 **Non-Goals:**
 
-- Un permiso nuevo.
 - Borrar locales o editar franco y vacaciones.
 - Cambiar el cupo, el reporte de vacaciones o la regla de vidriera ya vigente.
 
@@ -26,9 +25,9 @@ La tabla `locations` ya tiene nombre, color, `color_soft`, orden, `is_active` y 
 
 3. El color lo elige quien crea el local. El servidor guarda ese color y deriva `color_soft`. La pantalla no pide los dos.
 
-4. No se agrega un permiso. Crear o cerrar un local es una decisión de administración, igual que usuarios. Quien tiene `users:manage` entra. La alternativa `locations:manage` obligaría a tocar los roles para una sola pantalla.
+4. El permiso es `locations:manage`, con el nombre Gestionar locales. `users:manage` no alcanza. Al crearlo, se lo damos una sola vez a quien ya administraba usuarios y al rol admin, para que no pierdan la pantalla. Después se puede sacar de un rol sin volver a otorgarlo en el próximo arranque.
 
-5. `GET /api/locations` sigue devolviendo solo activos y sigue siendo público. La pantalla de administración usa otra lectura, con `users:manage`, que incluye los inactivos y excluye franco y vacaciones. Crear, editar y cambiar el alta o la baja exigen el mismo permiso y quedan en la bitácora.
+5. `GET /api/locations` sigue devolviendo solo activos y sigue siendo público. La pantalla de administración usa otra lectura, con `locations:manage`, que incluye los inactivos y excluye franco y vacaciones. Crear, editar y cambiar el alta o la baja exigen el mismo permiso y quedan en la bitácora.
 
 6. La grilla arma sus columnas con los locales activos más cualquier local que tenga turnos en el período que se está mirando. Un inactivo sin turnos en esa semana no aparece. El selector de un turno, una tarea o una vidriera nuevos usa solo activos. El servicio rechaza un id inactivo aunque el cliente lo envíe.
 

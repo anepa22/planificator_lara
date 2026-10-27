@@ -32,7 +32,7 @@ public class LocationService {
     }
 
     public List<Location> listManageable() {
-        SecurityUtils.requireAuthority(Permissions.USERS_MANAGE);
+        SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         return locations.findAll().stream()
                 .filter(location -> !Permissions.isAbsenceLocation(location.id()))
                 .toList();
@@ -40,7 +40,7 @@ public class LocationService {
 
     @Transactional
     public Location create(SaveLocationRequest req) {
-        SecurityUtils.requireAuthority(Permissions.USERS_MANAGE);
+        SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         String name = normalizeName(req.name());
         requireName(name);
         String color = normalizeColor(req.color());
@@ -64,7 +64,7 @@ public class LocationService {
 
     @Transactional
     public Location update(String id, UpdateLocationRequest req) {
-        SecurityUtils.requireAuthority(Permissions.USERS_MANAGE);
+        SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         Location current = requireSales(id);
         String name = normalizeName(req.name());
         requireName(name);
@@ -84,7 +84,7 @@ public class LocationService {
 
     @Transactional
     public Location deactivate(String id) {
-        SecurityUtils.requireAuthority(Permissions.USERS_MANAGE);
+        SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         Location current = requireSales(id);
         if (current.active()) {
             save(current.id(), current.name(), current.color(), current.sortOrder(), false, current.supportsVidriera());
@@ -95,7 +95,7 @@ public class LocationService {
 
     @Transactional
     public Location activate(String id) {
-        SecurityUtils.requireAuthority(Permissions.USERS_MANAGE);
+        SecurityUtils.requireAuthority(Permissions.LOCATIONS_MANAGE);
         Location current = requireSales(id);
         if (!current.active()) {
             save(current.id(), current.name(), current.color(), current.sortOrder(), true, current.supportsVidriera());
