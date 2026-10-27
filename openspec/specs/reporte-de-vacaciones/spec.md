@@ -24,7 +24,11 @@ El menú Asistentes SHALL mostrar Vacaciones → Reporte a quien tenga `vacation
 - **THEN** no ve el ítem y la API rechaza la consulta
 
 ### Requirement: Período
-Al abrir, el reporte SHALL mostrar el año en curso. El usuario SHALL poder elegir el año anterior, el actual, el siguiente o un rango Desde / Hasta. Hasta SHALL NOT ser anterior a Desde y el período SHALL NOT superar 800 días.
+Al abrir, el reporte SHALL mostrar el período de goce en curso, del 1 de octubre al 30 de septiembre. El usuario SHALL poder elegir el período en curso, el siguiente y un rango Desde / Hasta. SHALL NOT ofrecer un período que abra antes del 1 de octubre de 2026. Hasta SHALL NOT ser anterior a Desde y el período SHALL NOT superar 800 días.
+
+#### Scenario: Apertura
+- **WHEN** se abre el reporte el 23 de octubre de 2026
+- **THEN** el período mostrado es del 1 de octubre de 2026 al 30 de septiembre de 2027 y no está el de 2025-2026
 
 #### Scenario: Rango inválido
 - **WHEN** Hasta es anterior a Desde o el período supera 800 días
@@ -49,8 +53,27 @@ Cada persona SHALL mostrar sus tramos y la suma de sus días. El encabezado SHAL
 - **THEN** su total es la suma de los días de ambos tramos
 
 ### Requirement: PDF
-Quien tenga `vacations:print` SHALL poder descargar un PDF del período que está en pantalla. Si Desde o Hasta cambiaron y todavía no se buscó, el botón SHALL permanecer deshabilitado. El PDF SHALL listar cada tramo y, debajo de cada persona, el total de sus días.
+Quien tenga `vacations:print` SHALL poder descargar un PDF del período que está en pantalla. Si Desde o Hasta cambiaron y todavía no se buscó, el botón SHALL permanecer deshabilitado. El PDF SHALL listar cada tramo y, debajo de cada persona, el total de sus días. Cuando el período es un período de goce, el PDF SHALL repetir De este período, Del período anterior, Gozados y Quedan.
 
 #### Scenario: Período en pantalla
 - **WHEN** el usuario imprime después de buscar un rango
 - **THEN** el PDF corresponde a ese rango y no a las fechas modificadas sin buscar
+
+#### Scenario: PDF de un período de goce
+- **WHEN** se imprime el período del 1 de octubre de 2026 al 30 de septiembre de 2027
+- **THEN** cada persona incluye los cuatro números del cupo, además de sus tramos
+
+### Requirement: Resumen del cupo
+En un período de goce, cada persona del reporte SHALL mostrar, solo para consultar, De este período, Del período anterior, Gozados y Quedan. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados. El reporte SHALL NOT editar días extra ni el cupo. Si hay días extra, SHALL mostrarlos. Si el ajuste es cero, SHALL NOT mostrar esa línea. En un rango que no es un período de goce, SHALL mostrar los tramos y SHALL NOT ofrecer un saldo único.
+
+#### Scenario: Lectura de una persona
+- **WHEN** en el período que abre el 1 de octubre de 2026 una persona tiene 21 de este período, 0 del anterior y 7 gozados
+- **THEN** el reporte muestra De este período 21, Del período anterior 0, Gozados 7 y Quedan 14
+
+#### Scenario: Ajuste en cero
+- **WHEN** el ajuste de la persona es cero
+- **THEN** el reporte no muestra la línea Días extra
+
+#### Scenario: Rango libre
+- **WHEN** el rango no coincide con un período de goce
+- **THEN** se ven los tramos de vacaciones y no un saldo único
