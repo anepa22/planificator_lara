@@ -905,6 +905,26 @@ function App() {
         </h1>
         <div className="topbar-nav">
           {view !== 'tasks' && (
+            <div className="period-toggle" role="group" aria-label="Período de horarios">
+              <button
+                type="button"
+                className={view === 'week' ? 'is-on' : ''}
+                aria-pressed={view === 'week'}
+                onClick={() => setView('week')}
+              >
+                Semana
+              </button>
+              <button
+                type="button"
+                className={view === 'month' ? 'is-on' : ''}
+                aria-pressed={view === 'month'}
+                onClick={() => setView('month')}
+              >
+                Mes
+              </button>
+            </div>
+          )}
+          {view !== 'tasks' && (
             <WeekNav
               label={navLabel}
               onPrev={() =>
@@ -1176,18 +1196,6 @@ function App() {
         onClose={() => setMenuOpen(false)}
         view={view}
         onViewChange={setView}
-        periodLabel={navLabel}
-        onPrevPeriod={() =>
-          view === 'month'
-            ? setMonthOffset((o) => o - 1)
-            : setWeekOffset((o) => o - 1)
-        }
-        onNextPeriod={() =>
-          view === 'month'
-            ? setMonthOffset((o) => o + 1)
-            : setWeekOffset((o) => o + 1)
-        }
-        onToday={goToday}
         showVacations={canWriteVacations}
         showVacationReport={canReportVacations}
         showUsers={canManageUsers}

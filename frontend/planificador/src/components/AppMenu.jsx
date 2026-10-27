@@ -41,10 +41,6 @@ export default function AppMenu({
   onClose,
   view,
   onViewChange,
-  periodLabel,
-  onPrevPeriod,
-  onNextPeriod,
-  onToday,
   showVacations = true,
   showVacationReport = false,
   showUsers = false,
@@ -150,53 +146,6 @@ export default function AppMenu({
             </button>
           </div>
         </div>
-
-        {inSchedule && <div className="app-menu-section">
-          <div className="app-menu-label">Período</div>
-          <div className="app-menu-tabs" role="group" aria-label="Período de horarios">
-            <button
-              type="button"
-              className={`app-menu-tab${view === 'week' ? ' active' : ''}`}
-              aria-pressed={view === 'week'}
-              onClick={() => {
-                onViewChange('week')
-                onClose()
-              }}
-            >
-              Por semana
-            </button>
-            <button
-              type="button"
-              className={`app-menu-tab${view === 'month' ? ' active' : ''}`}
-              aria-pressed={view === 'month'}
-              onClick={() => {
-                onViewChange('month')
-                onClose()
-              }}
-            >
-              Por mes
-            </button>
-          </div>
-          <div className="app-menu-week">{periodLabel}</div>
-          <div className="app-menu-week-actions">
-            <button type="button" className="app-menu-nav-btn" onClick={onPrevPeriod}>
-              ‹ Anterior
-            </button>
-            <button
-              type="button"
-              className="app-menu-nav-btn accent"
-              onClick={() => {
-                onToday()
-                onClose()
-              }}
-            >
-              Hoy
-            </button>
-            <button type="button" className="app-menu-nav-btn" onClick={onNextPeriod}>
-              Siguiente ›
-            </button>
-          </div>
-        </div>}
 
         {hasActions && (
           <div className="app-menu-section">
