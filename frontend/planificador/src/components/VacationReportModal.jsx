@@ -242,7 +242,7 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
                   <article key={person.userId} className="vacation-card">
                     <header className="vacation-card-head">
                       <h4 className="vacation-report-name">{person.userName}</h4>
-                      <span className="vacation-report-days">{dayCount(person.days)} tomados</span>
+                      <span className="vacation-report-days">{dayCount(person.days)} cargados</span>
                     </header>
                     {person.thisPeriod != null && (
                       <div className="vacation-stats">
@@ -263,6 +263,10 @@ export default function VacationReportModal({ open, canPrint = false, onClose })
                         <div className="vacation-stat">
                           <span>Gozados</span>
                           <strong>{person.enjoyed}</strong>
+                        </div>
+                        <div className="vacation-stat">
+                          <span>Por gozar</span>
+                          <strong>{person.scheduled ?? 0}</strong>
                         </div>
                         <div className={`vacation-stat ${remainingClass}`}>
                           <span>Quedan</span>

@@ -53,7 +53,7 @@ Cada persona SHALL mostrar sus tramos y la suma de sus días. El encabezado SHAL
 - **THEN** su total es la suma de los días de ambos tramos
 
 ### Requirement: PDF
-Quien tenga `vacations:print` SHALL poder descargar un PDF del período que está en pantalla. Si Desde o Hasta cambiaron y todavía no se buscó, el botón SHALL permanecer deshabilitado. El PDF SHALL listar cada tramo y, debajo de cada persona, el total de sus días. Cuando el período es un período de goce, el PDF SHALL repetir De este período, Del período anterior, Gozados y Quedan.
+Quien tenga `vacations:print` SHALL poder descargar un PDF del período que está en pantalla. Si Desde o Hasta cambiaron y todavía no se buscó, el botón SHALL permanecer deshabilitado. El PDF SHALL listar cada tramo y, debajo de cada persona, el total de sus días. Cuando el período es un período de goce, el PDF SHALL repetir De este período, Del período anterior, Gozados, Por gozar y Quedan.
 
 #### Scenario: Período en pantalla
 - **WHEN** el usuario imprime después de buscar un rango
@@ -61,14 +61,14 @@ Quien tenga `vacations:print` SHALL poder descargar un PDF del período que est�
 
 #### Scenario: PDF de un período de goce
 - **WHEN** se imprime el período del 1 de octubre de 2026 al 30 de septiembre de 2027
-- **THEN** cada persona incluye los cuatro números del cupo, además de sus tramos
+- **THEN** cada persona incluye De este período, Del período anterior, Gozados, Por gozar y Quedan, además de sus tramos
 
 ### Requirement: Resumen del cupo
-En un período de goce, cada persona del reporte SHALL mostrar, solo para consultar, De este período, Del período anterior, Gozados y Quedan. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados. El reporte SHALL NOT editar días extra ni el cupo. Si hay días extra, SHALL mostrarlos. Si el ajuste es cero, SHALL NOT mostrar esa línea. En un rango que no es un período de goce, SHALL mostrar los tramos y SHALL NOT ofrecer un saldo único.
+En un período de goce, cada persona del reporte SHALL mostrar, solo para consultar, De este período, Del período anterior, Gozados, Por gozar y Quedan. Gozados SHALL ser las fechas anteriores a hoy y Por gozar el resto. Quedan SHALL restar ambos. El reporte SHALL NOT editar el cupo. Si hay días extra, SHALL mostrarlos. Si el ajuste es cero, SHALL NOT mostrar esa línea. En un rango que no es un período de goce, SHALL mostrar los tramos y SHALL NOT ofrecer un saldo único.
 
 #### Scenario: Lectura de una persona
-- **WHEN** en el período que abre el 1 de octubre de 2026 una persona tiene 21 de este período, 0 del anterior y 7 gozados
-- **THEN** el reporte muestra De este período 21, Del período anterior 0, Gozados 7 y Quedan 14
+- **WHEN** en el período que abre el 1 de octubre de 2026 una persona tiene 21 de este período, 0 del anterior, 7 gozados, 3 por gozar y ningún día extra
+- **THEN** el reporte muestra De este período 21, Del período anterior 0, Gozados 7, Por gozar 3 y Quedan 11
 
 #### Scenario: Ajuste en cero
 - **WHEN** el ajuste de la persona es cero

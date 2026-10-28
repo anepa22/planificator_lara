@@ -24,6 +24,8 @@ public final class VacationQuota {
 
     private VacationQuota() {}
 
+    public record EnjoymentSplit(int enjoyed, int scheduled) {}
+
     public record Snapshot(
             int thisPeriod,
             int carried,
@@ -35,6 +37,34 @@ public final class VacationQuota {
         public int quota() {
             return thisPeriod + carried + extra;
         }
+    }
+
+    public static LocalDate businessToday() {
+        return LocalDate.now(BUSINESS_ZONE);
+    }
+
+    /**
+     * Gozados: fecha anterior a hoy. Por gozar: hoy y lo que sigue.
+     * Solo cuenta días del período indicado.
+     */
+    public static EnjoymentSplit splitEnjoyment(Collection<LocalDate> dates, int periodYear, LocalDate today) {
+        LocalDate start = periodStart(periodYear);
+        LocalDate end = periodEnd(periodYear);
+        int enjoyed = 0;
+        int scheduled = 0;
+        if (dates != null && today != null) {
+            for (LocalDate date : dates) {
+                if (date == null || date.isBefore(start) || date.isAfter(end)) {
+                    continue;
+                }
+                if (date.isBefore(today)) {
+                    enjoyed++;
+                } else {
+                    scheduled++;
+                }
+            }
+        }
+        return new EnjoymentSplit(enjoyed, scheduled);
     }
 
     public static int periodYear(LocalDate date) {

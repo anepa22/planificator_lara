@@ -169,6 +169,21 @@ class VacationQuotaTest {
     }
 
     @Test
+    void todayAndLaterStayScheduledWhileEarlierDaysAreEnjoyed() {
+        LocalDate today = LocalDate.of(2026, 10, 28);
+        VacationQuota.EnjoymentSplit split = VacationQuota.splitEnjoyment(
+                List.of(
+                        LocalDate.of(2026, 10, 27),
+                        LocalDate.of(2026, 10, 28),
+                        LocalDate.of(2026, 11, 2),
+                        LocalDate.of(2025, 9, 30)),
+                2026,
+                today);
+        assertEquals(1, split.enjoyed());
+        assertEquals(2, split.scheduled());
+    }
+
+    @Test
     void negativeAdjustmentIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> VacationQuota.requireAdjustment(-1));
     }

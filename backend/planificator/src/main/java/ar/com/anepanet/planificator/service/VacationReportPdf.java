@@ -91,6 +91,7 @@ final class VacationReportPdf {
                 String summary = "De este período " + person.thisPeriod()
                         + " · Del período anterior " + person.carried()
                         + " · Gozados " + person.enjoyed()
+                        + " · Por gozar " + person.scheduled()
                         + " · Quedan " + person.remaining();
                 if (person.extra() != null && person.extra() > 0) {
                     summary += " · Días extra " + person.extra();

@@ -13,5 +13,6 @@ public record VacationQuotaResponse(
         Integer carried,
         Integer extra,
         Integer enjoyed,
+        Integer scheduled,
         Integer remaining
 ) {}

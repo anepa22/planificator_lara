@@ -12,9 +12,10 @@ public record VacationPersonReport(
         Integer carried,
         Integer extra,
         Integer enjoyed,
+        Integer scheduled,
         Integer remaining
 ) {
     public VacationPersonReport(UUID userId, String userName, int days, List<VacationRange> ranges) {
-        this(userId, userName, days, ranges, null, null, null, null, null);
+        this(userId, userName, days, ranges, null, null, null, null, null, null);
     }
 }

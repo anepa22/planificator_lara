@@ -102,6 +102,7 @@ public class VacationQuotaService {
                 enjoyedByYear(user, periodYear),
                 adjustments.findByUser(user.id()),
                 openingCarry.findDays(user.id()));
+        VacationQuota.EnjoymentSplit split = enjoymentSplit(user.id(), periodYear);
         return new VacationPersonReport(
                 person.userId(),
                 person.userName(),
@@ -110,7 +111,8 @@ public class VacationQuotaService {
                 snap.thisPeriod(),
                 snap.carried(),
                 snap.extra(),
-                snap.enjoyed(),
+                split.enjoyed(),
+                split.scheduled(),
                 snap.remaining());
     }
 
@@ -122,8 +124,9 @@ public class VacationQuotaService {
                     null,
                     periodYear,
                     VacationQuota.periodLabel(periodYear),
-                    null, null, null, null, null);
+                    null, null, null, null, null, null);
         }
+        VacationQuota.EnjoymentSplit split = enjoymentSplit(user.id(), periodYear);
         VacationQuota.Snapshot snap = VacationQuota.snapshot(
                 user.hireDate(),
                 periodYear,
@@ -139,8 +142,17 @@ public class VacationQuotaService {
                 snap.thisPeriod(),
                 snap.carried(),
                 snap.extra(),
-                snap.enjoyed(),
+                split.enjoyed(),
+                split.scheduled(),
                 snap.remaining());
+    }
+
+    private VacationQuota.EnjoymentSplit enjoymentSplit(UUID userId, int periodYear) {
+        List<LocalDate> dates = shifts.findVacationDates(
+                userId,
+                VacationQuota.periodStart(periodYear),
+                VacationQuota.periodEnd(periodYear));
+        return VacationQuota.splitEnjoyment(dates, periodYear, VacationQuota.businessToday());
     }
 
     private Map<Integer, Integer> enjoyedByYear(AppUser user, int throughYear) {

@@ -390,6 +390,10 @@ export default function VacationModal({
                   <span>Gozados</span>
                   <strong>{quota.enjoyed}</strong>
                 </div>
+                <div className="vacation-stat">
+                  <span>Por gozar</span>
+                  <strong>{quota.scheduled ?? 0}</strong>
+                </div>
                 <div className="vacation-stat vacation-stat-extra">
                   <label htmlFor="cupo-extra">Días extra</label>
                   <input

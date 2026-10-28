@@ -61,8 +61,8 @@ Si al 31 de diciembre de Y la antigüedad es menor a seis meses, el sistema SHAL
 Desde el período que abre el 1 de octubre de 2026, la antigüedad de ese período SHALL entrar en Quedan. Lo habilitado antes de esa fecha SHALL NOT sumarse.
 
 #### Scenario: Período abierto el 1 de octubre de 2026
-- **WHEN** la antigüedad al 31 de diciembre de 2026 es 21 y hay 7 vacaciones cargadas en ese período
-- **THEN** De este período es 21, Del período anterior es 0, Gozados es 7 y Quedan es 14
+- **WHEN** la antigüedad al 31 de diciembre de 2026 es 21 y hay 7 vacaciones de ese período con fecha anterior a hoy
+- **THEN** De este período es 21, Del período anterior es 0, Gozados es 7, Por gozar es 0 y Quedan es 14
 
 #### Scenario: Octubre de 2027
 - **WHEN** de esos 21 sobran 14 y la antigüedad al 31 de diciembre de 2027 es 21
@@ -76,7 +76,7 @@ En el período que abre el 1 de octubre de 2026, Del período anterior SHALL ser
 - **THEN** en el período que abre el 1 de octubre de 2026, Del período anterior es 0
 
 #### Scenario: Saldo cargado una vez
-- **WHEN** en el período que abre el 1 de octubre de 2026 se guardan 4 días del período anterior, De este período es 21, Gozados es 10 y no hay días extra
+- **WHEN** en el período que abre el 1 de octubre de 2026 se guardan 4 días del período anterior, De este período es 21, hay 10 vacaciones ya cargadas y no hay días extra
 - **THEN** Del período anterior es 4, Días extra es 0 y Quedan es 15
 
 #### Scenario: El saldo cargado entra en el siguiente
@@ -106,6 +106,13 @@ Quien tenga `vacations:write` SHALL poder sumar, para una persona y un período,
 - **WHEN** se intenta guardar un ajuste negativo
 - **THEN** el sistema rechaza el valor
 
+### Requirement: Por gozar
+Un día de vacaciones del período con fecha anterior a hoy, en America/Argentina/Buenos_Aires, SHALL contarse en Gozados. El día de hoy y los posteriores SHALL contarse en Por gozar. Quedan SHALL restar los dos.
+
+#### Scenario: Hoy todavía no está gozado
+- **WHEN** hoy es el 28 de octubre de 2026 y hay vacaciones el 27 y el 28 de octubre
+- **THEN** Gozados es 1 y Por gozar es 1
+
 ### Requirement: Saldo del período
 Desde el período que abre el 1 de octubre de 2026, el saldo SHALL ser De este período más Del período anterior más los días extra, menos las vacaciones ya cargadas en ese período. El sistema SHALL rechazar una carga nueva cuya cantidad de días, contando el primero y el último, deje el saldo de alguna persona seleccionada por debajo de cero.
 
@@ -133,7 +140,7 @@ Si De este período, Del período anterior y Días extra son cero, el sistema SH
 - **THEN** se puede cargar ese día
 
 ### Requirement: Botón en Cargar
-Cargar SHALL incluir el botón Cupo para la única persona ya elegida, sin desplegable. Muestra De este período, Del período anterior, Gozados, Quedan y los Días extra. De este período SHALL NOT editarse. Del período anterior SHALL editarse solo en el período que abre el 1 de octubre de 2026. El Reporte SHALL NOT incluir ese botón.
+Cargar SHALL incluir el botón Cupo para la única persona ya elegida, sin desplegable. Muestra De este período, Del período anterior, Gozados, Por gozar, Quedan y los Días extra. De este período SHALL NOT editarse. Del período anterior SHALL editarse solo en el período que abre el 1 de octubre de 2026. El Reporte SHALL NOT incluir ese botón.
 
 #### Scenario: Persona ya elegida
 - **WHEN** en Cargar no hay una sola persona marcada y se pulsa Cupo
