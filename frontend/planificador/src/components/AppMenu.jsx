@@ -47,6 +47,7 @@ export default function AppMenu({
   showLocations = false,
   showLunch = false,
   showVidriera = false,
+  showHoursReport = false,
   showTasksAdmin = false,
   showTaskRetention = false,
   showAudit = false,
@@ -58,6 +59,7 @@ export default function AppMenu({
   onLocations,
   onLunch,
   onVidriera,
+  onHoursReport,
   onTasksAdmin,
   onTaskRetention,
   onAudit,
@@ -67,7 +69,7 @@ export default function AppMenu({
   version,
 }) {
   const showVacationGroup = showVacations || showVacationReport
-  const showPersonalGroup = showVacationGroup || showVidriera
+  const showPersonalGroup = showVacationGroup || showVidriera || showHoursReport
   const showConfigGroup = showLunch || showTaskRetention
   const showOtherActions = showUsers || showLocations || showTasksAdmin || showAudit
   const hasActions = showPersonalGroup || showConfigGroup || showOtherActions
@@ -197,6 +199,17 @@ export default function AppMenu({
                           </div>
                         )}
                       </>
+                    )}
+                    {showHoursReport && (
+                      <MenuItem
+                        nested
+                        onClick={() => {
+                          onHoursReport()
+                          onClose()
+                        }}
+                      >
+                        Horas
+                      </MenuItem>
                     )}
                     {showVidriera && (
                       <MenuItem

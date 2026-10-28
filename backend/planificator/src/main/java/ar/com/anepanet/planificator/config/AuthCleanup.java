@@ -190,6 +190,7 @@ public class AuthCleanup implements ApplicationRunner {
             ensureLocationNameIndex();
             jdbc.sql(LocationCatalogSchema.SHIFT_WEEK_VIEW).update();
             ensureLocationsPermission();
+            ensureHoursReportPermission();
         } catch (Exception ex) {
             log.warn("Auth cleanup skipped: {}", ex.getMessage());
         }
@@ -246,6 +247,26 @@ public class AuthCleanup implements ApplicationRunner {
         jdbc.sql("""
                 INSERT INTO role_permissions (role_id, permission_id) VALUES
                     ('admin', 'locations_manage')
+                ON CONFLICT DO NOTHING
+                """).update();
+    }
+
+    private void ensureHoursReportPermission() {
+        int created = jdbc.sql("""
+                INSERT INTO permissions (id, code, name) VALUES
+                    ('hours_report', :code, 'Ver reporte de horas')
+                ON CONFLICT (id) DO NOTHING
+                """)
+                .param("code", Permissions.HOURS_REPORT)
+                .update();
+        ensurePermission("hours_report", Permissions.HOURS_REPORT, "Ver reporte de horas");
+        if (created == 0) {
+            return;
+        }
+        jdbc.sql("""
+                INSERT INTO role_permissions (role_id, permission_id) VALUES
+                    ('admin', 'hours_report'),
+                    ('editor', 'hours_report')
                 ON CONFLICT DO NOTHING
                 """).update();
     }

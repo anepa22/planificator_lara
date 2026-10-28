@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.repository;
 
 import ar.com.anepanet.planificator.domain.HoursByUserWeek;
+import ar.com.anepanet.planificator.domain.HoursShiftRow;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
 import ar.com.anepanet.planificator.domain.VacationDay;
@@ -142,6 +143,27 @@ public class ShiftRepository {
                 .param("notes", notes)
                 .query(this::mapShift)
                 .optional();
+    }
+
+    public List<HoursShiftRow> findHoursShifts(LocalDate from, LocalDate to) {
+        return jdbc.sql("""
+                SELECT s.user_id, u.display_name, s.location_id, s.work_date, s.start_time, s.end_time
+                FROM shifts s
+                JOIN app_users u ON u.id = s.user_id
+                WHERE s.work_date BETWEEN :from AND :to
+                ORDER BY u.display_name, s.user_id, s.work_date, s.start_time
+                """)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, n) -> new HoursShiftRow(
+                        rs.getObject("user_id", UUID.class),
+                        rs.getString("display_name"),
+                        rs.getString("location_id"),
+                        rs.getObject("work_date", LocalDate.class),
+                        rs.getObject("start_time", LocalTime.class),
+                        rs.getObject("end_time", LocalTime.class)
+                ))
+                .list();
     }
 
     public boolean delete(UUID id) {

@@ -1,6 +1,7 @@
 package ar.com.anepanet.planificator.web;
 
 import ar.com.anepanet.planificator.domain.HoursByUserWeek;
+import ar.com.anepanet.planificator.domain.HoursReport;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
 import ar.com.anepanet.planificator.domain.VacationReport;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +53,31 @@ public class ShiftController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"vacaciones-" + from + "-" + to + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    @GetMapping("/hours-report")
+    public HoursReport hoursReport(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) UUID person,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) BigDecimal lunch) {
+        return service.hoursReport(from, to, person, location, lunch);
+    }
+
+    @GetMapping(value = "/hours-report.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> hoursReportPdf(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) UUID person,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) BigDecimal lunch) {
+        byte[] pdf = service.hoursReportPdf(from, to, person, location, lunch);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"horas-" + from + "-" + to + ".pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }

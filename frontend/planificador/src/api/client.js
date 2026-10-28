@@ -115,6 +115,34 @@ export const getShifts = (weekStart) =>
   api(`/api/shifts?weekStart=${weekStart}`)
 export const getVacationReport = (from, to) =>
   api(`/api/shifts/vacation-report?from=${from}&to=${to}`)
+
+function hoursReportParams({ from, to, personId, locationId, lunchHours }) {
+  const params = new URLSearchParams({ from, to })
+  if (personId) params.set('person', personId)
+  if (locationId) params.set('location', locationId)
+  if (lunchHours != null && lunchHours !== '') params.set('lunch', String(lunchHours))
+  return params
+}
+
+export const getHoursReport = (search) =>
+  api(`/api/shifts/hours-report?${hoursReportParams(search)}`)
+
+export async function downloadHoursReportPdf(search) {
+  const res = await fetch(`${BASE}/api/shifts/hours-report.pdf?${hoursReportParams(search)}`, {
+    headers: authHeaders(),
+  })
+  rejectIfUnauthorized(res)
+  if (!res.ok) throw new ApiError(await errorMessage(res), res.status)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `horas-${search.from}-${search.to}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
 export async function downloadVacationReportPdf(from, to) {
   const params = new URLSearchParams({ from, to })
   const res = await fetch(`${BASE}/api/shifts/vacation-report.pdf?${params}`, {

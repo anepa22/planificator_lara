@@ -97,6 +97,11 @@
     .panel-form .field{margin-bottom:0;}
   }
   .vacation-report-filters{grid-template-columns:minmax(180px, 1.3fr) 1fr 1fr auto;}
+  .hours-report-filters{grid-template-columns:1fr 1fr minmax(140px, 1.2fr) minmax(140px, 1.2fr) auto;}
+  .hours-report-filters .panel-form-actions{grid-column:auto;align-self:end;}
+  .overlay.panel-overlay .modal.panel-modal.hours-report-modal{
+    width:min(920px,94vw);max-width:min(920px,94vw);
+  }
   .overlay.panel-overlay .modal.panel-modal.vacation-report-modal{
     width:min(1080px,94vw);max-width:min(1080px,94vw);
   }
@@ -1535,6 +1540,7 @@
     .task-admin-actions{grid-column:3;grid-row:1/span 2;align-items:center;}
     .panel-head-right{gap:8px;}
     .vacation-report-filters{grid-template-columns:1fr;}
+    .hours-report-filters{grid-template-columns:1fr;}
     .overlay.panel-overlay .modal.panel-modal.vacation-report-modal{
       width:100%;max-width:100%;
     }

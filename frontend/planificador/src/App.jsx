@@ -23,6 +23,7 @@ import { useAuth } from './auth/useAuth'
 import { usePlanificatorSync } from './hooks/usePlanificatorSync'
 import AppMenu from './components/AppMenu'
 import AuditModal from './components/AuditModal'
+import HoursReportModal from './components/HoursReportModal'
 import DayTabs from './components/DayTabs'
 import ChangePasswordModal from './components/ChangePasswordModal'
 import LoginScreen from './components/LoginScreen'
@@ -84,6 +85,7 @@ function App() {
   const canWriteShifts = can('shifts:write')
   const canWriteVacations = can('vacations:write')
   const canReportVacations = can('vacations:report')
+  const canReportHours = can('hours:report')
   const canPrintVacationReport = can('vacations:print')
   const canManageLunch = can('lunch:manage')
   const canManageUsers = can('users:manage') || can('roles:manage')
@@ -125,6 +127,7 @@ function App() {
   const [lunchOpen, setLunchOpen] = useState(false)
   const [vacationOpen, setVacationOpen] = useState(false)
   const [vacationReportOpen, setVacationReportOpen] = useState(false)
+  const [hoursReportOpen, setHoursReportOpen] = useState(false)
   const [vidrieraOpen, setVidrieraOpen] = useState(false)
   const [vidrieraModalDate, setVidrieraModalDate] = useState(null)
   const [taskAdminOpen, setTaskAdminOpen] = useState(false)
@@ -148,6 +151,7 @@ function App() {
       setLunchOpen(false)
       setVacationOpen(false)
       setVacationReportOpen(false)
+      setHoursReportOpen(false)
       setVidrieraOpen(false)
       setVidrieraModalDate(null)
       setTaskAdminOpen(false)
@@ -427,6 +431,7 @@ function App() {
     lunchOpen ||
     vacationOpen ||
     vacationReportOpen ||
+    hoursReportOpen ||
     vidrieraOpen ||
     taskAdminOpen ||
     taskRetentionOpen ||
@@ -877,6 +882,7 @@ function App() {
     lunchOpen ||
     vacationOpen ||
     vacationReportOpen ||
+    hoursReportOpen ||
     vidrieraOpen ||
     taskAdminOpen ||
     taskRetentionOpen ||
@@ -1142,6 +1148,12 @@ function App() {
         onClose={() => setVacationReportOpen(false)}
       />}
 
+      {hoursReportOpen && <HoursReportModal
+        open
+        lunchHours={lunchHours}
+        onClose={() => setHoursReportOpen(false)}
+      />}
+
       {vacationOpen && <VacationModal
         open
         staff={staff}
@@ -1202,6 +1214,7 @@ function App() {
         showLocations={canManageLocations}
         showLunch={canManageLunch}
         showVidriera={canWriteShifts}
+        showHoursReport={canReportHours}
         showTasksAdmin={canManageTasks || canManageStock}
         showTaskRetention={canManageTaskRetention}
         showAudit={canReadAudit}
@@ -1213,6 +1226,7 @@ function App() {
         onLocations={() => setLocationsOpen(true)}
         onLunch={() => setLunchOpen(true)}
         onVidriera={() => openVidrieraModal()}
+        onHoursReport={() => setHoursReportOpen(true)}
         onTasksAdmin={() => setTaskAdminOpen(true)}
         onTaskRetention={() => setTaskRetentionOpen(true)}
         onAudit={() => setAuditOpen(true)}

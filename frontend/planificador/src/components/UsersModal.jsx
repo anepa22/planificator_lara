@@ -25,7 +25,7 @@ const PERMISSION_GROUPS = [
   {
     id: 'schedule',
     title: 'Horarios y ausencias',
-    prefixes: ['shifts:', 'vacations:', 'schedule:', 'lunch:'],
+    prefixes: ['shifts:', 'vacations:', 'schedule:', 'lunch:', 'hours:'],
   },
   { id: 'team', title: 'Equipo y accesos', prefixes: ['staff:', 'users:', 'roles:', 'locations:'] },
   { id: 'other', title: 'Otros', prefixes: [] },

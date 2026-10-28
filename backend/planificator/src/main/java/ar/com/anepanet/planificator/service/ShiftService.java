@@ -2,6 +2,9 @@ package ar.com.anepanet.planificator.service;
 
 import ar.com.anepanet.planificator.domain.AppUser;
 import ar.com.anepanet.planificator.domain.HoursByUserWeek;
+import ar.com.anepanet.planificator.domain.HoursReport;
+import ar.com.anepanet.planificator.domain.HoursReportPerson;
+import ar.com.anepanet.planificator.domain.HoursShiftRow;
 import ar.com.anepanet.planificator.domain.Location;
 import ar.com.anepanet.planificator.domain.Shift;
 import ar.com.anepanet.planificator.domain.ShiftWeekView;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -82,6 +86,65 @@ public class ShiftService {
     public byte[] vacationReportPdf(LocalDate from, LocalDate to) {
         SecurityUtils.requireAuthority(Permissions.VACATIONS_PRINT);
         return VacationReportPdf.render(loadVacationReport(from, to));
+    }
+
+    public HoursReport hoursReport(
+            LocalDate from, LocalDate to, UUID personId, String locationId, BigDecimal lunch) {
+        SecurityUtils.requireAuthority(Permissions.HOURS_REPORT);
+        return loadHoursReport(from, to, personId, blankToNull(locationId), lunch);
+    }
+
+    public byte[] hoursReportPdf(
+            LocalDate from, LocalDate to, UUID personId, String locationId, BigDecimal lunch) {
+        SecurityUtils.requireAuthority(Permissions.HOURS_REPORT);
+        return HoursReportPdf.render(loadHoursReport(from, to, personId, blankToNull(locationId), lunch));
+    }
+
+    private HoursReport loadHoursReport(
+            LocalDate from, LocalDate to, UUID personId, String locationId, BigDecimal lunch) {
+        HoursReportMath.requireRange(from, to);
+        BigDecimal lunchHours = HoursReportMath.requireLunch(lunch);
+        String locationName = null;
+        if (locationId != null) {
+            if (Permissions.isAbsenceLocation(locationId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ese local no entra en el reporte");
+            }
+            locationName = locations.findById(locationId)
+                    .map(Location::name)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Local no encontrado"));
+        }
+        String personName = null;
+        if (personId != null) {
+            personName = users.findById(personId)
+                    .map(AppUser::displayName)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Persona no encontrada"));
+        }
+        List<HoursShiftRow> rows = shifts.findHoursShifts(from, to);
+        List<HoursReportPerson> people = HoursReportMath.people(
+                rows, personId, personName, locationId, lunchHours);
+        List<HoursReportMath.LocationChoice> choices = locations.findAll().stream()
+                .map(location -> new HoursReportMath.LocationChoice(
+                        location.id(), location.name(), location.active()))
+                .toList();
+        return new HoursReport(
+                from,
+                to,
+                lunchHours,
+                personId,
+                personName,
+                locationId,
+                locationName,
+                HoursReportMath.total(people),
+                people,
+                HoursReportMath.personOptions(users.findActiveStaff(), rows),
+                HoursReportMath.locationOptions(choices, HoursReportMath.salesLocationIds(rows)));
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 
     private VacationReport loadVacationReport(LocalDate from, LocalDate to) {
