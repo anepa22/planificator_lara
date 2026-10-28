@@ -135,6 +135,15 @@ public final class VacationQuota {
             int periodYear,
             Map<Integer, Integer> enjoyedByYear,
             Map<Integer, Integer> extraByYear) {
+        return snapshot(hire, periodYear, enjoyedByYear, extraByYear, 0);
+    }
+
+    public static Snapshot snapshot(
+            LocalDate hire,
+            int periodYear,
+            Map<Integer, Integer> enjoyedByYear,
+            Map<Integer, Integer> extraByYear,
+            int openingCarry) {
         int extra = daysOf(extraByYear, periodYear);
         int enjoyed = daysOf(enjoyedByYear, periodYear);
         if (hire == null || periodYear < hire.getYear()) {
@@ -142,23 +151,32 @@ public final class VacationQuota {
         }
         int seniority = seniorityDays(hire, periodYear);
         int thisPeriod = periodYear >= FIRST_ENJOYMENT_YEAR ? seniority : 0;
-        int carried = carriedInto(hire, periodYear, enjoyedByYear, extraByYear);
+        int carried = carriedInto(hire, periodYear, enjoyedByYear, extraByYear, openingCarry);
         return new Snapshot(thisPeriod, carried, extra, enjoyed, thisPeriod + carried + extra - enjoyed);
     }
 
+    public static boolean isOpeningPeriod(int periodYear) {
+        return periodYear == FIRST_ENJOYMENT_YEAR;
+    }
+
     /**
-     * El período 2026 abre sin saldo anterior. Desde el siguiente, entra lo no gozado
-     * más la antigüedad que ya se habilitó.
+     * En el período 2026, Del período anterior es el valor cargado una sola vez.
+     * Desde el siguiente, entra lo no gozado más la antigüedad que ya se habilitó.
      */
     private static int carriedInto(
             LocalDate hire,
             int periodYear,
             Map<Integer, Integer> enjoyedByYear,
-            Map<Integer, Integer> extraByYear) {
-        if (periodYear <= FIRST_ENJOYMENT_YEAR) {
+            Map<Integer, Integer> extraByYear,
+            int openingCarry) {
+        int opening = Math.max(0, openingCarry);
+        if (periodYear < FIRST_ENJOYMENT_YEAR) {
             return 0;
         }
-        int carried = 0;
+        if (periodYear == FIRST_ENJOYMENT_YEAR) {
+            return opening;
+        }
+        int carried = opening;
         for (int year = FIRST_ENJOYMENT_YEAR; year < periodYear; year++) {
             int quota = seniorityDays(hire, year) + carried + daysOf(extraByYear, year);
             carried = Math.max(0, quota - daysOf(enjoyedByYear, year));
@@ -175,6 +193,16 @@ public final class VacationQuota {
             Map<Integer, Integer> enjoyedByYear,
             Map<Integer, Integer> extraByYear,
             List<LocalDate> newDates) {
+        return rejection(name, hire, enjoyedByYear, extraByYear, newDates, 0);
+    }
+
+    public static String rejection(
+            String name,
+            LocalDate hire,
+            Map<Integer, Integer> enjoyedByYear,
+            Map<Integer, Integer> extraByYear,
+            List<LocalDate> newDates,
+            int openingCarry) {
         if (newDates.isEmpty()) {
             return null;
         }
@@ -193,7 +221,7 @@ public final class VacationQuota {
         Collections.sort(years);
         for (int year : years) {
             int requested = countByPeriod.get(year);
-            Snapshot snap = snapshot(hire, year, enjoyed, extraByYear);
+            Snapshot snap = snapshot(hire, year, enjoyed, extraByYear, openingCarry);
             if (snap.thisPeriod() == 0 && snap.carried() == 0 && snap.extra() == 0) {
                 return name + " no tiene días de este período, del anterior ni extra";
             }

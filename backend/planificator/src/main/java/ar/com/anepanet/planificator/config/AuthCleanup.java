@@ -187,6 +187,12 @@ public class AuthCleanup implements ApplicationRunner {
                         PRIMARY KEY (user_id, period_year)
                     )
                     """).update();
+            jdbc.sql("""
+                    CREATE TABLE IF NOT EXISTS vacation_opening_carry (
+                        user_id UUID PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
+                        days INTEGER NOT NULL CHECK (days >= 0)
+                    )
+                    """).update();
             ensureLocationNameIndex();
             jdbc.sql(LocationCatalogSchema.SHIFT_WEEK_VIEW).update();
             ensureLocationsPermission();

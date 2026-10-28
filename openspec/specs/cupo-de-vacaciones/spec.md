@@ -69,11 +69,19 @@ Desde el período que abre el 1 de octubre de 2026, la antigüedad de ese perío
 - **THEN** el 1 de octubre de 2027 Del período anterior es 14
 
 ### Requirement: Arrastre del saldo
-El período que abre el 1 de octubre de 2026 SHALL arrancar con Del período anterior en cero. Desde el período siguiente, lo no gozado SHALL sumarse a la antigüedad que se habilita. Un exceso de días gozados SHALL NOT reducir el período siguiente.
+En el período que abre el 1 de octubre de 2026, Del período anterior SHALL ser un entero no negativo cargado por persona, o cero si no se cargó. Desde el siguiente SHALL calcularse y SHALL NOT editarse. Lo no gozado, incluido ese saldo, SHALL sumarse a la antigüedad que se habilita. Un exceso gozado SHALL NOT reducir el período siguiente.
 
 #### Scenario: Años anteriores
 - **WHEN** la persona ingresó el 1 de mayo de 2022 y tiene vacaciones anteriores al 1 de octubre de 2026
 - **THEN** en el período que abre el 1 de octubre de 2026, Del período anterior es 0
+
+#### Scenario: Saldo cargado una vez
+- **WHEN** en el período que abre el 1 de octubre de 2026 se guardan 4 días del período anterior, De este período es 21, Gozados es 10 y no hay días extra
+- **THEN** Del período anterior es 4, Días extra es 0 y Quedan es 15
+
+#### Scenario: El saldo cargado entra en el siguiente
+- **WHEN** esos 4 días no se gozaron, la antigüedad de 2026 es 21 y hay 10 gozados
+- **THEN** el 1 de octubre de 2027 Del período anterior es 15
 
 #### Scenario: El sobrante sigue
 - **WHEN** el 1 de octubre de 2027 Del período anterior es 14 y en ese período no se carga ningún día
@@ -125,7 +133,7 @@ Si De este período, Del período anterior y Días extra son cero, el sistema SH
 - **THEN** se puede cargar ese día
 
 ### Requirement: Botón en Cargar
-Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir el cupo de la única persona ya elegida en Cargar, sin desplegable de personas. Muestra De este período, Del período anterior, Gozados y Quedan, y es el único lugar de los Días extra, también en cero. De este período y Del período anterior SHALL NOT ser editables. El Reporte SHALL NOT incluir ese botón. Quedan SHALL ser De este período más Del período anterior más los días extra menos los gozados.
+Cargar SHALL incluir el botón Cupo para la única persona ya elegida, sin desplegable. Muestra De este período, Del período anterior, Gozados, Quedan y los Días extra. De este período SHALL NOT editarse. Del período anterior SHALL editarse solo en el período que abre el 1 de octubre de 2026. El Reporte SHALL NOT incluir ese botón.
 
 #### Scenario: Persona ya elegida
 - **WHEN** en Cargar no hay una sola persona marcada y se pulsa Cupo
@@ -134,6 +142,14 @@ Cargar SHALL incluir el botón Cupo. Ese botón SHALL abrir el cupo de la única
 #### Scenario: Veintiuno de este período
 - **WHEN** De este período es 21, Del período anterior es 0 y Gozados es 7
 - **THEN** el botón muestra esos números y Quedan 14
+
+#### Scenario: Período de apertura
+- **WHEN** se abre Cupo en el período que abre el 1 de octubre de 2026
+- **THEN** Del período anterior se puede guardar y Días extra sigue siendo otro campo
+
+#### Scenario: Período siguiente
+- **WHEN** se abre Cupo en el período que abre el 1 de octubre de 2027
+- **THEN** Del período anterior no se edita
 
 #### Scenario: Días extra solo ahí
 - **WHEN** se abre el Reporte

@@ -5,6 +5,7 @@ import ar.com.anepanet.planificator.domain.VacationPersonReport;
 import ar.com.anepanet.planificator.repository.AuthRepository;
 import ar.com.anepanet.planificator.repository.ShiftRepository;
 import ar.com.anepanet.planificator.repository.VacationAdjustmentRepository;
+import ar.com.anepanet.planificator.repository.VacationOpeningCarryRepository;
 import ar.com.anepanet.planificator.security.Permissions;
 import ar.com.anepanet.planificator.security.SecurityUtils;
 import ar.com.anepanet.planificator.web.dto.VacationQuotaResponse;
@@ -24,14 +25,17 @@ public class VacationQuotaService {
     private final AuthRepository users;
     private final ShiftRepository shifts;
     private final VacationAdjustmentRepository adjustments;
+    private final VacationOpeningCarryRepository openingCarry;
 
     public VacationQuotaService(
             AuthRepository users,
             ShiftRepository shifts,
-            VacationAdjustmentRepository adjustments) {
+            VacationAdjustmentRepository adjustments,
+            VacationOpeningCarryRepository openingCarry) {
         this.users = users;
         this.shifts = shifts;
         this.adjustments = adjustments;
+        this.openingCarry = openingCarry;
     }
 
     public VacationQuotaResponse quota(UUID userId, int periodYear) {
@@ -40,16 +44,27 @@ public class VacationQuotaService {
         return response(requireUser(userId), periodYear);
     }
 
-    public VacationQuotaResponse saveAdjustment(UUID userId, int periodYear, int days) {
+    public VacationQuotaResponse saveAdjustment(UUID userId, int periodYear, int days, Integer carried) {
         SecurityUtils.requireAuthority(Permissions.VACATIONS_WRITE);
         requirePeriodYear(periodYear);
         try {
             VacationQuota.requireAdjustment(days);
+            if (carried != null) {
+                VacationQuota.requireAdjustment(carried);
+            }
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         }
+        if (carried != null && !VacationQuota.isOpeningPeriod(periodYear)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Del período anterior solo se carga en el período que abre el 1 de octubre de 2026");
+        }
         requireUser(userId);
         adjustments.save(userId, periodYear, days);
+        if (carried != null) {
+            openingCarry.save(userId, carried);
+        }
         return response(requireUser(userId), periodYear);
     }
 
@@ -68,7 +83,8 @@ public class VacationQuotaService {
                     user.hireDate(),
                     enjoyedByYear(user, throughYear),
                     adjustments.findByUser(userId),
-                    fresh);
+                    fresh,
+                    openingCarry.findDays(userId));
             if (message != null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
             }
@@ -84,7 +100,8 @@ public class VacationQuotaService {
                 user.hireDate(),
                 periodYear,
                 enjoyedByYear(user, periodYear),
-                adjustments.findByUser(user.id()));
+                adjustments.findByUser(user.id()),
+                openingCarry.findDays(user.id()));
         return new VacationPersonReport(
                 person.userId(),
                 person.userName(),
@@ -111,7 +128,8 @@ public class VacationQuotaService {
                 user.hireDate(),
                 periodYear,
                 enjoyedByYear(user, periodYear),
-                adjustments.findByUser(user.id()));
+                adjustments.findByUser(user.id()),
+                openingCarry.findDays(user.id()));
         return new VacationQuotaResponse(
                 user.id(),
                 displayName(user),

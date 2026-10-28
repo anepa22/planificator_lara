@@ -155,6 +155,20 @@ class VacationQuotaTest {
     }
 
     @Test
+    void openingCarryIsLoadedOnceAndThenCountsInTheNextRemainder() {
+        LocalDate hire = LocalDate.of(2018, 3, 15);
+        VacationQuota.Snapshot now = VacationQuota.snapshot(hire, 2026, Map.of(2026, 10), Map.of(), 4);
+        assertEquals(21, now.thisPeriod());
+        assertEquals(4, now.carried());
+        assertEquals(0, now.extra());
+        assertEquals(10, now.enjoyed());
+        assertEquals(15, now.remaining());
+
+        VacationQuota.Snapshot next = VacationQuota.snapshot(hire, 2027, Map.of(2026, 10), Map.of(), 4);
+        assertEquals(15, next.carried());
+    }
+
+    @Test
     void negativeAdjustmentIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> VacationQuota.requireAdjustment(-1));
     }

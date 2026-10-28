@@ -32,6 +32,6 @@ public class VacationQuotaController {
 
     @PutMapping
     public VacationQuotaResponse save(@Valid @RequestBody SaveVacationAdjustmentRequest request) {
-        return quotas.saveAdjustment(request.userId(), request.periodYear(), request.days());
+        return quotas.saveAdjustment(request.userId(), request.periodYear(), request.days(), request.carried());
     }
 }

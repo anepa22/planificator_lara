@@ -90,6 +90,7 @@ export default function VacationModal({
   const [cupoYear, setCupoYear] = useState(() => enjoymentYear(new Date()))
   const [quota, setQuota] = useState(null)
   const [extra, setExtra] = useState('0')
+  const [carried, setCarried] = useState('0')
   const [cupoError, setCupoError] = useState('')
   const [cupoBusy, setCupoBusy] = useState(false)
   const confirmPendingRef = useRef(false)
@@ -126,6 +127,7 @@ export default function VacationModal({
         if (cancelled) return
         setQuota(row)
         setExtra(String(row.extra ?? 0))
+        setCarried(String(row.carried ?? 0))
       })
       .catch((e) => {
         if (!cancelled) {
@@ -159,7 +161,9 @@ export default function VacationModal({
 
   async function saveExtra() {
     const days = Number(extra)
-    if (!Number.isInteger(days) || days < 0) {
+    const carriedDays = Number(carried)
+    const canEditCarried = cupoYear === FIRST_ENJOYMENT_YEAR
+    if (!Number.isInteger(days) || days < 0 || (canEditCarried && (!Number.isInteger(carriedDays) || carriedDays < 0))) {
       setCupoError('Ingresá un número entero de cero o más.')
       return
     }
@@ -170,9 +174,11 @@ export default function VacationModal({
         userId: cupoUserId,
         periodYear: cupoYear,
         days,
+        ...(canEditCarried ? { carried: carriedDays } : {}),
       })
       setQuota(row)
       setExtra(String(row.extra ?? 0))
+      setCarried(String(row.carried ?? 0))
     } catch (e) {
       setCupoError(e.message)
     } finally {
@@ -277,10 +283,16 @@ export default function VacationModal({
   const datesInverted = Boolean(dateFrom && dateTo && parseDateKey(dateFrom) > parseDateKey(dateTo))
   const periodYears = [...new Set(dateKeys.map((key) => enjoymentYear(key)))]
   const cupoPerson = staff.find((person) => person.id === cupoUserId)
+  const canEditCarried = cupoYear === FIRST_ENJOYMENT_YEAR
   const typedExtra = Number(extra)
+  const typedCarried = Number(carried)
   const extraOk = Number.isInteger(typedExtra) && typedExtra >= 0
-  const previewRemaining = quota && extraOk
-    ? quota.remaining - (quota.extra ?? 0) + typedExtra
+  const carriedOk = !canEditCarried || (Number.isInteger(typedCarried) && typedCarried >= 0)
+  const previewRemaining = quota && extraOk && carriedOk
+    ? quota.remaining
+      - (quota.extra ?? 0)
+      + typedExtra
+      - (canEditCarried ? (quota.carried ?? 0) - typedCarried : 0)
     : quota?.remaining
   const dayLabel = dateKeys.length === 1 ? '1 día' : `${dateKeys.length} días`
   const whoLabel = selectedIds.length === 1
@@ -337,7 +349,11 @@ export default function VacationModal({
                 ))}
               </select>
             </div>
-            <p className="vacation-load-lead">De este período y del período anterior no se editan. Los días extra se suman a Quedan.</p>
+            <p className="vacation-load-lead">
+              {canEditCarried
+                ? 'De este período no se edita. En este período, Del período anterior se carga una sola vez. Los días extra se suman a Quedan.'
+                : 'De este período y del período anterior no se editan. Los días extra se suman a Quedan.'}
+            </p>
             {cupoError && <div className="m-warn">{cupoError}</div>}
             {cupoBusy && <div className="m-sub">Cargando…</div>}
             {quota && quota.hireDate == null && !cupoBusy && !cupoError && (
@@ -349,9 +365,26 @@ export default function VacationModal({
                   <span>De este período</span>
                   <strong>{quota.thisPeriod}</strong>
                 </div>
-                <div className="vacation-stat">
-                  <span>Del período anterior</span>
-                  <strong>{quota.carried}</strong>
+                <div className={`vacation-stat${canEditCarried ? ' vacation-stat-extra' : ''}`}>
+                  {canEditCarried ? (
+                    <>
+                      <label htmlFor="cupo-carried">Del período anterior</label>
+                      <input
+                        id="cupo-carried"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={carried}
+                        disabled={busy || cupoBusy}
+                        onChange={(e) => setCarried(e.target.value)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span>Del período anterior</span>
+                      <strong>{quota.carried}</strong>
+                    </>
+                  )}
                 </div>
                 <div className="vacation-stat">
                   <span>Gozados</span>
@@ -385,7 +418,7 @@ export default function VacationModal({
                 disabled={cupoBusy || !quota?.hireDate}
                 onClick={() => void saveExtra()}
               >
-                Guardar días extra
+                {canEditCarried ? 'Guardar' : 'Guardar días extra'}
               </button>
             </div>
           </div>
